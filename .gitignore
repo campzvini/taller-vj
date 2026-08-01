@@ -1,0 +1,12 @@
+# local scratch
+.agent-cache/
+*.log
+
+# os
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# never commit credentials
+*.key
+.env
