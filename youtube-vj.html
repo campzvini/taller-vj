@@ -56,8 +56,11 @@ button:hover{background:#2a2a34}
 .marks{display:flex;gap:3px;align-items:center;flex-wrap:wrap;font-size:10px}
 .mk{padding:3px 6px;font-size:10px}
 .mk.on{background:var(--accb);border-color:var(--accb);color:#fff}
-.rng{color:var(--dim);font-size:9px;min-width:88px}
+.rng{color:var(--dim);font-size:9px;min-width:80px}
 .rng.set{color:var(--ok)}
+.grabh{cursor:grab;border:1px dashed var(--accb);padding:2px 7px;border-radius:3px;
+  font-size:10px;color:var(--accb)}
+.grabh:active{cursor:grabbing}
 
 /* ── § 1.3 — Cue — preview that never reaches the output ── */
 #cue{background:#000;border:1px solid var(--accb);aspect-ratio:16/9;overflow:hidden;position:relative;flex:0 0 auto}
@@ -132,7 +135,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <div class="marks">
       <button class="mk" data-in="A">IN</button><button class="mk" data-out="A">OUT</button>
       <button class="mk" data-tloop="A">⟲ trecho</button><button class="mk" data-mclr="A">×</button>
-      <span class="rng" id="rngA">—</span></div>
+      <span class="rng" id="rngA">—</span>
+      <span class="grabh" data-grab="A" draggable="true" title="arraste para um slot ou lista">⇢</span></div>
     <div class="row"><button data-pp="A">▶/❚❚</button><button data-arm="A">armar</button>
       <button data-clear="A">limpar</button></div>
     <div class="lib" id="libA"></div>
@@ -145,8 +149,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
       <button class="mk" data-in="P">IN</button><button class="mk" data-out="P">OUT</button>
       <button class="mk" data-mclr="P">×</button>
       <span class="rng" id="rngP">—</span>
-      <span id="grab" draggable="true" title="arraste para um slot"
-        style="cursor:grab;border:1px dashed var(--accb);padding:3px 8px;border-radius:3px">⇢ arraste o trecho</span>
+      <span class="grabh" data-grab="P" draggable="true" title="arraste para um slot ou lista">⇢ trecho</span>
     </div>
     <div id="cuebar">
       <button class="send" id="toA">◄ tocar em A  [</button>
@@ -165,7 +168,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <div class="marks">
       <button class="mk" data-in="B">IN</button><button class="mk" data-out="B">OUT</button>
       <button class="mk" data-tloop="B">⟲ trecho</button><button class="mk" data-mclr="B">×</button>
-      <span class="rng" id="rngB">—</span></div>
+      <span class="rng" id="rngB">—</span>
+      <span class="grabh" data-grab="B" draggable="true" title="arraste para um slot ou lista">⇢</span></div>
     <div class="row"><button data-pp="B">▶/❚❚</button><button data-arm="B">armar</button>
       <button data-clear="B">limpar</button></div>
     <div class="lib" id="libB"></div>
@@ -201,8 +205,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
         <option>hard-light</option><option>lighten</option>
       </select>
       <span class="tag">FADE</span>
-      <input type="range" id="sfade" min="0" max="600" value="90" style="min-width:60px">
+      <input type="range" id="sfade" min="0" max="600" value="90" style="min-width:50px">
       <span class="tag" id="sfadev">90ms</span></div>
+    <div class="row"><button class="tgl" id="saudb">SOM 0–9</button>
+      <input type="range" id="svol" min="0" max="100" value="70" style="min-width:60px">
+      <span class="tag" id="svolv">mudo</span></div>
   </div>
 
   <div class="grp">
@@ -255,7 +262,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 <b>clique</b> num resultado carrega no Cue · <b>[</b> manda pra A · <b>]</b> pra B<br>
 <b>segure 0–9</b> o sample entra no blend enquanto a tecla estiver apertada<br>
 <b>Shift+0–9</b> grava o cue (com o trecho marcado) no slot<br>
-<b>IN / OUT / ⟲</b> marcam trecho em A, B e no Cue · arraste "⇢ trecho" pro slot<br>
+<b>IN / OUT / ⟲</b> marcam trecho em A, B e no Cue<br>
+<b>⇢</b> arrasta o que está no deck/cue para um slot ou lista<br>
+<b>arrastar entre listas move</b> · segure <b>Ctrl</b> para copiar · solte no Cue para consultar<br>
 <b>Tab</b> troca deck armado · <b>Espaço</b> play/pause · <b>V</b> bed<br>
 <b>← →</b> crossfader · <b>Home/End</b> corte · <b>G</b> auto fade<br>
 <b>Z X C</b> bus de fx · <b>Q W E R T</b> efeitos · <b>P</b> panic<br>
@@ -317,7 +326,7 @@ function pushAll(){
   v.smooth(+el('smooth').value); v.blend(el('blend').value); v.xf(S.xf);
   ['A','B','M'].forEach(b=>v.bus(b,[...S.fx[b]],S.amt[b]));
   ['A','B'].forEach(d=>{ if(S.now[d]) v.load(d,S.now[d].id); });
-  v.sampBlend(el('sblend').value); v.sampFade(+el('sfade').value);
+  v.sampBlend(el('sblend').value); v.sampFade(+el('sfade').value); applySampVol();
   S.pool.forEach((n,i)=>{ if(n!=null&&S.slots[n]) v.sampLoad(i,S.slots[n].id,S.slots[n].in||0); });
   applyAudio();
 }
@@ -483,7 +492,8 @@ function renderResults(){
     d.className='res'+(S.sel===i?' sel':''); d.draggable=true;
     d.innerHTML=`<img src="${r.thumb}"><span>${r.title}</span>`;
     d.onclick=()=>{S.sel=i;renderResults();cue(r);};
-    d.ondragstart=e=>{S.sel=i;e.dataTransfer.setData('text/plain',JSON.stringify(r));
+    d.ondragstart=e=>{S.sel=i;
+      e.dataTransfer.setData('text/plain',JSON.stringify({...r,_from:'res'}));
       e.dataTransfer.effectAllowed='copy';};
     c.appendChild(d);
   });
@@ -499,13 +509,18 @@ function cue(r){
   PREV.loadVideoById(r.id);
   try{ PREV.setVolume(+el('vP').value); }catch(e){}
 }
-// o cue é a fonte de arraste: leva o vídeo com o trecho marcado
-el('grab').ondragstart=e=>{
-  if(!S.now.P){ e.preventDefault(); return; }
-  const p={...S.now.P,in:S.mark.P.in??null,out:S.mark.P.out??null};
-  e.dataTransfer.setData('text/plain',JSON.stringify(p));
-  e.dataTransfer.effectAllowed='copy';
-};
+// cue e decks são fontes de arraste: levam o vídeo com o trecho marcado neles
+document.querySelectorAll('[data-grab]').forEach(h=>{
+  const d=h.dataset.grab;
+  h.ondragstart=e=>{
+    const r=S.now[d];
+    if(!r){ e.preventDefault(); return; }
+    const m=S.mark[d]||{};
+    e.dataTransfer.setData('text/plain',
+      JSON.stringify({...clean(r),in:m.in??null,out:m.out??null}));
+    e.dataTransfer.effectAllowed='copy';
+  };
+});
 el('vP').oninput=e=>{ try{PREV.setVolume(+e.target.value)}catch(err){} };
 el('toA').onclick=()=>sendCue('A');
 el('toB').onclick=()=>sendCue('B');
@@ -529,13 +544,31 @@ function sendCue(d){
   col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drop');});
   col.addEventListener('dragleave',()=>col.classList.remove('drop'));
   col.addEventListener('drop',e=>{
-    e.preventDefault(); col.classList.remove('drop');
-    try{ addTo(d,JSON.parse(e.dataTransfer.getData('text/plain'))); }catch(err){}
+    e.preventDefault(); col.classList.remove('drop'); drop(d,e);
   });
+});
+// o cue não tem lista: soltar nele é só carregar para consulta
+const cueBox=el('cue');
+cueBox.addEventListener('dragover',e=>{e.preventDefault();cueBox.style.borderColor='var(--ok)';});
+cueBox.addEventListener('dragleave',()=>cueBox.style.borderColor='');
+cueBox.addEventListener('drop',e=>{
+  e.preventDefault(); e.stopPropagation(); cueBox.style.borderColor='';
+  try{ cue(clean(JSON.parse(e.dataTransfer.getData('text/plain')))); }catch(err){}
 });
 function addTo(d,r){
   if(!r||S.lib[d].some(x=>x.id===r.id)){ flash('já está na lista '+d); return; }
-  S.lib[d].push(r); save(); renderLib(d); flash('→ '+d);
+  S.lib[d].push(clean(r)); save(); renderLib(d); flash('→ '+d);
+}
+const clean=r=>{ const {_from,...rest}=r; return rest; };
+// arrastar entre listas move; com Ctrl, copia
+function drop(dest,e){
+  let r; try{ r=JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
+  const from=r._from;
+  if(from===dest) return;
+  addTo(dest,r);
+  if(from&&'ABC'.includes(from)&&!e.ctrlKey){
+    S.lib[from]=S.lib[from].filter(x=>x.id!==r.id); save(); renderLib(from);
+  }
 }
 function renderLib(d){
   const c=el('lib'+d); c.innerHTML='';
@@ -543,11 +576,17 @@ function renderLib(d){
   S.lib[d].forEach((r,i)=>{
     const it=document.createElement('div');
     it.className='item'+(S.now[d]&&S.now[d].id===r.id?' playing':'');
+    it.draggable=true;
     it.innerHTML=`<img src="${r.thumb}"><span>${r.title}</span><div class="x">×</div>`;
+    it.ondragstart=ev=>{
+      ev.dataTransfer.setData('text/plain',JSON.stringify({...r,_from:d}));
+      ev.dataTransfer.effectAllowed='copyMove';
+    };
     it.onclick=ev=>{
       if(ev.target.classList.contains('x')){ S.lib[d].splice(i,1); save(); renderLib(d); return; }
-      play(d,r);
+      d==='C'?play('C',r):cue(r);
     };
+    it.ondblclick=()=>play(d,r);
     c.appendChild(it);
   });
 }
@@ -600,7 +639,7 @@ function renderSlots(){
     d.ondragover=e=>{e.preventDefault();d.classList.add('drop');};
     d.ondragleave=()=>d.classList.remove('drop');
     d.ondrop=e=>{e.preventDefault();e.stopPropagation();d.classList.remove('drop');
-      try{ S.slots[n]=JSON.parse(e.dataTransfer.getData('text/plain')); save();
+      try{ S.slots[n]=clean(JSON.parse(e.dataTransfer.getData('text/plain'))); save();
            poolAssign(n); flash('slot '+n+' ← trecho'); }catch(err){}};
     c.appendChild(d);
   }
@@ -644,6 +683,15 @@ el('blend').onchange=e=>{ const v=VJ(); if(v) v.blend(e.target.value); };
 el('sblend').onchange=e=>{ const v=VJ(); if(v) v.sampBlend(e.target.value); };
 el('sfade').oninput=e=>{ el('sfadev').textContent=e.target.value+'ms';
   const v=VJ(); if(v) v.sampFade(+e.target.value); };
+// som dos samples é opt-in: por padrão eles entram mudos, só imagem
+const saudb=el('saudb');
+function applySampVol(){
+  const on=saudb.classList.contains('on'), val=on?+el('svol').value:0;
+  el('svolv').textContent=on?val:'mudo';
+  const v=VJ(); if(v) v.sampVol(val);
+}
+saudb.onclick=()=>{ saudb.classList.toggle('on'); applySampVol(); };
+el('svol').oninput=applySampVol;
 let fading=null;
 function autofade(){
   if(fading){ cancelAnimationFrame(fading); fading=null; return; }

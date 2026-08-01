@@ -55,7 +55,7 @@ iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
 <!-- ── § 3 — LOGIC — Command surface for the controller ── -->
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1};
+const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1,svol:0};
 const el=id=>document.getElementById(id);
 const NSAMP=4;
 
@@ -121,10 +121,17 @@ const VJ=window.VJ={
     setTimeout(()=>{ try{p.seekTo(tin||0,true);p.pauseVideo();}catch(e){} },1100);
   },
   sampOn(i){ const p=SP[i]; if(!p) return;
-    try{p.playVideo()}catch(e){} el('s'+i).style.opacity=1; },
+    try{
+      if(ST.svol>0){ p.unMute(); p.setVolume(ST.svol); } else p.mute();
+      p.playVideo();
+    }catch(e){}
+    el('s'+i).style.opacity=1; },
   sampOff(i,tin){ const p=SP[i]; if(!p) return;
     el('s'+i).style.opacity=0;
-    try{ p.pauseVideo(); p.seekTo(tin||0,true); }catch(e){} },
+    try{ p.mute(); p.pauseVideo(); p.seekTo(tin||0,true); }catch(e){} },
+  // volume dos samples: 0 mantém tudo mudo, como antes
+  sampVol(v){ ST.svol=v; SP.forEach(p=>{ try{
+    if(v>0){ p.unMute(); p.setVolume(v); } else p.mute(); }catch(e){} }); },
   sampTime(i){ try{return SP[i].getCurrentTime()}catch(e){return 0} },
   sampSeek(i,t){ try{SP[i].seekTo(t,true)}catch(e){} },
   sampBlend(m){ el('pgS').style.mixBlendMode=m; },
