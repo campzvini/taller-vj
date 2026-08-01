@@ -143,8 +143,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   <div id="sbar">
     <input id="q" placeholder="buscar no youtube  ·  ou colar URL/ID e Enter">
     <button id="go">Buscar</button>
-    <input id="key" placeholder="API key" style="width:150px">
+    <input id="key" type="password" autocomplete="off" placeholder="API key" style="width:150px">
+    <button id="seekey" title="mostrar/ocultar">👁</button>
     <button id="savekey">salvar</button>
+    <span class="tag" id="keyst"></span>
   </div>
   <div id="results"></div>
 </div>
@@ -196,6 +198,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <button id="toA">◄ A  [</button><button id="toB">B ►  ]</button>
         <button id="addA">+lista A</button><button id="addB">+lista B</button>
         <button id="addC">+ bed C</button>
+        <button class="tgl" id="mirrorb" title="cue segue o deck que está no ar">espelhar saída</button>
       </div>
     </div>
 
@@ -319,7 +322,8 @@ const S={
   ar:localStorage.getItem('vj.ar')||'16/9', zoom:1, cc:LS('vj.cc')===true,
   fx:{A:new Set(),B:new Set(),M:new Set()}, amt:{A:1,B:1,M:1},
   mark:{A:{},B:{},P:{}}, tloop:{A:false,B:false},
-  pool:[null,null,null,null], poolOf:{}, poolNext:0, held:{}
+  pool:[null,null,null,null], poolOf:{}, poolNext:0, held:{},
+  mirror:false, mirrorId:null
 };
 const MON={}; let PREV=null, BED=null, OUTW=null;
 const VJ=()=> (OUTW&&!OUTW.closed&&OUTW.VJ&&OUTW.VJ.ready) ? OUTW.VJ : null;
@@ -395,6 +399,7 @@ if(window.YT&&YT.Player) onYouTubeIframeAPIReady();
 // o monitor segue a saída; mas um salto grande é scrub seu, e aí a saída é que segue
 const seen={A:{t:0,ts:0},B:{t:0,ts:0}};
 function drift(){
+  mirrorTick();
   const v=VJ();
   if(!v){   // sem saída: o monitor é a fonte, só o trecho precisa ser vigiado
     ['A','B'].forEach(d=>{
@@ -483,9 +488,22 @@ function holdOff(n){
 }
 
 /* ── § 3.5 — Search ── */
+// a chave fica no localStorage deste navegador e nunca aparece em tela por padrão
 const KEY=()=>localStorage.getItem('vj.key')||'';
-el('key').value=KEY();
-el('savekey').onclick=()=>{ localStorage.setItem('vj.key',el('key').value.trim()); flash('key salva'); };
+function keyStatus(){
+  const k=KEY();
+  el('keyst').textContent=k?'salva ✓ …'+k.slice(-4):'sem chave';
+}
+el('key').value=KEY(); keyStatus();
+el('savekey').onclick=()=>{
+  localStorage.setItem('vj.key',el('key').value.trim());
+  el('key').type='password'; keyStatus(); flash('key salva');
+};
+el('seekey').onclick=()=>{
+  const i=el('key');
+  i.type = i.type==='password' ? 'text' : 'password';
+  if(i.type==='text') setTimeout(()=>{i.type='password';},6000);   // reesconde sozinha
+};
 function parseId(s){
   const m=s.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
   return m?m[1]:(/^[\w-]{11}$/.test(s.trim())?s.trim():null);
@@ -536,8 +554,38 @@ el('searchb').onclick=()=>toggleSearch();
 if(LS('vj.search')===false) sw.classList.add('closed');
 
 /* ── § 3.6 — Cue ── */
+/* espelho: o cue passa a seguir o deck que está dominando a saída. É o conteúdo
+   daquele deck, não a composição — efeitos e blend acontecem na outra janela. */
+const mirrorb=el('mirrorb');
+mirrorb.onclick=()=>{
+  S.mirror=!S.mirror; mirrorb.classList.toggle('on',S.mirror); S.mirrorId=null;
+  if(!S.mirror) flash('espelho off'); else mirrorTick();
+};
+function domDeck(){
+  const a=!!S.now.A, b=!!S.now.B;
+  if(a&&b) return S.xf<50?'A':'B';
+  return a?'A':(b?'B':null);
+}
+function mirrorTick(){
+  if(!S.mirror||!PREV||!PREV.loadVideoById) return;
+  const d=domDeck(); if(!d) return;
+  const r=S.now[d];
+  if(S.mirrorId!==r.id){
+    S.mirrorId=r.id; el('tP').textContent='[saída · '+d+'] '+r.title;
+    PREV.loadVideoById(r.id);
+    try{ PREV.setVolume(+el('vP').value); }catch(e){}
+    return;
+  }
+  const v=VJ(); if(!v) return;
+  try{
+    const t=v.time(d);
+    if(Math.abs(PREV.getCurrentTime()-t)>0.8) PREV.seekTo(t,true);
+    if(v.state(d)===1&&PREV.getPlayerState()!==1) PREV.playVideo();
+  }catch(e){}
+}
 function cue(r){
   if(!r||!PREV||!PREV.loadVideoById) return;
+  if(S.mirror){ S.mirror=false; mirrorb.classList.remove('on'); }  // carregar no cue desliga o espelho
   r=clean(r);
   S.now.P=r; el('tP').textContent=r.title;
   S.mark.P={in:r.in??null,out:r.out??null}; renderMarks();

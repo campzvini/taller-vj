@@ -63,6 +63,10 @@ For search inside the app, create a free API key: go to the
 and click *Salvar key*; it is stored in your browser's `localStorage` and never leaves it.
 Restrict the key to `http://localhost:8787/*` and to the YouTube Data API.
 
+The key is stored in this browser's `localStorage` and is never written to disk by the
+project, never sent anywhere except Google's API, and never committed — the field is masked
+and only reveals on demand, for a few seconds.
+
 Note the quota: 10,000 units per day, and each search costs 100 — about a hundred searches
 daily. Pasting URLs costs nothing.
 
@@ -73,6 +77,7 @@ daily. Pasting URLs costs nothing.
 | `O` | open the output window (drag to the projector, then F11) |
 | click | load a search result into the cue player (never on air) |
 | `[` `]` | send the cue to deck A / deck B, from where you were watching |
+| `/` | collapse or open the search strip |
 | drag | drop a search result onto column A/B, a numbered slot, or the Audio Bed |
 | `0`–`9` | fire hot slot into the armed deck |
 | `Shift`+`0`–`9` | store the selected result in a slot |
