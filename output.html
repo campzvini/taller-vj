@@ -161,6 +161,9 @@ const VJ=window.VJ={
     an.style.animation=a.join(', ');
   },
 
+  // zoom por canal: a var vive na camada e é herdada pelo iframe daquele deck
+  zoomCh(d,z){ el('pg'+d).style.setProperty('--zoom',z); },
+
   frame(ar,zoom){
     ST.ar=ar; ST.zoom=zoom;
     const [w,h]=ar.split('/').map(Number), T=w/h, SRC=16/9, r=document.documentElement.style;

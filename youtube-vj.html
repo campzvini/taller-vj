@@ -111,6 +111,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .fsep{width:1px;height:18px;background:var(--line);flex:0 0 auto}
 .tgl{padding:3px 6px;font-size:10px}
 .tgl.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#colC{display:flex;gap:6px;align-items:center;padding:3px 6px;border:1px dashed transparent;
+  border-radius:4px}
+#colC.drop{border-color:var(--ok);background:#0f2417}
 #bedmon{width:54px;flex:0 0 auto;aspect-ratio:16/9;background:#000;border:1px solid var(--line);overflow:hidden}
 #bedmon iframe{width:100%;height:100%;border:0;pointer-events:none}
 #bedlist{position:fixed;right:8px;bottom:40px;width:280px;max-height:220px;overflow-y:auto;
@@ -129,7 +132,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   <span class="tag">FORMATO</span>
   <button class="tgl on" data-ar="16/9">16:9</button>
   <button class="tgl" data-ar="4/3">4:3</button>
-  <span class="tag">ZOOM</span><input type="range" id="zoom" min="100" max="220" value="100" style="width:70px">
   <button class="tgl" id="loopb">loop (L)</button>
   <button class="tgl" id="ccb">CC (K)</button>
   <div style="flex:1"></div>
@@ -154,6 +156,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="card">
       <div class="row"><span class="tag" style="width:34px">opac</span>
         <input type="range" id="opA" min="0" max="100" value="100"><span class="val" id="opAv">100</span></div>
+      <div class="row"><span class="tag" style="width:34px">zoom</span>
+        <input type="range" id="zmA" min="100" max="220" value="100"><span class="val" id="zmAv">100</span></div>
       <div class="row"><span class="tag" style="width:34px">vol</span>
         <input type="range" id="vA" min="0" max="100" value="100"><span class="val" id="vAv">100</span></div>
       <div class="row">
@@ -190,6 +194,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="row">
         <button id="toA">◄ A  [</button><button id="toB">B ►  ]</button>
         <button id="addA">+lista A</button><button id="addB">+lista B</button>
+        <button id="addC">+ bed C</button>
       </div>
     </div>
 
@@ -228,7 +233,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <button class="fx" data-fx="hue"    data-bus="M">HUE</button>
         <button class="fx" data-fx="strobe" data-bus="M">STR</button>
         <input type="range" class="amt" data-amt="M" min="0" max="100" value="100">
-        <button id="panic">panic (P)</button>
       </div>
     </div>
   </div>
@@ -240,6 +244,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="card">
       <div class="row"><span class="tag" style="width:34px">opac</span>
         <input type="range" id="opB" min="0" max="100" value="100"><span class="val" id="opBv">100</span></div>
+      <div class="row"><span class="tag" style="width:34px">zoom</span>
+        <input type="range" id="zmB" min="100" max="220" value="100"><span class="val" id="zmBv">100</span></div>
       <div class="row"><span class="tag" style="width:34px">vol</span>
         <input type="range" id="vB" min="0" max="100" value="100"><span class="val" id="vBv">100</span></div>
       <div class="row">
@@ -272,14 +278,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <option value="bed">só bed</option>
   </select>
   <div class="fsep"></div>
-  <span class="tag">bed C</span>
-  <div id="bedmon" data-deck="C"><div id="ytCout"></div></div>
-  <span class="now" id="tC" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-  <button data-pp="C">▶❚❚ (V)</button>
-  <input type="range" id="vC" min="0" max="100" value="80" style="width:70px">
-  <button id="bedb">lista ▾</button>
-  <button data-clear="C">limpar</button>
+  <div id="colC" data-deck="C">
+    <span class="tag">bed C</span>
+    <div id="bedmon"><div id="ytCout"></div></div>
+    <span class="now" id="tC" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button data-pp="C">▶❚❚ (V)</button>
+    <input type="range" id="vC" min="0" max="100" value="80" style="width:64px">
+    <button id="bedb">lista ▾</button>
+    <button data-clear="C">limpar</button>
+  </div>
   <div style="flex:1"></div>
+  <button id="panic">panic (P)</button>
   <span class="tag" id="fxfocus">fx: master</span>
 </div>
 
@@ -342,7 +351,8 @@ function pushAll(){
   const v=VJ(); if(!v) return;
   v.frame(S.ar,S.zoom); v.loop(S.loop); v.cc(S.cc);
   v.smooth(+el('smooth').value); v.blend(el('blend').value);
-  v.opacity('A',+el('opA').value/100); v.opacity('B',+el('opB').value/100); v.xf(S.xf);
+  ['A','B'].forEach(d=>{ v.opacity(d,+el('op'+d).value/100); v.zoomCh(d,(+el('zm'+d).value/100).toFixed(3)); });
+  v.xf(S.xf);
   ['A','B','M'].forEach(b=>v.bus(b,[...S.fx[b]],S.amt[b]));
   ['A','B'].forEach(d=>{ if(S.now[d]) v.load(d,S.now[d].id); });
   v.sampBlend(el('sblend').value); v.sampFade(+el('sfade').value); applySampVol();
@@ -381,7 +391,15 @@ if(window.YT&&YT.Player) onYouTubeIframeAPIReady();
 // o monitor segue a saída; mas um salto grande é scrub seu, e aí a saída é que segue
 const seen={A:{t:0,ts:0},B:{t:0,ts:0}};
 function drift(){
-  const v=VJ(); if(!v) return;
+  const v=VJ();
+  if(!v){   // sem saída: o monitor é a fonte, só o trecho precisa ser vigiado
+    ['A','B'].forEach(d=>{
+      const m=MON[d], mk=S.mark[d];
+      if(!m||!m.seekTo||!S.tloop[d]||mk.out==null) return;
+      try{ if(m.getPlayerState()===1&&m.getCurrentTime()>=mk.out-0.1) m.seekTo(mk.in||0,true); }catch(e){}
+    });
+    return;
+  }
   const now=performance.now();
   ['A','B'].forEach(d=>{
     const m=MON[d]; if(!m||!m.seekTo) return;
@@ -414,7 +432,8 @@ function drift(){
 const fmt=t=>t==null?'—':`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function headAt(d){
   if(d==='P'){ try{ return PREV.getCurrentTime()||0 }catch(e){ return 0 } }
-  const v=VJ(); return v?v.time(d):0;
+  const v=VJ(); if(v) return v.time(d);
+  try{ return MON[d].getCurrentTime()||0 }catch(e){ return 0 }
 }
 function renderMarks(){
   ['A','B','P'].forEach(d=>{
@@ -526,6 +545,7 @@ el('toA').onclick=()=>sendCue('A');
 el('toB').onclick=()=>sendCue('B');
 el('addA').onclick=()=>{ if(S.now.P) addTo('A',S.now.P); };
 el('addB').onclick=()=>{ if(S.now.P) addTo('B',S.now.P); };
+el('addC').onclick=()=>{ if(S.now.P) addTo('C',S.now.P); };
 function sendCue(d){
   if(!S.now.P){ flash('nada no cue'); return; }
   let t=0; try{ t=PREV.getCurrentTime()||0; }catch(e){}
@@ -552,10 +572,10 @@ document.querySelectorAll('[data-grab]').forEach(h=>{
   col.addEventListener('dragleave',()=>col.classList.remove('drop'));
   col.addEventListener('drop',e=>{e.preventDefault();col.classList.remove('drop');drop(d,e);});
 });
-const bedm=el('bedmon');
-bedm.addEventListener('dragover',e=>{e.preventDefault();bedm.style.borderColor='var(--ok)';});
-bedm.addEventListener('dragleave',()=>bedm.style.borderColor='');
-bedm.addEventListener('drop',e=>{e.preventDefault();bedm.style.borderColor='';drop('C',e);});
+const bedm=el('colC');
+bedm.addEventListener('dragover',e=>{e.preventDefault();bedm.classList.add('drop');});
+bedm.addEventListener('dragleave',()=>bedm.classList.remove('drop'));
+bedm.addEventListener('drop',e=>{e.preventDefault();bedm.classList.remove('drop');drop('C',e);});
 const cueBox=el('cue');
 cueBox.addEventListener('dragover',e=>{e.preventDefault();cueBox.style.borderColor='var(--ok)';});
 cueBox.addEventListener('dragleave',()=>cueBox.style.borderColor='');
@@ -597,6 +617,8 @@ function renderLib(d){
 el('bedb').onclick=()=>el('bedlist').classList.toggle('open');
 
 /* ── § 3.8 — Transport ── */
+// Cada deck é independente: sem a janela de saída aberta, o monitor local é a fonte
+// (e ganha áudio). Com ela aberta, o monitor volta a ser espelho mudo.
 function play(d,r,at){
   if(!r) return;
   if(d==='C'){
@@ -605,11 +627,13 @@ function play(d,r,at){
     S.now.C=r; el('tC').textContent=r.title; renderLib('C'); applyAudio(); return;
   }
   const v=VJ();
-  if(!v){ flash('abra a saída primeiro (O)'); return; }
-  if(r.plist) v.loadList(d,r.plist); else v.load(d,r.id);
-  if(at>1) setTimeout(()=>v.seek(d,at),900);
+  if(v){
+    if(r.plist) v.loadList(d,r.plist); else v.load(d,r.id);
+    if(at>1) setTimeout(()=>v.seek(d,at),900);
+  }
   if(MON[d]){
-    MON[d].loadVideoById(r.id); MON[d].mute();
+    if(r.plist&&!v) MON[d].loadPlaylist({list:r.plist,listType:'playlist'});
+    else MON[d].loadVideoById(r.id);
     if(at>1) setTimeout(()=>{try{MON[d].seekTo(at,true)}catch(e){}},900);
   }
   S.now[d]=r; el('t'+d).textContent=r.title;
@@ -617,7 +641,10 @@ function play(d,r,at){
 }
 function pp(d){
   if(d==='C'){ try{ BED.getPlayerState()===1?BED.pauseVideo():BED.playVideo(); }catch(e){} return; }
-  const v=VJ(); if(v) v.toggle(d);
+  const v=VJ();
+  if(v){ v.toggle(d); return; }
+  const m=MON[d]; if(!m||!m.getPlayerState) return;
+  try{ m.getPlayerState()===1?m.pauseVideo():m.playVideo(); }catch(e){}
 }
 function nextC(){
   const l=S.lib.C; if(!l.length) return;
@@ -691,6 +718,13 @@ function applyXf(){
     el('op'+d+'v').textContent=e.target.value;
     const v=VJ(); if(v) v.opacity(d,+e.target.value/100);
   };
+  // zoom é por canal: vale para a saída e para o monitor daquele deck
+  el('zm'+d).oninput=e=>{
+    const z=(+e.target.value/100).toFixed(3);
+    el('zm'+d+'v').textContent=e.target.value;
+    el('mon'+d).style.setProperty('--zoom',z);
+    const v=VJ(); if(v) v.zoomCh(d,z);
+  };
 });
 el('blend').onchange=e=>{ const v=VJ(); if(v) v.blend(e.target.value); };
 el('sblend').onchange=e=>{ const v=VJ(); if(v) v.sampBlend(e.target.value); };
@@ -729,7 +763,6 @@ function applyFrame(){
   const v=VJ(); if(v) v.frame(S.ar,S.zoom);
 }
 document.querySelectorAll('[data-ar]').forEach(b=>b.onclick=()=>{S.ar=b.dataset.ar;applyFrame();});
-el('zoom').oninput=e=>{S.zoom=(+e.target.value/100).toFixed(3);applyFrame();};
 const loopb=el('loopb');
 function toggleLoop(){
   S.loop=!S.loop; localStorage.setItem('vj.loop',JSON.stringify(S.loop));
@@ -758,7 +791,15 @@ function applyAudio(){
   else if(m==='lockA') b=0;
   else if(m==='lockB') a=0;
   else if(m==='bed'){ a=0; b=0; }
-  const v=VJ(); if(v){ v.vol('A',a); v.vol('B',b); }
+  const v=VJ();
+  if(v){
+    v.vol('A',a); v.vol('B',b);
+    [MON.A,MON.B].forEach(p=>{ try{p.mute()}catch(e){} });   // espelho volta a ser mudo
+  }else{
+    // sem saída, o som sai pelos próprios monitores
+    [['A',a],['B',b]].forEach(([d,val])=>{ const p=MON[d]; if(!p||!p.setVolume) return;
+      try{ if(val>0){ p.unMute(); p.setVolume(Math.round(val)); } else p.mute(); }catch(e){} });
+  }
   try{ if(BED&&BED.setVolume) BED.setVolume(Math.round(+vC.value)); }catch(e){}
 }
 
