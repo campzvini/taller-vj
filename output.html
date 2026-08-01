@@ -55,7 +55,8 @@ iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
 <!-- ── § 3 — LOGIC — Command surface for the controller ── -->
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1,svol:0,opA:1,opB:1};
+const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1,svol:0,
+  opA:1,opB:1,hasA:false,hasB:false};
 const el=id=>document.getElementById(id);
 const NSAMP=4;
 
@@ -111,10 +112,19 @@ const VJ=window.VJ={
   // crossfader faz a mistura; a opacidade de canal é um ganho por cima dela
   xf(v){ ST.xf=v; VJ.paint(); },
   opacity(d,v){ ST['op'+d]=v; VJ.paint(); },
+  present(d,b){ ST['has'+d]=!!b; VJ.paint(); },
+  // a saída é o monitor conjunto de A e B: o crossfader só arbitra quando os dois
+  // têm sinal. Com um deck só, ele aparece inteiro, onde quer que o fader esteja.
   paint(){
-    el('pgA').style.opacity=(ST.opA).toFixed(3);
-    el('pgB').style.opacity=(ST.opB*ST.xf/100).toFixed(3);
+    const a=ST.hasA, b=ST.hasB;
+    let oa=0, ob=0;
+    if(a&&b){ oa=ST.opA; ob=ST.opB*ST.xf/100; }
+    else if(a){ oa=ST.opA; }
+    else if(b){ ob=ST.opB; }
+    el('pgA').style.opacity=oa.toFixed(3);
+    el('pgB').style.opacity=ob.toFixed(3);
   },
+  sampZoom(z){ el('pgS').style.setProperty('--zoom',z); },
   smooth(ms){ el('pgB').style.transition=`opacity ${ms}ms linear`; },
   blend(m){ el('pgB').style.mixBlendMode=m; },
 
