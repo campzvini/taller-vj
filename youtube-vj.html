@@ -1,23 +1,23 @@
 <!-- ──────────────────────────────────────────── -->
-<!-- TALLER TOYS 0.4 — youtube-vj.html -->
-<!-- § - Local audiovisual sampler over YouTube embeds · HTML -->
+<!-- TALLER TOYS 0.5 — youtube-vj.html -->
+<!-- § - Controller surface: library, decks, cue and mixer · HTML -->
 <!-- Taller Dev 2026 -->
 <!-- VAI CORINTHIANS! -->
 <!-- ──────────────────────────────────────────── -->
 <meta charset="utf-8">
 <title>Taller VJ</title>
 
-<!-- ── § 1 — STYLE — Layout, decks, effect buses ── -->
+<!-- ── § 1 — STYLE — Layout, decks, cue, buses ── -->
 <style>
 :root{
   --bg:#0a0a0c; --panel:#141419; --line:#26262e; --txt:#d8d8e0;
-  --dim:#7a7a88; --acc:#ff3b3b; --accb:#3b8cff;
+  --dim:#7a7a88; --acc:#ff3b3b; --accb:#3b8cff; --ok:#3bd17a;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font:12px/1.4 "Segoe UI",system-ui,sans-serif;
   height:100vh;display:grid;grid-template-rows:auto auto 1fr auto;overflow:hidden;user-select:none}
 
-/* ── § 1.1 — TopBar — Search strip ── */
+/* ── § 1.1 — TopBar ── */
 #top{display:flex;gap:8px;padding:8px;background:var(--panel);border-bottom:1px solid var(--line);align-items:center}
 input,button,select{background:#1d1d24;color:var(--txt);border:1px solid var(--line);
   padding:6px 9px;font:inherit;border-radius:3px}
@@ -25,6 +25,8 @@ input:focus{outline:1px solid var(--accb)}
 button{cursor:pointer}
 button:hover{background:#2a2a34}
 #q{flex:1;min-width:120px}
+#outb{font-weight:700}
+#outb.live{background:var(--ok);border-color:var(--ok);color:#04240f}
 #results{display:flex;gap:6px;overflow-x:auto;padding:6px 8px;background:#0f0f13;
   border-bottom:1px solid var(--line);height:88px}
 .res{flex:0 0 112px;cursor:grab;border:2px solid transparent;border-radius:3px;overflow:hidden}
@@ -33,24 +35,29 @@ button:hover{background:#2a2a34}
 .res span{display:block;font-size:9px;color:var(--dim);padding:2px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 
-/* ── § 1.2 — Stage — Deck A / Program / Deck B ── */
-#stage{display:grid;grid-template-columns:250px 1fr 250px;gap:8px;padding:8px;min-height:0}
+/* ── § 1.2 — Stage ── */
+#stage{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:8px;padding:8px;min-height:0}
 .col{display:flex;flex-direction:column;gap:6px;min-height:0}
 .col.drop{outline:2px dashed var(--accb);outline-offset:3px}
 .lbl{font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;
   display:flex;justify-content:space-between;gap:6px}
 .lbl b{color:var(--txt)}
 .lbl .now{color:var(--txt);text-transform:none;letter-spacing:0;font-size:10px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
 .mon{background:#000;border:1px solid var(--line);flex:0 0 auto;aspect-ratio:var(--ar,16/9);
   overflow:hidden;position:relative}
 .mon.armed{border-color:var(--acc)}
-/* o player entrega sempre 16:9; para padronizar o quadro nós cobrimos e cortamos */
-.mon iframe,#program iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
+.mon iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
   width:var(--covw,100%);height:var(--covh,100%);
   transform:translate(-50%,-50%) scale(var(--zoom,1))}
 
-/* ── § 1.3 — Library — per-deck playlist ── */
+/* ── § 1.3 — Cue — preview that never reaches the output ── */
+#cue{background:#000;border:1px solid var(--accb);aspect-ratio:16/9;overflow:hidden;position:relative;flex:0 0 auto}
+#cue iframe{width:100%;height:100%;border:0}
+#cuebar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.send{background:#20202a;border-color:var(--accb)}
+
+/* ── § 1.4 — Library ── */
 .lib{flex:1;min-height:0;overflow-y:auto;background:#101015;border:1px solid var(--line);border-radius:3px}
 .item{display:flex;gap:6px;align-items:center;padding:3px;border-bottom:1px solid #1c1c24;cursor:pointer}
 .item:hover{background:#1b1b23}
@@ -61,21 +68,15 @@ button:hover{background:#2a2a34}
 .item .x:hover{color:var(--acc)}
 .empty{color:var(--dim);font-size:10px;padding:10px;text-align:center;line-height:1.6}
 
-/* ── § 1.4 — Program — bus chain: hue > base > anim ── */
-#program{position:relative;background:#000;border:1px solid var(--line);flex:1;overflow:hidden;
-  display:flex;align-items:center;justify-content:center}
-#frame{position:relative;overflow:hidden;background:#000;
-  aspect-ratio:var(--ar,16/9);max-width:100%;max-height:100%;width:100%}
-.bus{position:absolute;inset:0}
-.layer{position:absolute;inset:0}
+/* ── § 1.5 — Slots ── */
 #slots{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;flex:0 0 auto}
-.slot{background:#16161c;border:1px solid var(--line);border-radius:3px;height:42px;
+.slot{background:#16161c;border:1px solid var(--line);border-radius:3px;height:40px;
   position:relative;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
 .slot .n{position:relative;font-weight:700;font-size:14px;text-shadow:0 0 4px #000}
 .slot.drop{border-color:var(--accb)}
 
-/* ── § 1.5 — Bottom — Crossfader, FX buses, audio ── */
+/* ── § 1.6 — Bottom ── */
 #bottom{background:var(--panel);border-top:1px solid var(--line);padding:8px;
   display:grid;grid-template-columns:1fr 1.25fr .8fr 1fr;gap:12px;align-items:start}
 #colC.drop{outline:2px dashed var(--accb);outline-offset:3px}
@@ -98,28 +99,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 .busb.on{background:var(--accb);border-color:var(--accb);color:#fff}
 .tag{font-size:9px;color:var(--dim);letter-spacing:.1em}
 .num{width:52px;flex:0 0 auto}
-
-/* ── § 1.6 — Effects — parametric via CSS vars ── */
-@keyframes glitch{
-  0%{transform:translate(0)}
-  20%{transform:translate(calc(var(--g,1)*-7px),calc(var(--g,1)*2px))}
-  40%{transform:translate(calc(var(--g,1)*6px),calc(var(--g,1)*-4px))}
-  60%{transform:translate(calc(var(--g,1)*-4px),calc(var(--g,1)*-2px))}
-  80%{transform:translate(calc(var(--g,1)*5px),calc(var(--g,1)*3px))}
-  100%{transform:translate(0)}}
-@keyframes hueroll{from{filter:hue-rotate(0)}to{filter:hue-rotate(360deg)}}
-@keyframes strobe{0%,49%{opacity:1}50%,100%{opacity:var(--s,.05)}}
-#program.full{position:fixed;inset:0;z-index:99;border:0}
 #help{position:fixed;right:10px;bottom:120px;background:#000d;border:1px solid var(--line);
   padding:10px 12px;font-size:11px;line-height:1.7;border-radius:4px;display:none;z-index:120}
 </style>
 
-<!-- ── § 2 — MARKUP — Panels ── -->
+<!-- ── § 2 — MARKUP ── -->
 <div id="top">
   <input id="q" placeholder="buscar no youtube  ·  ou colar URL/ID e Enter">
   <button id="go">Buscar</button>
-  <input id="key" placeholder="YouTube API key" style="width:180px">
+  <input id="key" placeholder="YouTube API key" style="width:170px">
   <button id="savekey">Salvar key</button>
+  <button id="outb">ABRIR SAÍDA (O)</button>
   <button id="helpb">? teclas</button>
 </div>
 <div id="results"></div>
@@ -134,17 +124,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   </div>
 
   <div class="col">
-    <div class="lbl"><span>Program</span><span class="tag">blend A+B</span></div>
-    <div id="program"><div id="frame">
-      <div class="bus" id="hueM"><div class="bus" id="baseM"><div class="bus" id="animM">
-        <div class="layer" id="pgA">
-          <div class="bus" id="hueA"><div class="bus" id="baseA"><div class="bus" id="animA">
-            <div id="ytAout"></div></div></div></div></div>
-        <div class="layer" id="pgB">
-          <div class="bus" id="hueB"><div class="bus" id="baseB"><div class="bus" id="animB">
-            <div id="ytBout"></div></div></div></div></div>
-      </div></div></div>
-    </div></div>
+    <div class="lbl"><span>Cue / consulta <b>(não vai ao ar)</b></span><span class="now" id="tP"></span></div>
+    <div id="cue"><div id="ytPrev"></div></div>
+    <div id="cuebar">
+      <button class="send" id="toA">◄ tocar em A  [</button>
+      <button class="send" id="toB">tocar em B  ]</button>
+      <button id="addA">+ lista A</button>
+      <button id="addB">+ lista B</button>
+      <span class="tag">CUE VOL</span>
+      <input type="range" id="vP" min="0" max="100" value="0" style="max-width:80px">
+    </div>
     <div id="slots"></div>
   </div>
 
@@ -162,18 +151,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <div class="tag">CROSSFADER  ( ← →  ·  Home/End corta )</div>
     <div class="row"><b>A</b><input type="range" id="xf" min="0" max="100" value="0"><b>B</b></div>
     <div class="row"><span class="tag">SUAVIDADE</span>
-      <input type="range" id="smooth" min="0" max="300" value="60" title="inércia do crossfader (ms)">
+      <input type="range" id="smooth" min="0" max="300" value="60">
       <span class="tag" id="smoothv">60ms</span></div>
-    <div class="row"><span class="tag">AUTO</span>
-      <input class="num" id="autosec" value="4" title="segundos">
+    <div class="row"><span class="tag">AUTO</span><input class="num" id="autosec" value="4">
       <button id="autofade">fade ↔ (G)</button>
-      <button id="fs">Full (F)</button>
       <button class="tgl on" id="loopb">loop (L)</button></div>
     <div class="row"><span class="tag">FORMATO</span>
       <button class="tgl on" data-ar="16/9">16:9</button>
       <button class="tgl" data-ar="4/3">4:3</button>
       <span class="tag">ZOOM</span>
-      <input type="range" id="zoom" min="100" max="220" value="100" style="min-width:70px">
+      <input type="range" id="zoom" min="100" max="220" value="100" style="min-width:60px">
       <button class="tgl" id="ccb">CC (K)</button></div>
     <div class="row"><span class="tag">BLEND</span>
       <select id="blend">
@@ -222,124 +209,136 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
       <div class="bedmon" id="monC"><div id="ytCout"></div></div>
       <div class="lib small" id="libC"></div>
     </div>
-    <div class="row"><button data-pp="C">▶/❚❚ (V)</button><button data-clear="C">limpar</button>
-      <span class="tag" id="cnote"></span></div>
+    <div class="row"><button data-pp="C">▶/❚❚ (V)</button><button data-clear="C">limpar</button></div>
     <div class="row"><span class="tag" style="width:40px">vol C</span><input type="range" id="vC" min="0" max="100" value="80"></div>
   </div>
 </div>
 
 <div id="help">
-<b>arraste</b> um resultado para a coluna A/B, um slot, ou o Audio Bed<br>
-<b>V</b> play/pause do Audio Bed · lista do bed avança sozinha<br>
-<b>clique</b> num item da lista carrega no player daquela coluna<br>
-<b>Z X C</b> escolhe o bus de efeito (A / B / Master)<br>
-<b>Q W E R T</b> liga o efeito no bus escolhido · <b>P</b> derruba tudo<br>
-<b>0–9</b> dispara slot · <b>Shift+0–9</b> grava slot<br>
-<b>Tab</b> troca deck armado · <b>Espaço</b> play/pause<br>
+<b>O</b> abre a janela de saída (arraste pro projetor, F11)<br>
+<b>arraste</b> resultado para coluna A/B, slot, ou Audio Bed<br>
+<b>clique</b> num resultado carrega no Cue · <b>[</b> manda pra A · <b>]</b> pra B<br>
+<b>0–9</b> dispara slot no deck armado · <b>Shift+0–9</b> grava slot<br>
+<b>Tab</b> troca deck armado · <b>Espaço</b> play/pause · <b>V</b> bed<br>
 <b>← →</b> crossfader · <b>Home/End</b> corte · <b>G</b> auto fade<br>
-<b>F</b> fullscreen · <b>Esc</b> sai
+<b>Z X C</b> bus de fx · <b>Q W E R T</b> efeitos · <b>P</b> panic<br>
+<b>L</b> loop · <b>K</b> legendas
 </div>
 
-<!-- ── § 3 — LOGIC — Players, library, buses ── -->
+<!-- ── § 3 — LOGIC ── -->
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 const LS=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
+const el=id=>document.getElementById(id);
 const S={
   sel:null, armed:'A', results:[],
   lib:{A:LS('vj.libA')||[], B:LS('vj.libB')||[], C:LS('vj.libC')||[]},
-  now:{A:null,B:null,C:null},
+  now:{A:null,B:null,C:null,P:null},
   slots:LS('vj.slots')||Array(10).fill(null),
   xf:0, bus:'M', loop:LS('vj.loop')!==false,
   ar:localStorage.getItem('vj.ar')||'16/9', zoom:1, cc:LS('vj.cc')===true,
-  fx:{A:new Set(),B:new Set(),M:new Set()},
-  amt:{A:1,B:1,M:1}
+  fx:{A:new Set(),B:new Set(),M:new Set()}, amt:{A:1,B:1,M:1}
 };
-const OUT={}, MON={};
+const MON={};              // espelhos locais dos decks (mudos)
+let PREV=null, BED=null;   // cue e audio bed vivem no controlador
+let OUTW=null;             // janela de saída
+const VJ=()=> (OUTW&&!OUTW.closed&&OUTW.VJ&&OUTW.VJ.ready) ? OUTW.VJ : null;
+
 function save(){
-  localStorage.setItem('vj.libA',JSON.stringify(S.lib.A));
-  localStorage.setItem('vj.libB',JSON.stringify(S.lib.B));
-  localStorage.setItem('vj.libC',JSON.stringify(S.lib.C));
+  ['A','B','C'].forEach(d=>localStorage.setItem('vj.lib'+d,JSON.stringify(S.lib[d])));
   localStorage.setItem('vj.slots',JSON.stringify(S.slots));
 }
 
-/* ── § 3.1 — Players — out (audio) + mon (muted mirror) ── */
-function mk(id,cb,deck){
-  return new YT.Player(id,{height:'100%',width:'100%',videoId:'',
-    playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,playsinline:1,
-      cc_load_policy:0},
-    events:{onReady:cb,
-      onStateChange:e=>{
-        if(deck&&e.data===YT.PlayerState.ENDED) rewind(deck);
-        if(e.data===YT.PlayerState.PLAYING&&!S.cc) ccOff(e.target);
-      }}});
+/* ── § 3.1 — Output window — owns the program players ── */
+function openOutput(){
+  if(OUTW&&!OUTW.closed){ OUTW.focus(); return; }
+  OUTW=window.open('output.html','vjout','width=960,height=540');
+  if(!OUTW){ flash('o navegador bloqueou a janela — libere popups'); return; }
+  const wait=setInterval(()=>{
+    if(OUTW.closed){ clearInterval(wait); markOut(); return; }
+    if(OUTW.VJ&&OUTW.VJ.ready){
+      clearInterval(wait);
+      OUTW.VJ.onEnded=d=>{ if(MON[d]) try{MON[d].seekTo(0,true);MON[d].playVideo();}catch(e){} };
+      pushAll(); markOut(); flash('saída conectada');
+    }
+  },300);
 }
-// só dá para derrubar a legenda depois que o vídeo entra em PLAYING: antes disso
-// o módulo ainda não existe e a chamada é engolida
+function markOut(){
+  const live=!!VJ();
+  el('outb').classList.toggle('live',live);
+  el('outb').textContent=live?'SAÍDA NO AR':'ABRIR SAÍDA (O)';
+}
+setInterval(markOut,1500);
+// reenvia todo o estado atual para uma saída recém-aberta
+function pushAll(){
+  const v=VJ(); if(!v) return;
+  v.frame(S.ar,S.zoom); v.loop(S.loop); v.cc(S.cc);
+  v.smooth(+el('smooth').value); v.blend(el('blend').value); v.xf(S.xf);
+  ['A','B','M'].forEach(b=>v.bus(b,[...S.fx[b]],S.amt[b]));
+  ['A','B'].forEach(d=>{ if(S.now[d]) v.load(d,S.now[d].id); });
+  applyAudio();
+}
+el('outb').onclick=openOutput;
+
+/* ── § 3.2 — Local players — monitors, cue, bed ── */
+function mk(id,cb){
+  return new YT.Player(id,{height:'100%',width:'100%',videoId:'',
+    playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
+      playsinline:1,cc_load_policy:0},
+    events:{onReady:cb,onStateChange:e=>{ if(e.data===1&&!S.cc) ccOff(e.target); }}});
+}
 function ccOff(p){
   if(!p||!p.unloadModule) return;
   try{ p.setOption('captions','track',{}); }catch(e){}
   try{ ['captions','cc'].forEach(m=>p.unloadModule(m)); }catch(e){}
 }
-// loop: o player não repete sozinho um vídeo avulso, então rebobinamos na mão
-function rewind(d){
-  if(!S.loop) return;
-  [OUT[d],MON[d]].forEach(p=>{ if(!p||!p.seekTo) return;
-    try{ p.seekTo(0,true); p.playVideo(); }catch(e){} });
-}
 function onYouTubeIframeAPIReady(){
-  // legendas ficam fora por padrão; cc_load_policy sozinho não vence a preferência da conta
-  const rdy=e=>{ applyAudio();
-    try{ e.target.setLoop(S.loop); if(!S.cc)['captions','cc'].forEach(m=>e.target.unloadModule(m)); }catch(err){} };
-  OUT.A=mk('ytAout',rdy,'A');
-  OUT.B=mk('ytBout',rdy,'B');
   const rdyMon=e=>{e.target.mute();e.target.setPlaybackQuality('small');ccOff(e.target);};
   MON.A=mk('ytAmon',rdyMon);
   MON.B=mk('ytBmon',rdyMon);
-  // deck C: só áudio importa, então roda em qualidade mínima e avança a lista sozinho
-  OUT.C=new YT.Player('ytCout',{height:'100%',width:'100%',videoId:'',
-    playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,playsinline:1,
-      cc_load_policy:0},
+  // o cue mantém os controles nativos: é a janela de consulta do operador
+  PREV=new YT.Player('ytPrev',{height:'100%',width:'100%',videoId:'',
+    playerVars:{modestbranding:1,rel:0,playsinline:1,cc_load_policy:0},
+    events:{onReady:e=>{ try{e.target.setVolume(+el('vP').value)}catch(err){} }}});
+  BED=new YT.Player('ytCout',{height:'100%',width:'100%',videoId:'',
+    playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
+      playsinline:1,cc_load_policy:0},
     events:{onReady:e=>{e.target.setPlaybackQuality('small');applyAudio();},
-            onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) nextC(); }}});
+      onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) nextC(); }}});
   setInterval(drift,2500);
-  applyXf();
 }
 if(window.YT&&YT.Player) onYouTubeIframeAPIReady();
 
-// monitor é uma segunda cópia do vídeo (iframe cross-origin não pode ser espelhado);
-// mantidos alinhados por seek periódico
+// o monitor é uma segunda cópia; alinhamos pelo tempo que a saída reporta
 function drift(){
+  const v=VJ(); if(!v) return;
   ['A','B'].forEach(d=>{
-    const o=OUT[d],m=MON[d];
-    if(!o||!m||!o.getPlayerState||!m.seekTo) return;
+    const m=MON[d]; if(!m||!m.seekTo) return;
     try{
-      const st=o.getPlayerState();
+      const st=v.state(d), t=v.time(d);
       if(st===1&&m.getPlayerState()!==1) m.playVideo();
       if(st!==1&&m.getPlayerState()===1) m.pauseVideo();
-      if(st===1&&Math.abs(m.getCurrentTime()-o.getCurrentTime())>0.4)
-        m.seekTo(o.getCurrentTime(),true);
+      if(st===1&&Math.abs(m.getCurrentTime()-t)>0.4) m.seekTo(t,true);
     }catch(e){}
   });
 }
 
-/* ── § 3.2 — Search — Data API v3 or direct id ── */
+/* ── § 3.3 — Search ── */
 const KEY=()=>localStorage.getItem('vj.key')||'';
-document.getElementById('key').value=KEY();
-document.getElementById('savekey').onclick=()=>{
-  localStorage.setItem('vj.key',document.getElementById('key').value.trim()); flash('key salva');
-};
+el('key').value=KEY();
+el('savekey').onclick=()=>{ localStorage.setItem('vj.key',el('key').value.trim()); flash('key salva'); };
 function parseId(s){
   const m=s.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
   return m?m[1]:(/^[\w-]{11}$/.test(s.trim())?s.trim():null);
 }
 async function search(){
-  const q=document.getElementById('q').value.trim(); if(!q) return;
+  const q=el('q').value.trim(); if(!q) return;
   const pl=(q.match(/[?&]list=([\w-]+)/)||[])[1], id=parseId(q);
   if(pl){ S.results=[{id:id||pl,plist:pl,title:'▶ playlist '+pl.slice(0,10),
             thumb:id?`https://i.ytimg.com/vi/${id}/mqdefault.jpg`:''},...S.results];
-          S.sel=0; renderResults(); flash('playlist — solte no Audio Bed'); return; }
-  if(id){ S.results=[{id,title:id,thumb:`https://i.ytimg.com/vi/${id}/mqdefault.jpg`},...S.results];
           S.sel=0; renderResults(); return; }
+  if(id){ const r={id,title:id,thumb:`https://i.ytimg.com/vi/${id}/mqdefault.jpg`};
+          S.results=[r,...S.results]; S.sel=0; renderResults(); cue(r); return; }
   if(!KEY()){ flash('sem API key — cole uma key ou use URL/ID direto'); return; }
   try{
     const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video`
@@ -352,27 +351,43 @@ async function search(){
   }catch(e){ flash('falha na busca'); }
 }
 function renderResults(){
-  const c=document.getElementById('results'); c.innerHTML='';
-  if(!S.results.length){ c.innerHTML='<div class="empty">busque algo, ou cole uma URL do YouTube e dê Enter — depois arraste para a coluna A ou B</div>'; return; }
+  const c=el('results'); c.innerHTML='';
+  if(!S.results.length){ c.innerHTML='<div class="empty">busque algo, ou cole uma URL do YouTube e dê Enter — clique para abrir no Cue, arraste para as colunas</div>'; return; }
   S.results.forEach((r,i)=>{
     const d=document.createElement('div');
     d.className='res'+(S.sel===i?' sel':''); d.draggable=true;
     d.innerHTML=`<img src="${r.thumb}"><span>${r.title}</span>`;
-    d.onclick=()=>{S.sel=i;renderResults();};
-    d.ondblclick=()=>{addTo(S.armed,r);play(S.armed,r);};
+    d.onclick=()=>{S.sel=i;renderResults();cue(r);};
     d.ondragstart=e=>{S.sel=i;e.dataTransfer.setData('text/plain',JSON.stringify(r));
       e.dataTransfer.effectAllowed='copy';};
     c.appendChild(d);
   });
 }
-document.getElementById('go').onclick=search;
-document.getElementById('q').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.stopPropagation();search();}
-});
+el('go').onclick=search;
+el('q').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.stopPropagation();search();} });
 
-/* ── § 3.3 — Library — drop targets, per-deck lists ── */
+/* ── § 3.4 — Cue — preview that never reaches the output ── */
+function cue(r){
+  if(!r||!PREV||!PREV.loadVideoById) return;
+  S.now.P=r; el('tP').textContent=r.title;
+  PREV.loadVideoById(r.id);
+  try{ PREV.setVolume(+el('vP').value); }catch(e){}
+}
+el('vP').oninput=e=>{ try{PREV.setVolume(+e.target.value)}catch(err){} };
+el('toA').onclick=()=>sendCue('A');
+el('toB').onclick=()=>sendCue('B');
+el('addA').onclick=()=>{ if(S.now.P) addTo('A',S.now.P); };
+el('addB').onclick=()=>{ if(S.now.P) addTo('B',S.now.P); };
+// manda o que está no cue para um deck, a partir do ponto que você estava assistindo
+function sendCue(d){
+  if(!S.now.P){ flash('nada no cue'); return; }
+  let t=0; try{ t=PREV.getCurrentTime()||0; }catch(e){}
+  play(d,S.now.P,t);
+}
+
+/* ── § 3.5 — Library ── */
 ['A','B','C'].forEach(d=>{
-  const col=document.getElementById('col'+d);
+  const col=el('col'+d);
   col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drop');});
   col.addEventListener('dragleave',()=>col.classList.remove('drop'));
   col.addEventListener('drop',e=>{
@@ -382,41 +397,50 @@ document.getElementById('q').addEventListener('keydown',e=>{
 });
 function addTo(d,r){
   if(!r||S.lib[d].some(x=>x.id===r.id)){ flash('já está na lista '+d); return; }
-  S.lib[d].push(r); save(); renderLib(d); flash('→ deck '+d);
+  S.lib[d].push(r); save(); renderLib(d); flash('→ '+d);
 }
 function renderLib(d){
-  const c=document.getElementById('lib'+d); c.innerHTML='';
+  const c=el('lib'+d); c.innerHTML='';
   if(!S.lib[d].length){ c.innerHTML='<div class="empty">arraste vídeos aqui</div>'; return; }
   S.lib[d].forEach((r,i)=>{
-    const el=document.createElement('div');
-    el.className='item'+(S.now[d]&&S.now[d].id===r.id?' playing':'');
-    el.innerHTML=`<img src="${r.thumb}"><span>${r.title}</span><div class="x">×</div>`;
-    el.onclick=ev=>{
+    const it=document.createElement('div');
+    it.className='item'+(S.now[d]&&S.now[d].id===r.id?' playing':'');
+    it.innerHTML=`<img src="${r.thumb}"><span>${r.title}</span><div class="x">×</div>`;
+    it.onclick=ev=>{
       if(ev.target.classList.contains('x')){ S.lib[d].splice(i,1); save(); renderLib(d); return; }
       play(d,r);
     };
-    c.appendChild(el);
+    c.appendChild(it);
   });
 }
 
-/* ── § 3.4 — Transport ── */
-function play(d,r){
-  if(!r||!OUT[d]) return;
-  if(r.plist) OUT[d].loadPlaylist({list:r.plist,listType:'playlist'});
-  else OUT[d].loadVideoById(r.id);
-  if(MON[d]){ MON[d].loadVideoById(r.id); MON[d].mute(); }
-  S.now[d]=r; document.getElementById('t'+d).textContent=r.title;
+/* ── § 3.6 — Transport ── */
+function play(d,r,at){
+  if(!r) return;
+  if(d==='C'){
+    if(r.plist) BED.loadPlaylist({list:r.plist,listType:'playlist'});
+    else BED.loadVideoById(r.id);
+    S.now.C=r; el('tC').textContent=r.title; renderLib('C'); applyAudio(); return;
+  }
+  const v=VJ();
+  if(!v){ flash('abra a saída primeiro (O)'); return; }
+  if(r.plist) v.loadList(d,r.plist); else v.load(d,r.id);
+  if(at>1) setTimeout(()=>v.seek(d,at),900);
+  if(MON[d]){
+    MON[d].loadVideoById(r.id); MON[d].mute();
+    if(at>1) setTimeout(()=>{try{MON[d].seekTo(at,true)}catch(e){}},900);
+  }
+  S.now[d]=r; el('t'+d).textContent=r.title;
   renderLib(d); applyAudio();
 }
-// avanço automático da lista do bed quando a faixa termina
+function pp(d){
+  if(d==='C'){ try{ BED.getPlayerState()===1?BED.pauseVideo():BED.playVideo(); }catch(e){} return; }
+  const v=VJ(); if(v) v.toggle(d);
+}
 function nextC(){
   const l=S.lib.C; if(!l.length) return;
   const i=S.now.C?l.findIndex(x=>x.id===S.now.C.id):-1;
   play('C',l[(i+1)%l.length]);
-}
-function pp(d){
-  if(!OUT[d]||!OUT[d].getPlayerState) return;
-  OUT[d].getPlayerState()===1?OUT[d].pauseVideo():OUT[d].playVideo();
 }
 document.querySelectorAll('[data-pp]').forEach(b=>b.onclick=()=>pp(b.dataset.pp));
 document.querySelectorAll('[data-arm]').forEach(b=>b.onclick=()=>setArmed(b.dataset.arm));
@@ -424,9 +448,9 @@ document.querySelectorAll('[data-clear]').forEach(b=>b.onclick=()=>{
   S.lib[b.dataset.clear]=[]; save(); renderLib(b.dataset.clear);
 });
 
-/* ── § 3.5 — Slots ── */
+/* ── § 3.7 — Slots ── */
 function renderSlots(){
-  const c=document.getElementById('slots'); c.innerHTML='';
+  const c=el('slots'); c.innerHTML='';
   for(let i=0;i<10;i++){
     const n=(i+1)%10, s=S.slots[n];
     const d=document.createElement('div'); d.className='slot';
@@ -440,91 +464,86 @@ function renderSlots(){
     c.appendChild(d);
   }
 }
-function assign(n){ if(S.sel!=null){ S.slots[n]=S.results[S.sel]; save(); renderSlots(); flash('slot '+n); } }
+function assign(n){
+  const r=S.now.P||(S.sel!=null?S.results[S.sel]:null);
+  if(r){ S.slots[n]=r; save(); renderSlots(); flash('slot '+n); }
+}
 function fire(n){ if(S.slots[n]) play(S.armed,S.slots[n]); }
 
-/* ── § 3.6 — FX buses — A, B, Master with intensity ── */
-// cada bus tem 3 nós encadeados: hue (filter animado) > base (filter estático) > anim (transform/opacity)
-function renderBus(b){
-  const set=S.fx[b], k=S.amt[b];
-  const hue=document.getElementById('hue'+b),
-        base=document.getElementById('base'+b),
-        anim=document.getElementById('anim'+b);
-
-  const f=[];
-  if(set.has('invert')) f.push(`invert(${k})`);
-  if(set.has('melt'))   f.push(`blur(${(k*7).toFixed(1)}px) contrast(${(1+k*2.4).toFixed(2)}) saturate(${(1+k).toFixed(2)})`);
-  base.style.filter=f.join(' ');
-
-  hue.style.animation = set.has('hue') ? `hueroll ${(6.5-k*5.5).toFixed(2)}s linear infinite` : '';
-
-  const a=[];
-  if(set.has('glitch')){ anim.style.setProperty('--g',k); a.push('glitch .18s steps(2) infinite'); }
-  if(set.has('strobe')){ anim.style.setProperty('--s',(1-k*.95).toFixed(3)); a.push('strobe .11s steps(1) infinite'); }
-  anim.style.animation=a.join(', ');
-}
+/* ── § 3.8 — FX buses ── */
+function renderBus(b){ const v=VJ(); if(v) v.bus(b,[...S.fx[b]],S.amt[b]); }
 function toggleFx(name,b){
   b=b||S.bus;
   S.fx[b].has(name)?S.fx[b].delete(name):S.fx[b].add(name);
   renderBus(b); syncFxUI();
 }
 function syncFxUI(){
-  document.querySelectorAll('.fx').forEach(x=>
-    x.classList.toggle('on',S.fx[S.bus].has(x.dataset.fx)));
+  document.querySelectorAll('.fx').forEach(x=>x.classList.toggle('on',S.fx[S.bus].has(x.dataset.fx)));
   document.querySelectorAll('.busb').forEach(x=>x.classList.toggle('on',x.dataset.bus===S.bus));
-  document.getElementById('busnote').textContent=
-    'editando: '+(S.bus==='M'?'MASTER':'DECK '+S.bus);
-  const a=document.getElementById('amt');
-  a.value=Math.round(S.amt[S.bus]*100);
-  document.getElementById('amtv').textContent=a.value;
+  el('busnote').textContent='editando: '+(S.bus==='M'?'MASTER':'DECK '+S.bus);
+  el('amt').value=Math.round(S.amt[S.bus]*100);
+  el('amtv').textContent=el('amt').value;
 }
 document.querySelectorAll('.fx').forEach(b=>b.onclick=()=>toggleFx(b.dataset.fx));
 document.querySelectorAll('.busb').forEach(b=>b.onclick=()=>{S.bus=b.dataset.bus;syncFxUI();});
-document.getElementById('amt').oninput=e=>{
-  S.amt[S.bus]=+e.target.value/100;
-  document.getElementById('amtv').textContent=e.target.value;
-  renderBus(S.bus);
-};
-document.getElementById('panic').onclick=panic;
-function panic(){
-  ['A','B','M'].forEach(b=>{S.fx[b].clear();renderBus(b);});
-  syncFxUI(); flash('fx zerados');
-}
+el('amt').oninput=e=>{ S.amt[S.bus]=+e.target.value/100; el('amtv').textContent=e.target.value; renderBus(S.bus); };
+el('panic').onclick=panic;
+function panic(){ ['A','B','M'].forEach(b=>{S.fx[b].clear();renderBus(b);}); syncFxUI(); flash('fx zerados'); }
 
-/* ── § 3.7 — Mixer — crossfade, smoothing, auto fade ── */
-const xf=document.getElementById('xf'), pgA=document.getElementById('pgA'), pgB=document.getElementById('pgB'),
-      smooth=document.getElementById('smooth');
-smooth.oninput=()=>{
-  document.getElementById('smoothv').textContent=smooth.value+'ms';
-  pgB.style.transition=`opacity ${smooth.value}ms linear`;
-};
+/* ── § 3.9 — Mixer ── */
+const xf=el('xf'), smooth=el('smooth');
+smooth.oninput=()=>{ el('smoothv').textContent=smooth.value+'ms'; const v=VJ(); if(v) v.smooth(+smooth.value); };
 xf.oninput=()=>{S.xf=+xf.value;applyXf();};
-function applyXf(){
-  pgA.style.opacity=1;
-  pgB.style.opacity=(S.xf/100).toFixed(3);
-  applyAudio();
-}
-document.getElementById('blend').onchange=e=>pgB.style.mixBlendMode=e.target.value;
-
+function applyXf(){ const v=VJ(); if(v) v.xf(S.xf); applyAudio(); }
+el('blend').onchange=e=>{ const v=VJ(); if(v) v.blend(e.target.value); };
 let fading=null;
 function autofade(){
   if(fading){ cancelAnimationFrame(fading); fading=null; return; }
-  const dur=Math.max(.2,parseFloat(document.getElementById('autosec').value)||4)*1000;
+  const dur=Math.max(.2,parseFloat(el('autosec').value)||4)*1000;
   const from=S.xf, to=from>50?0:100, t0=performance.now();
   const step=t=>{
-    const p=Math.min(1,(t-t0)/dur);
-    const e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;      // ease in-out
+    const p=Math.min(1,(t-t0)/dur), e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
     xf.value=S.xf=Math.round(from+(to-from)*e); applyXf();
     fading = p<1 ? requestAnimationFrame(step) : null;
   };
   fading=requestAnimationFrame(step);
 }
-document.getElementById('autofade').onclick=autofade;
-document.getElementById('fs').onclick=()=>document.getElementById('program').classList.toggle('full');
+el('autofade').onclick=autofade;
 
-/* ── § 3.8 — Audio bus ── */
-const vA=document.getElementById('vA'),vB=document.getElementById('vB'),
-      vC=document.getElementById('vC'),amode=document.getElementById('amode');
+/* ── § 3.10 — Frame, loop, captions ── */
+const SRC=16/9;
+function applyFrame(){
+  const [w,h]=S.ar.split('/').map(Number), T=w/h, r=document.documentElement.style;
+  r.setProperty('--ar',S.ar);
+  if(T<SRC){ r.setProperty('--covh','100%'); r.setProperty('--covw',(SRC/T*100).toFixed(2)+'%'); }
+  else     { r.setProperty('--covw','100%'); r.setProperty('--covh',(T/SRC*100).toFixed(2)+'%'); }
+  r.setProperty('--zoom',S.zoom);
+  localStorage.setItem('vj.ar',S.ar);
+  document.querySelectorAll('[data-ar]').forEach(b=>b.classList.toggle('on',b.dataset.ar===S.ar));
+  const v=VJ(); if(v) v.frame(S.ar,S.zoom);
+}
+document.querySelectorAll('[data-ar]').forEach(b=>b.onclick=()=>{S.ar=b.dataset.ar;applyFrame();});
+el('zoom').oninput=e=>{S.zoom=(+e.target.value/100).toFixed(3);applyFrame();};
+const loopb=el('loopb');
+function toggleLoop(){
+  S.loop=!S.loop; localStorage.setItem('vj.loop',JSON.stringify(S.loop));
+  loopb.classList.toggle('on',S.loop);
+  const v=VJ(); if(v) v.loop(S.loop);
+  flash('loop '+(S.loop?'on':'off'));
+}
+loopb.onclick=toggleLoop; loopb.classList.toggle('on',S.loop);
+const ccb=el('ccb');
+function toggleCC(){
+  S.cc=!S.cc; ccb.classList.toggle('on',S.cc); localStorage.setItem('vj.cc',JSON.stringify(S.cc));
+  const v=VJ(); if(v) v.cc(S.cc);
+  [MON.A,MON.B].forEach(p=>{ if(!p) return;
+    if(S.cc){ try{['captions','cc'].forEach(m=>p.loadModule(m))}catch(e){} } else ccOff(p); });
+  flash('legendas '+(S.cc?'on':'off'));
+}
+ccb.onclick=toggleCC; ccb.classList.toggle('on',S.cc);
+
+/* ── § 3.11 — Audio ── */
+const vA=el('vA'),vB=el('vB'),vC=el('vC'),amode=el('amode');
 [vA,vB,vC,amode].forEach(e=>{e.oninput=applyAudio;e.onchange=applyAudio});
 function applyAudio(){
   const m=amode.value, t=S.xf/100;
@@ -533,24 +552,23 @@ function applyAudio(){
   else if(m==='lockA') b=0;
   else if(m==='lockB') a=0;
   else if(m==='bed'){ a=0; b=0; }
-  try{
-    if(OUT.A&&OUT.A.setVolume){OUT.A.setVolume(Math.round(a));OUT.B.setVolume(Math.round(b));}
-    if(OUT.C&&OUT.C.setVolume) OUT.C.setVolume(Math.round(+vC.value));
-  }catch(e){}
+  const v=VJ(); if(v){ v.vol('A',a); v.vol('B',b); }
+  try{ if(BED&&BED.setVolume) BED.setVolume(Math.round(+vC.value)); }catch(e){}
 }
 
-/* ── § 3.9 — Keyboard ── */
+/* ── § 3.12 — Keyboard ── */
 function setArmed(d){
   S.armed=d;
-  document.getElementById('monA').classList.toggle('armed',d==='A');
-  document.getElementById('monB').classList.toggle('armed',d==='B');
+  el('monA').classList.toggle('armed',d==='A');
+  el('monB').classList.toggle('armed',d==='B');
 }
-const FXKEY={q:'glitch',w:'invert',e:'melt',r:'hue',t:'strobe'},
-      BUSKEY={z:'A',x:'B',c:'M'};
+const FXKEY={q:'glitch',w:'invert',e:'melt',r:'hue',t:'strobe'}, BUSKEY={z:'A',x:'B',c:'M'};
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
   const k=e.key, kl=k.toLowerCase();
   if(/^[0-9]$/.test(k)){ e.preventDefault(); e.shiftKey?assign(+k):fire(+k); return; }
+  if(k==='['){ sendCue('A'); return; }
+  if(k===']'){ sendCue('B'); return; }
   if(k==='Tab'){ e.preventDefault(); setArmed(S.armed==='A'?'B':'A'); return; }
   if(k===' '){ e.preventDefault(); pp(S.armed); return; }
   if(k==='ArrowRight'||k==='ArrowLeft'){
@@ -560,64 +578,23 @@ addEventListener('keydown',e=>{
   if(k==='End'){ xf.value=100;S.xf=100;applyXf(); return; }
   if(BUSKEY[kl]){ S.bus=BUSKEY[kl]; syncFxUI(); return; }
   if(FXKEY[kl]){ toggleFx(FXKEY[kl]); return; }
+  if(kl==='o'){ openOutput(); return; }
   if(kl==='l'){ toggleLoop(); return; }
   if(kl==='k'){ toggleCC(); return; }
   if(kl==='v'){ pp('C'); return; }
   if(kl==='g'){ autofade(); return; }
   if(kl==='p'){ panic(); return; }
-  if(kl==='f'){ document.getElementById('program').classList.toggle('full'); return; }
-  if(k==='Escape') document.getElementById('program').classList.remove('full');
 });
-const HELP=document.getElementById('help');
-document.getElementById('helpb').onclick=()=>
-  HELP.style.display=HELP.style.display==='block'?'none':'block';
+const HELP=el('help');
+el('helpb').onclick=()=>HELP.style.display=HELP.style.display==='block'?'none':'block';
 
-/* ── § 3.10 — Frame — aspect ratio, cover crop, zoom, captions ── */
-const SRC=16/9;                                   // o embed sempre entrega 16:9
-function applyFrame(){
-  const [w,h]=S.ar.split('/').map(Number), T=w/h;
-  const r=document.documentElement.style;
-  r.setProperty('--ar',S.ar);
-  // cobre o quadro alvo a partir de uma fonte 16:9, cortando o excedente
-  if(T<SRC){ r.setProperty('--covh','100%'); r.setProperty('--covw',(SRC/T*100).toFixed(2)+'%'); }
-  else     { r.setProperty('--covw','100%'); r.setProperty('--covh',(T/SRC*100).toFixed(2)+'%'); }
-  r.setProperty('--zoom',S.zoom);
-  localStorage.setItem('vj.ar',S.ar);
-  document.querySelectorAll('[data-ar]').forEach(b=>b.classList.toggle('on',b.dataset.ar===S.ar));
-}
-document.querySelectorAll('[data-ar]').forEach(b=>b.onclick=()=>{S.ar=b.dataset.ar;applyFrame();});
-document.getElementById('zoom').oninput=e=>{S.zoom=(+e.target.value/100).toFixed(3);applyFrame();};
-
-const ccb=document.getElementById('ccb');
-function toggleCC(){
-  S.cc=!S.cc; ccb.classList.toggle('on',S.cc);
-  localStorage.setItem('vj.cc',JSON.stringify(S.cc));
-  [OUT.A,OUT.B,MON.A,MON.B].forEach(p=>{
-    if(!p||!p.loadModule) return;
-    if(S.cc){ try{ ['captions','cc'].forEach(m=>p.loadModule(m)); }catch(e){} } else ccOff(p);
-  });
-  flash('legendas '+(S.cc?'on':'off'));
-}
-ccb.onclick=toggleCC;
-ccb.classList.toggle('on',S.cc);
-
-/* ── § 3.11 — Loop ── */
-const loopb=document.getElementById('loopb');
-function toggleLoop(){
-  S.loop=!S.loop; localStorage.setItem('vj.loop',JSON.stringify(S.loop));
-  loopb.classList.toggle('on',S.loop);
-  ['A','B'].forEach(d=>{ try{ OUT[d].setLoop(S.loop); }catch(e){} });   // vale p/ playlists
-  flash('loop '+(S.loop?'on':'off'));
-}
-loopb.onclick=toggleLoop;
-loopb.classList.toggle('on',S.loop);
-
-/* ── § 3.12 — Misc ── */
+/* ── § 3.13 — Misc ── */
 let ft; const HELPHTML=HELP.innerHTML;
 function flash(msg){
   HELP.textContent=msg; HELP.style.display='block';
   clearTimeout(ft); ft=setTimeout(()=>{HELP.style.display='none';HELP.innerHTML=HELPHTML;},1600);
 }
-renderResults(); renderLib('A'); renderLib('B'); renderLib('C'); renderSlots(); setArmed('A');
-smooth.oninput(); syncFxUI(); applyFrame(); applyXf();
+addEventListener('beforeunload',()=>{ if(OUTW&&!OUTW.closed) OUTW.close(); });
+renderResults(); ['A','B','C'].forEach(renderLib); renderSlots(); setArmed('A');
+smooth.oninput(); syncFxUI(); applyFrame(); markOut();
 </script>

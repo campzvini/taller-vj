@@ -15,10 +15,15 @@ Program, audio bed bottom right.*
 
 ## What it does
 
-Two video decks (A and B) play simultaneously into a composited Program output, with
-independent monitors for each deck so you can see the sources and the mix at once. A third
-deck is audio-only — drop a long set or a playlist there and it plays underneath everything,
-advancing on its own.
+The program lives in its own window (`output.html`), meant to be dragged onto a projector or
+second screen and put fullscreen. The controller window keeps the library, the deck monitors,
+the mixer, and a **cue player that never reaches the output** — you can watch, scrub and
+audition anything mid-performance without it going on air, then send it to a deck from the
+exact point you were watching.
+
+Two video decks (A and B) play simultaneously into the composited output, with independent
+muted monitors for each deck in the controller. A third deck is audio-only — drop a long set
+or a playlist there and it plays underneath everything, advancing on its own.
 
 Effects run on three independent buses: deck A, deck B, and the master (the already-mixed
 composition). Each bus has its own intensity control. The crossfader has adjustable inertia
@@ -44,7 +49,8 @@ Anywhere else:
 python -m http.server 8787
 ```
 
-Then open <http://localhost:8787/youtube-vj.html>.
+Then open <http://localhost:8787/youtube-vj.html> and press `O` to raise the output window.
+Nothing reaches the screen until that window is open — the decks live in it.
 
 ## Loading video
 
@@ -64,6 +70,9 @@ daily. Pasting URLs costs nothing.
 
 | Key | Action |
 | --- | --- |
+| `O` | open the output window (drag to the projector, then F11) |
+| click | load a search result into the cue player (never on air) |
+| `[` `]` | send the cue to deck A / deck B, from where you were watching |
 | drag | drop a search result onto column A/B, a numbered slot, or the Audio Bed |
 | `0`–`9` | fire hot slot into the armed deck |
 | `Shift`+`0`–`9` | store the selected result in a slot |
