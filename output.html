@@ -55,7 +55,7 @@ iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
 <!-- ── § 3 — LOGIC — Command surface for the controller ── -->
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1,svol:0};
+const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1,svol:0,opA:1,opB:1};
 const el=id=>document.getElementById(id);
 const NSAMP=4;
 
@@ -108,7 +108,13 @@ const VJ=window.VJ={
   state(d){ try{return P[d].getPlayerState()}catch(e){return -1} },
   vol(d,v){ try{P[d].setVolume(Math.round(v))}catch(e){} },
 
-  xf(v){ ST.xf=v; el('pgB').style.opacity=(v/100).toFixed(3); },
+  // crossfader faz a mistura; a opacidade de canal é um ganho por cima dela
+  xf(v){ ST.xf=v; VJ.paint(); },
+  opacity(d,v){ ST['op'+d]=v; VJ.paint(); },
+  paint(){
+    el('pgA').style.opacity=(ST.opA).toFixed(3);
+    el('pgB').style.opacity=(ST.opB*ST.xf/100).toFixed(3);
+  },
   smooth(ms){ el('pgB').style.transition=`opacity ${ms}ms linear`; },
   blend(m){ el('pgB').style.mixBlendMode=m; },
 

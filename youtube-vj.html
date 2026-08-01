@@ -1,274 +1,297 @@
 <!-- ──────────────────────────────────────────── -->
-<!-- TALLER TOYS 0.5 — youtube-vj.html -->
-<!-- § - Controller surface: library, decks, cue and mixer · HTML -->
+<!-- TALLER TOYS 0.7 — youtube-vj.html -->
+<!-- § - Controller surface: three columns, deck-local controls · HTML -->
 <!-- Taller Dev 2026 -->
 <!-- VAI CORINTHIANS! -->
 <!-- ──────────────────────────────────────────── -->
 <meta charset="utf-8">
 <title>Taller VJ</title>
 
-<!-- ── § 1 — STYLE — Layout, decks, cue, buses ── -->
+<!-- ── § 1 — STYLE ── -->
 <style>
 :root{
-  --bg:#0a0a0c; --panel:#141419; --line:#26262e; --txt:#d8d8e0;
+  --bg:#0a0a0c; --panel:#131318; --card:#16161d; --line:#26262e; --txt:#d8d8e0;
   --dim:#7a7a88; --acc:#ff3b3b; --accb:#3b8cff; --ok:#3bd17a;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font:12px/1.4 "Segoe UI",system-ui,sans-serif;
+body{background:var(--bg);color:var(--txt);font:11px/1.35 "Segoe UI",system-ui,sans-serif;
   height:100vh;display:grid;grid-template-rows:auto auto 1fr auto;overflow:hidden;user-select:none}
-
-/* ── § 1.1 — TopBar ── */
-#top{display:flex;gap:8px;padding:8px;background:var(--panel);border-bottom:1px solid var(--line);align-items:center}
-input,button,select{background:#1d1d24;color:var(--txt);border:1px solid var(--line);
-  padding:6px 9px;font:inherit;border-radius:3px}
-input:focus{outline:1px solid var(--accb)}
+button,select,input{background:#1c1c23;color:var(--txt);border:1px solid var(--line);
+  font:inherit;border-radius:3px;padding:4px 6px}
 button{cursor:pointer}
-button:hover{background:#2a2a34}
-#q{flex:1;min-width:120px}
+button:hover{background:#282833}
+.tag{font-size:9px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+.row{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+input[type=range]{-webkit-appearance:none;background:#22222b;height:5px;border-radius:3px;
+  flex:1;padding:0;min-width:40px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:18px;
+  background:var(--txt);border-radius:2px;cursor:pointer}
+
+/* ── § 1.1 — Bars ── */
+#bar{display:flex;gap:6px;align-items:center;padding:4px 8px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:nowrap;overflow:hidden;height:32px}
+#bar button,#bar input{padding:3px 6px;font-size:10px}
+#bar .name{font-weight:700;letter-spacing:.16em;color:var(--dim);font-size:10px}
 #outb{font-weight:700}
 #outb.live{background:var(--ok);border-color:var(--ok);color:#04240f}
-#results{display:flex;gap:6px;overflow-x:auto;padding:6px 8px;background:#0f0f13;
-  border-bottom:1px solid var(--line);height:88px}
-.res{flex:0 0 112px;cursor:grab;border:2px solid transparent;border-radius:3px;overflow:hidden}
+#searchwrap{background:#0e0e12;border-bottom:1px solid var(--line);overflow:hidden;
+  transition:height .18s ease;height:104px}
+#searchwrap.closed{height:0;border-bottom:0}
+#sbar{display:flex;gap:6px;padding:6px 8px 0}
+#q{flex:1}
+#results{display:flex;gap:5px;overflow-x:auto;padding:6px 8px;height:76px}
+.res{flex:0 0 104px;cursor:grab;border:2px solid transparent;border-radius:3px;overflow:hidden}
 .res.sel{border-color:var(--accb)}
-.res img{width:100%;display:block;height:62px;object-fit:cover;pointer-events:none}
-.res span{display:block;font-size:9px;color:var(--dim);padding:2px;white-space:nowrap;
+.res img{width:100%;display:block;height:56px;object-fit:cover;pointer-events:none}
+.res span{display:block;font-size:9px;color:var(--dim);padding:1px 2px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 
-/* ── § 1.2 — Stage ── */
-#stage{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:8px;padding:8px;min-height:0}
-.col{display:flex;flex-direction:column;gap:6px;min-height:0}
-.col.drop{outline:2px dashed var(--accb);outline-offset:3px}
-.lbl{font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;
-  display:flex;justify-content:space-between;gap:6px}
-.lbl b{color:var(--txt)}
-.lbl .now{color:var(--txt);text-transform:none;letter-spacing:0;font-size:10px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
-.mon{background:#000;border:1px solid var(--line);flex:0 0 auto;aspect-ratio:var(--ar,16/9);
-  overflow:hidden;position:relative}
+/* ── § 1.2 — Three columns ── */
+#main{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:6px;padding:6px;min-height:0;overflow:hidden}
+.col{display:flex;flex-direction:column;gap:5px;min-height:0}
+.col.drop{outline:2px dashed var(--accb);outline-offset:2px}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:6px;
+  font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.hd b{color:var(--txt);font-size:11px}
+.hd .now{color:var(--txt);text-transform:none;letter-spacing:0;font-size:10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:5px;
+  display:flex;flex-direction:column;gap:4px}
+.mon{background:#000;border:1px solid var(--line);aspect-ratio:var(--ar,16/9);
+  overflow:hidden;position:relative;flex:0 0 auto}
 .mon.armed{border-color:var(--acc)}
-/* o monitor tem os controles nativos e serve de controle remoto da saída */
 .mon iframe{position:absolute;left:50%;top:50%;border:0;
   width:var(--covw,100%);height:var(--covh,100%);
   transform:translate(-50%,-50%) scale(var(--zoom,1))}
+.val{font-size:9px;color:var(--dim);min-width:26px;text-align:right}
 
-/* ── § 1.2b — Marks — in/out trecho ── */
-.marks{display:flex;gap:3px;align-items:center;flex-wrap:wrap;font-size:10px}
-.mk{padding:3px 6px;font-size:10px}
+/* ── § 1.3 — Deck controls ── */
+.mk{padding:3px 5px;font-size:10px}
 .mk.on{background:var(--accb);border-color:var(--accb);color:#fff}
-.rng{color:var(--dim);font-size:9px;min-width:80px}
+.rng{color:var(--dim);font-size:9px;min-width:72px}
 .rng.set{color:var(--ok)}
-.grabh{cursor:grab;border:1px dashed var(--accb);padding:2px 7px;border-radius:3px;
+.grabh{cursor:grab;border:1px dashed var(--accb);padding:2px 6px;border-radius:3px;
   font-size:10px;color:var(--accb)}
-.grabh:active{cursor:grabbing}
-
-/* ── § 1.3 — Cue — preview that never reaches the output ── */
-#cue{background:#000;border:1px solid var(--accb);aspect-ratio:16/9;overflow:hidden;position:relative;flex:0 0 auto}
-#cue iframe{width:100%;height:100%;border:0}
-#cuebar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
-.send{background:#20202a;border-color:var(--accb)}
-
-/* ── § 1.4 — Library ── */
-.lib{flex:1;min-height:0;overflow-y:auto;background:#101015;border:1px solid var(--line);border-radius:3px}
-.item{display:flex;gap:6px;align-items:center;padding:3px;border-bottom:1px solid #1c1c24;cursor:pointer}
+.fxrow{border-top:1px solid var(--line);padding-top:4px}
+.fxrow.focus{background:#1b2030;border-radius:3px;box-shadow:inset 0 0 0 1px var(--accb)}
+.fx{padding:3px 5px;font-size:10px;letter-spacing:.04em}
+.fx.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.lib{flex:1;min-height:0;overflow-y:auto;background:#0f0f14;border:1px solid var(--line);
+  border-radius:4px}
+.item{display:flex;gap:5px;align-items:center;padding:2px;border-bottom:1px solid #1b1b22;cursor:pointer}
 .item:hover{background:#1b1b23}
 .item.playing{background:#2a1414;border-left:2px solid var(--acc)}
-.item img{width:52px;height:30px;object-fit:cover;flex:0 0 auto;border-radius:2px}
+.item img{width:46px;height:26px;object-fit:cover;flex:0 0 auto;border-radius:2px}
 .item span{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.item .x{color:var(--dim);padding:0 4px;font-size:12px}
+.item .x{color:var(--dim);padding:0 3px}
 .item .x:hover{color:var(--acc)}
-.empty{color:var(--dim);font-size:10px;padding:10px;text-align:center;line-height:1.6}
+.empty{color:var(--dim);font-size:10px;padding:8px;text-align:center;line-height:1.5}
 
-/* ── § 1.5 — Slots ── */
-#slots{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;flex:0 0 auto}
-.slot{background:#16161c;border:1px solid var(--line);border-radius:3px;height:40px;
+/* ── § 1.4 — Centre ── */
+#cue{background:#000;border:1px solid var(--accb);aspect-ratio:16/9;overflow:hidden;flex:0 0 auto}
+#cue iframe{width:100%;height:100%;border:0}
+#xfbox{background:#191922;border:1px solid var(--accb);border-radius:4px;padding:6px;
+  display:flex;flex-direction:column;gap:5px}
+#xf{height:9px}
+#xf::-webkit-slider-thumb{width:16px;height:26px;background:var(--accb)}
+#slots{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.slot{background:#16161c;border:1px solid var(--line);border-radius:3px;height:38px;
   position:relative;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
-.slot .n{position:relative;font-weight:700;font-size:14px;text-shadow:0 0 4px #000}
+.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
+.slot .n{position:relative;font-weight:700;font-size:13px;text-shadow:0 0 4px #000}
 .slot.drop{border-color:var(--accb)}
-.slot.armed{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+.slot.armed{border-color:var(--ok)}
 .slot.hot{background:var(--ok)}
-.slot .tr{position:absolute;bottom:1px;left:2px;font-size:8px;color:var(--ok);text-shadow:0 0 3px #000}
+.slot .tr{position:absolute;bottom:0;left:2px;font-size:8px;color:var(--ok);text-shadow:0 0 3px #000}
 
-/* ── § 1.6 — Bottom ── */
-#bottom{background:var(--panel);border-top:1px solid var(--line);padding:8px;
-  display:grid;grid-template-columns:1fr 1.25fr .8fr 1fr;gap:12px;align-items:start}
-#colC.drop{outline:2px dashed var(--accb);outline-offset:3px}
-.bedrow{display:flex;gap:6px;align-items:stretch}
-.bedmon{width:104px;flex:0 0 auto;aspect-ratio:16/9;background:#000;border:1px solid var(--line);overflow:hidden}
-.bedmon iframe{width:100%;height:100%;border:0;pointer-events:none}
-.lib.small{height:58px;flex:1}
-.lib.small .item img{width:34px;height:20px}
-.lib.small .item span{font-size:9px}
-.grp{display:flex;flex-direction:column;gap:5px}
-.row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-input[type=range]{-webkit-appearance:none;background:#1d1d24;height:6px;border-radius:3px;flex:1;padding:0;min-width:60px}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:20px;
-  background:var(--txt);border-radius:2px;cursor:pointer}
-.fx{padding:4px 7px;font-size:11px}
-.fx.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.tgl{padding:4px 7px;font-size:11px}
+/* ── § 1.5 — Footer ── */
+#foot{display:flex;gap:7px;align-items:center;padding:4px 8px;background:var(--panel);
+  border-top:1px solid var(--line);flex-wrap:nowrap;overflow:hidden;height:38px}
+#foot select,#foot button,#foot input{padding:3px 5px;font-size:10px}
+.fsep{width:1px;height:18px;background:var(--line);flex:0 0 auto}
+.tgl{padding:3px 6px;font-size:10px}
 .tgl.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.busb{padding:4px 9px;font-size:11px;font-weight:700}
-.busb.on{background:var(--accb);border-color:var(--accb);color:#fff}
-.tag{font-size:9px;color:var(--dim);letter-spacing:.1em}
-.num{width:52px;flex:0 0 auto}
-#help{position:fixed;right:10px;bottom:120px;background:#000d;border:1px solid var(--line);
-  padding:10px 12px;font-size:11px;line-height:1.7;border-radius:4px;display:none;z-index:120}
+#bedmon{width:54px;flex:0 0 auto;aspect-ratio:16/9;background:#000;border:1px solid var(--line);overflow:hidden}
+#bedmon iframe{width:100%;height:100%;border:0;pointer-events:none}
+#bedlist{position:fixed;right:8px;bottom:40px;width:280px;max-height:220px;overflow-y:auto;
+  background:#0f0f14;border:1px solid var(--accb);border-radius:4px;display:none;z-index:60}
+#bedlist.open{display:block}
+#help{position:fixed;right:8px;bottom:40px;background:#000e;border:1px solid var(--line);
+  padding:9px 11px;font-size:10px;line-height:1.65;border-radius:4px;display:none;z-index:120}
 </style>
 
 <!-- ── § 2 — MARKUP ── -->
-<div id="top">
-  <input id="q" placeholder="buscar no youtube  ·  ou colar URL/ID e Enter">
-  <button id="go">Buscar</button>
-  <input id="key" placeholder="YouTube API key" style="width:170px">
-  <button id="savekey">Salvar key</button>
+<div id="bar">
+  <span class="name">TALLER VJ</span>
   <button id="outb">ABRIR SAÍDA (O)</button>
+  <button id="searchb">busca (/)</button>
+  <div class="fsep"></div>
+  <span class="tag">FORMATO</span>
+  <button class="tgl on" data-ar="16/9">16:9</button>
+  <button class="tgl" data-ar="4/3">4:3</button>
+  <span class="tag">ZOOM</span><input type="range" id="zoom" min="100" max="220" value="100" style="width:70px">
+  <button class="tgl" id="loopb">loop (L)</button>
+  <button class="tgl" id="ccb">CC (K)</button>
+  <div style="flex:1"></div>
   <button id="helpb">? teclas</button>
 </div>
-<div id="results"></div>
 
-<div id="stage">
+<div id="searchwrap">
+  <div id="sbar">
+    <input id="q" placeholder="buscar no youtube  ·  ou colar URL/ID e Enter">
+    <button id="go">Buscar</button>
+    <input id="key" placeholder="API key" style="width:150px">
+    <button id="savekey">salvar</button>
+  </div>
+  <div id="results"></div>
+</div>
+
+<div id="main">
+  <!-- deck A -->
   <div class="col" id="colA" data-deck="A">
-    <div class="lbl"><span>Deck <b>A</b></span><span class="now" id="tA"></span></div>
+    <div class="hd"><span>Deck <b>A</b></span><span class="now" id="tA"></span></div>
     <div class="mon" id="monA"><div id="ytAmon"></div></div>
-    <div class="marks">
-      <button class="mk" data-in="A">IN</button><button class="mk" data-out="A">OUT</button>
-      <button class="mk" data-tloop="A">⟲ trecho</button><button class="mk" data-mclr="A">×</button>
-      <span class="rng" id="rngA">—</span>
-      <span class="grabh" data-grab="A" draggable="true" title="arraste para um slot ou lista">⇢</span></div>
-    <div class="row"><button data-pp="A">▶/❚❚</button><button data-arm="A">armar</button>
-      <button data-clear="A">limpar</button></div>
+    <div class="card">
+      <div class="row"><span class="tag" style="width:34px">opac</span>
+        <input type="range" id="opA" min="0" max="100" value="100"><span class="val" id="opAv">100</span></div>
+      <div class="row"><span class="tag" style="width:34px">vol</span>
+        <input type="range" id="vA" min="0" max="100" value="100"><span class="val" id="vAv">100</span></div>
+      <div class="row">
+        <button data-pp="A">▶❚❚</button><button data-arm="A">armar</button>
+        <button class="mk" data-in="A">IN</button><button class="mk" data-out="A">OUT</button>
+        <button class="mk" data-tloop="A">⟲</button><button class="mk" data-mclr="A">×</button>
+        <span class="grabh" data-grab="A" draggable="true" title="arraste para slot ou lista">⇢</span>
+      </div>
+      <div class="row"><span class="rng" id="rngA">—</span></div>
+      <div class="row fxrow" data-fxbus="A">
+        <button class="fx" data-fx="glitch" data-bus="A">GLI</button>
+        <button class="fx" data-fx="invert" data-bus="A">INV</button>
+        <button class="fx" data-fx="melt"   data-bus="A">MEL</button>
+        <button class="fx" data-fx="hue"    data-bus="A">HUE</button>
+        <button class="fx" data-fx="strobe" data-bus="A">STR</button>
+        <input type="range" class="amt" data-amt="A" min="0" max="100" value="100">
+      </div>
+    </div>
     <div class="lib" id="libA"></div>
   </div>
 
+  <!-- centro: cue + mistura -->
   <div class="col">
-    <div class="lbl"><span>Cue / consulta <b>(não vai ao ar)</b></span><span class="now" id="tP"></span></div>
+    <div class="hd"><span>Cue <b>não vai ao ar</b></span><span class="now" id="tP"></span></div>
     <div id="cue"><div id="ytPrev"></div></div>
-    <div class="marks">
-      <button class="mk" data-in="P">IN</button><button class="mk" data-out="P">OUT</button>
-      <button class="mk" data-mclr="P">×</button>
-      <span class="rng" id="rngP">—</span>
-      <span class="grabh" data-grab="P" draggable="true" title="arraste para um slot ou lista">⇢ trecho</span>
+    <div class="card">
+      <div class="row">
+        <button class="mk" data-in="P">IN</button><button class="mk" data-out="P">OUT</button>
+        <button class="mk" data-mclr="P">×</button>
+        <span class="rng" id="rngP">—</span>
+        <span class="grabh" data-grab="P" draggable="true">⇢ trecho</span>
+        <span class="tag">fone</span><input type="range" id="vP" min="0" max="100" value="0" style="max-width:56px">
+      </div>
+      <div class="row">
+        <button id="toA">◄ A  [</button><button id="toB">B ►  ]</button>
+        <button id="addA">+lista A</button><button id="addB">+lista B</button>
+      </div>
     </div>
-    <div id="cuebar">
-      <button class="send" id="toA">◄ tocar em A  [</button>
-      <button class="send" id="toB">tocar em B  ]</button>
-      <button id="addA">+ lista A</button>
-      <button id="addB">+ lista B</button>
-      <span class="tag">CUE VOL</span>
-      <input type="range" id="vP" min="0" max="100" value="0" style="max-width:70px">
+
+    <div id="xfbox">
+      <div class="row"><span class="tag">crossfader</span><span class="tag" id="xfv">A</span></div>
+      <div class="row"><b>A</b><input type="range" id="xf" min="0" max="100" value="0"><b>B</b></div>
+      <div class="row">
+        <span class="tag">suav</span><input type="range" id="smooth" min="0" max="300" value="60" style="max-width:60px">
+        <span class="val" id="smoothv">60</span>
+        <span class="tag">auto</span><input id="autosec" value="4" style="width:34px">
+        <button id="autofade">fade (G)</button>
+        <select id="blend" style="max-width:96px">
+          <option>normal</option><option>difference</option><option>screen</option>
+          <option>multiply</option><option>exclusion</option><option>overlay</option>
+          <option>hard-light</option><option>color-dodge</option><option>luminosity</option>
+        </select>
+      </div>
     </div>
+
     <div id="slots"></div>
+    <div class="card">
+      <div class="row"><span class="tag">samples 0–9</span>
+        <select id="sblend" style="max-width:86px">
+          <option>screen</option><option>normal</option><option>difference</option>
+          <option>multiply</option><option>exclusion</option><option>lighten</option>
+        </select>
+        <span class="tag">fade</span><input type="range" id="sfade" min="0" max="600" value="90" style="max-width:52px">
+        <button class="tgl" id="saudb">som</button>
+        <input type="range" id="svol" min="0" max="100" value="70" style="max-width:52px">
+      </div>
+      <div class="row fxrow" data-fxbus="M">
+        <span class="tag" style="width:40px">master</span>
+        <button class="fx" data-fx="glitch" data-bus="M">GLI</button>
+        <button class="fx" data-fx="invert" data-bus="M">INV</button>
+        <button class="fx" data-fx="melt"   data-bus="M">MEL</button>
+        <button class="fx" data-fx="hue"    data-bus="M">HUE</button>
+        <button class="fx" data-fx="strobe" data-bus="M">STR</button>
+        <input type="range" class="amt" data-amt="M" min="0" max="100" value="100">
+        <button id="panic">panic (P)</button>
+      </div>
+    </div>
   </div>
 
+  <!-- deck B -->
   <div class="col" id="colB" data-deck="B">
-    <div class="lbl"><span>Deck <b>B</b></span><span class="now" id="tB"></span></div>
+    <div class="hd"><span>Deck <b>B</b></span><span class="now" id="tB"></span></div>
     <div class="mon" id="monB"><div id="ytBmon"></div></div>
-    <div class="marks">
-      <button class="mk" data-in="B">IN</button><button class="mk" data-out="B">OUT</button>
-      <button class="mk" data-tloop="B">⟲ trecho</button><button class="mk" data-mclr="B">×</button>
-      <span class="rng" id="rngB">—</span>
-      <span class="grabh" data-grab="B" draggable="true" title="arraste para um slot ou lista">⇢</span></div>
-    <div class="row"><button data-pp="B">▶/❚❚</button><button data-arm="B">armar</button>
-      <button data-clear="B">limpar</button></div>
+    <div class="card">
+      <div class="row"><span class="tag" style="width:34px">opac</span>
+        <input type="range" id="opB" min="0" max="100" value="100"><span class="val" id="opBv">100</span></div>
+      <div class="row"><span class="tag" style="width:34px">vol</span>
+        <input type="range" id="vB" min="0" max="100" value="100"><span class="val" id="vBv">100</span></div>
+      <div class="row">
+        <button data-pp="B">▶❚❚</button><button data-arm="B">armar</button>
+        <button class="mk" data-in="B">IN</button><button class="mk" data-out="B">OUT</button>
+        <button class="mk" data-tloop="B">⟲</button><button class="mk" data-mclr="B">×</button>
+        <span class="grabh" data-grab="B" draggable="true" title="arraste para slot ou lista">⇢</span>
+      </div>
+      <div class="row"><span class="rng" id="rngB">—</span></div>
+      <div class="row fxrow" data-fxbus="B">
+        <button class="fx" data-fx="glitch" data-bus="B">GLI</button>
+        <button class="fx" data-fx="invert" data-bus="B">INV</button>
+        <button class="fx" data-fx="melt"   data-bus="B">MEL</button>
+        <button class="fx" data-fx="hue"    data-bus="B">HUE</button>
+        <button class="fx" data-fx="strobe" data-bus="B">STR</button>
+        <input type="range" class="amt" data-amt="B" min="0" max="100" value="100">
+      </div>
+    </div>
     <div class="lib" id="libB"></div>
   </div>
 </div>
 
-<div id="bottom">
-  <div class="grp">
-    <div class="tag">CROSSFADER  ( ← →  ·  Home/End corta )</div>
-    <div class="row"><b>A</b><input type="range" id="xf" min="0" max="100" value="0"><b>B</b></div>
-    <div class="row"><span class="tag">SUAVIDADE</span>
-      <input type="range" id="smooth" min="0" max="300" value="60">
-      <span class="tag" id="smoothv">60ms</span></div>
-    <div class="row"><span class="tag">AUTO</span><input class="num" id="autosec" value="4">
-      <button id="autofade">fade ↔ (G)</button>
-      <button class="tgl on" id="loopb">loop (L)</button></div>
-    <div class="row"><span class="tag">FORMATO</span>
-      <button class="tgl on" data-ar="16/9">16:9</button>
-      <button class="tgl" data-ar="4/3">4:3</button>
-      <span class="tag">ZOOM</span>
-      <input type="range" id="zoom" min="100" max="220" value="100" style="min-width:60px">
-      <button class="tgl" id="ccb">CC (K)</button></div>
-    <div class="row"><span class="tag">BLEND</span>
-      <select id="blend">
-        <option>normal</option><option>difference</option><option>screen</option>
-        <option>multiply</option><option>exclusion</option><option>overlay</option>
-        <option>hard-light</option><option>color-dodge</option><option>luminosity</option>
-      </select></div>
-    <div class="row"><span class="tag">SAMPLES 0–9</span>
-      <select id="sblend">
-        <option>screen</option><option>normal</option><option>difference</option>
-        <option>multiply</option><option>exclusion</option><option>overlay</option>
-        <option>hard-light</option><option>lighten</option>
-      </select>
-      <span class="tag">FADE</span>
-      <input type="range" id="sfade" min="0" max="600" value="90" style="min-width:50px">
-      <span class="tag" id="sfadev">90ms</span></div>
-    <div class="row"><button class="tgl" id="saudb">SOM 0–9</button>
-      <input type="range" id="svol" min="0" max="100" value="70" style="min-width:60px">
-      <span class="tag" id="svolv">mudo</span></div>
-  </div>
-
-  <div class="grp">
-    <div class="row"><span class="tag">FX BUS</span>
-      <button class="busb" data-bus="A">A</button>
-      <button class="busb" data-bus="B">B</button>
-      <button class="busb on" data-bus="M">MASTER</button>
-      <span class="tag" id="busnote">editando: MASTER</span></div>
-    <div class="row">
-      <button class="fx" data-fx="glitch">Q glitch</button>
-      <button class="fx" data-fx="invert">W invert</button>
-      <button class="fx" data-fx="melt">E melt</button>
-      <button class="fx" data-fx="hue">R hue</button>
-      <button class="fx" data-fx="strobe">T strobe</button>
-    </div>
-    <div class="row"><span class="tag" style="width:60px">INTENS.</span>
-      <input type="range" id="amt" min="0" max="100" value="100">
-      <span class="tag" id="amtv">100</span>
-      <button id="panic">panic (P)</button></div>
-  </div>
-
-  <div class="grp">
-    <div class="tag">AUDIO BUS</div>
-    <div class="row">
-      <select id="amode">
-        <option value="follow">Audio Follow Video</option>
-        <option value="lockA">Lock A</option>
-        <option value="lockB">Lock B</option>
-        <option value="both">Both open</option>
-        <option value="bed">Bed only (corta A/B)</option>
-      </select></div>
-    <div class="row"><span class="tag" style="width:40px">vol A</span><input type="range" id="vA" min="0" max="100" value="100"></div>
-    <div class="row"><span class="tag" style="width:40px">vol B</span><input type="range" id="vB" min="0" max="100" value="100"></div>
-  </div>
-
-  <div class="grp" id="colC" data-deck="C">
-    <div class="lbl"><span>Audio Bed <b>C</b></span><span class="now" id="tC"></span></div>
-    <div class="bedrow">
-      <div class="bedmon" id="monC"><div id="ytCout"></div></div>
-      <div class="lib small" id="libC"></div>
-    </div>
-    <div class="row"><button data-pp="C">▶/❚❚ (V)</button><button data-clear="C">limpar</button></div>
-    <div class="row"><span class="tag" style="width:40px">vol C</span><input type="range" id="vC" min="0" max="100" value="80"></div>
-  </div>
+<div id="foot">
+  <span class="tag">áudio</span>
+  <select id="amode">
+    <option value="follow">follow video</option>
+    <option value="lockA">lock A</option>
+    <option value="lockB">lock B</option>
+    <option value="both">A+B abertos</option>
+    <option value="bed">só bed</option>
+  </select>
+  <div class="fsep"></div>
+  <span class="tag">bed C</span>
+  <div id="bedmon" data-deck="C"><div id="ytCout"></div></div>
+  <span class="now" id="tC" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  <button data-pp="C">▶❚❚ (V)</button>
+  <input type="range" id="vC" min="0" max="100" value="80" style="width:70px">
+  <button id="bedb">lista ▾</button>
+  <button data-clear="C">limpar</button>
+  <div style="flex:1"></div>
+  <span class="tag" id="fxfocus">fx: master</span>
 </div>
 
+<div id="bedlist"></div>
 <div id="help">
-<b>O</b> abre a janela de saída (arraste pro projetor, F11)<br>
-<b>arraste</b> resultado para coluna A/B, slot, ou Audio Bed<br>
-<b>clique</b> num resultado carrega no Cue · <b>[</b> manda pra A · <b>]</b> pra B<br>
-<b>segure 0–9</b> o sample entra no blend enquanto a tecla estiver apertada<br>
-<b>Shift+0–9</b> grava o cue (com o trecho marcado) no slot<br>
-<b>IN / OUT / ⟲</b> marcam trecho em A, B e no Cue<br>
-<b>⇢</b> arrasta o que está no deck/cue para um slot ou lista<br>
-<b>arrastar entre listas move</b> · segure <b>Ctrl</b> para copiar · solte no Cue para consultar<br>
-<b>Tab</b> troca deck armado · <b>Espaço</b> play/pause · <b>V</b> bed<br>
-<b>← →</b> crossfader · <b>Home/End</b> corte · <b>G</b> auto fade<br>
-<b>Z X C</b> bus de fx · <b>Q W E R T</b> efeitos · <b>P</b> panic<br>
-<b>L</b> loop · <b>K</b> legendas
+<b>/</b> abre e fecha a busca · <b>O</b> janela de saída<br>
+<b>clique</b> num resultado ou item de lista → vai pro Cue · <b>duplo clique</b> → toca no deck<br>
+<b>[</b> manda o cue pra A · <b>]</b> pra B · arraste entre listas move (Ctrl copia)<br>
+<b>segure 0–9</b> sample entra no blend · <b>Shift+0–9</b> grava o cue no slot<br>
+<b>Z X C</b> foca o bus de fx (A / B / master) · <b>Q W E R T</b> ligam os efeitos<br>
+<b>Tab</b> deck armado · <b>Espaço</b> play/pause · <b>V</b> bed · <b>P</b> panic<br>
+<b>← →</b> crossfader · <b>Home/End</b> corte · <b>G</b> auto fade · <b>L</b> loop · <b>K</b> legendas
 </div>
 
 <!-- ── § 3 — LOGIC ── -->
@@ -284,22 +307,18 @@ const S={
   xf:0, bus:'M', loop:LS('vj.loop')!==false,
   ar:localStorage.getItem('vj.ar')||'16/9', zoom:1, cc:LS('vj.cc')===true,
   fx:{A:new Set(),B:new Set(),M:new Set()}, amt:{A:1,B:1,M:1},
-  mark:{A:{},B:{},P:{}},        // pontos de entrada/saída por deck
-  tloop:{A:false,B:false},      // repetir só o trecho marcado
-  pool:[null,null,null,null],   // qual slot ocupa cada player de sample
-  poolOf:{}, poolNext:0, held:{}
+  mark:{A:{},B:{},P:{}}, tloop:{A:false,B:false},
+  pool:[null,null,null,null], poolOf:{}, poolNext:0, held:{}
 };
-const MON={};              // espelhos locais dos decks (mudos)
-let PREV=null, BED=null;   // cue e audio bed vivem no controlador
-let OUTW=null;             // janela de saída
+const MON={}; let PREV=null, BED=null, OUTW=null;
 const VJ=()=> (OUTW&&!OUTW.closed&&OUTW.VJ&&OUTW.VJ.ready) ? OUTW.VJ : null;
-
+const clean=r=>{ const {_from,...rest}=r; return rest; };
 function save(){
   ['A','B','C'].forEach(d=>localStorage.setItem('vj.lib'+d,JSON.stringify(S.lib[d])));
   localStorage.setItem('vj.slots',JSON.stringify(S.slots));
 }
 
-/* ── § 3.1 — Output window — owns the program players ── */
+/* ── § 3.1 — Output window ── */
 function openOutput(){
   if(OUTW&&!OUTW.closed){ OUTW.focus(); return; }
   OUTW=window.open('output.html','vjout','width=960,height=540');
@@ -319,11 +338,11 @@ function markOut(){
   el('outb').textContent=live?'SAÍDA NO AR':'ABRIR SAÍDA (O)';
 }
 setInterval(markOut,1500);
-// reenvia todo o estado atual para uma saída recém-aberta
 function pushAll(){
   const v=VJ(); if(!v) return;
   v.frame(S.ar,S.zoom); v.loop(S.loop); v.cc(S.cc);
-  v.smooth(+el('smooth').value); v.blend(el('blend').value); v.xf(S.xf);
+  v.smooth(+el('smooth').value); v.blend(el('blend').value);
+  v.opacity('A',+el('opA').value/100); v.opacity('B',+el('opB').value/100); v.xf(S.xf);
   ['A','B','M'].forEach(b=>v.bus(b,[...S.fx[b]],S.amt[b]));
   ['A','B'].forEach(d=>{ if(S.now[d]) v.load(d,S.now[d].id); });
   v.sampBlend(el('sblend').value); v.sampFade(+el('sfade').value); applySampVol();
@@ -332,8 +351,7 @@ function pushAll(){
 }
 el('outb').onclick=openOutput;
 
-/* ── § 3.2 — Local players — monitors, cue, bed ── */
-// monitores com controles nativos: servem de scrub e viram controle remoto da saída
+/* ── § 3.2 — Local players ── */
 function mk(id,cb){
   return new YT.Player(id,{height:'100%',width:'100%',videoId:'',
     playerVars:{controls:1,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
@@ -347,9 +365,7 @@ function ccOff(p){
 }
 function onYouTubeIframeAPIReady(){
   const rdyMon=e=>{e.target.mute();e.target.setPlaybackQuality('small');ccOff(e.target);};
-  MON.A=mk('ytAmon',rdyMon);
-  MON.B=mk('ytBmon',rdyMon);
-  // o cue mantém os controles nativos: é a janela de consulta do operador
+  MON.A=mk('ytAmon',rdyMon); MON.B=mk('ytBmon',rdyMon);
   PREV=new YT.Player('ytPrev',{height:'100%',width:'100%',videoId:'',
     playerVars:{modestbranding:1,rel:0,playsinline:1,cc_load_policy:0},
     events:{onReady:e=>{ try{e.target.setVolume(+el('vP').value)}catch(err){} }}});
@@ -358,13 +374,11 @@ function onYouTubeIframeAPIReady(){
       playsinline:1,cc_load_policy:0},
     events:{onReady:e=>{e.target.setPlaybackQuality('small');applyAudio();},
       onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) nextC(); }}});
-  setInterval(drift,400);   // rápido o bastante para o loop de trecho responder
+  setInterval(drift,400);
 }
 if(window.YT&&YT.Player) onYouTubeIframeAPIReady();
 
-// O monitor é uma segunda cópia. Normalmente ele segue a saída; mas se você arrastar
-// a barra dele, o salto é grande demais para ser deriva — aí quem manda é o monitor,
-// e a saída é que pula. É isso que torna o scrub do monitor um controle real.
+// o monitor segue a saída; mas um salto grande é scrub seu, e aí a saída é que segue
 const seen={A:{t:0,ts:0},B:{t:0,ts:0}};
 function drift(){
   const v=VJ(); if(!v) return;
@@ -376,7 +390,6 @@ function drift(){
       const prev=seen[d], dt=(now-prev.ts)/1000;
       const esperado=prev.ts?prev.t+(m.getPlayerState()===1?dt:0):mon;
       const saltou=prev.ts&&Math.abs(mon-esperado)>1.0;
-
       if(saltou){ v.seek(d,mon); if(st===1) v.play(d); }
       else{
         if(st===1&&m.getPlayerState()!==1) m.playVideo();
@@ -384,16 +397,12 @@ function drift(){
         if(st===1&&Math.abs(mon-out)>0.4) m.seekTo(out,true);
       }
       seen[d]={t:m.getCurrentTime(),ts:now};
-
-      // trecho: quando passa do OUT, volta pro IN
       const mk=S.mark[d];
       if(S.tloop[d]&&mk.out!=null&&st===1&&out>=mk.out-0.1){
-        v.seek(d,mk.in||0); m.seekTo(mk.in||0,true);
-        seen[d]={t:mk.in||0,ts:now};
+        v.seek(d,mk.in||0); m.seekTo(mk.in||0,true); seen[d]={t:mk.in||0,ts:now};
       }
     }catch(e){}
   });
-  // samples também respeitam o trecho gravado
   S.pool.forEach((n,i)=>{
     if(n==null||!S.held[n]) return;
     const s=S.slots[n]; if(!s||s.out==null) return;
@@ -401,7 +410,7 @@ function drift(){
   });
 }
 
-/* ── § 3.2b — Marks — in / out / trecho ── */
+/* ── § 3.3 — Marks ── */
 const fmt=t=>t==null?'—':`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function headAt(d){
   if(d==='P'){ try{ return PREV.getCurrentTime()||0 }catch(e){ return 0 } }
@@ -409,8 +418,7 @@ function headAt(d){
 }
 function renderMarks(){
   ['A','B','P'].forEach(d=>{
-    const m=S.mark[d], r=el('rng'+d);
-    const has=m.in!=null||m.out!=null;
+    const m=S.mark[d], r=el('rng'+d), has=m.in!=null||m.out!=null;
     r.textContent=has?`${fmt(m.in)} → ${fmt(m.out)}`:'—';
     r.classList.toggle('set',has);
     const tl=document.querySelector(`[data-tloop="${d}"]`);
@@ -418,30 +426,24 @@ function renderMarks(){
   });
 }
 document.querySelectorAll('[data-in]').forEach(b=>b.onclick=()=>{
-  const d=b.dataset.in; S.mark[d].in=headAt(d); renderMarks(); flash('IN '+fmt(S.mark[d].in));
-});
+  const d=b.dataset.in; S.mark[d].in=headAt(d); renderMarks(); flash('IN '+fmt(S.mark[d].in)); });
 document.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>{
-  const d=b.dataset.out; S.mark[d].out=headAt(d); renderMarks(); flash('OUT '+fmt(S.mark[d].out));
-});
+  const d=b.dataset.out; S.mark[d].out=headAt(d); renderMarks(); flash('OUT '+fmt(S.mark[d].out)); });
 document.querySelectorAll('[data-mclr]').forEach(b=>b.onclick=()=>{
-  const d=b.dataset.mclr; S.mark[d]={}; S.tloop[d]=false; renderMarks();
-});
+  const d=b.dataset.mclr; S.mark[d]={}; S.tloop[d]=false; renderMarks(); });
 document.querySelectorAll('[data-tloop]').forEach(b=>b.onclick=()=>{
   const d=b.dataset.tloop;
   if(S.mark[d].out==null){ flash('marque OUT antes'); return; }
-  S.tloop[d]=!S.tloop[d]; renderMarks();
-});
+  S.tloop[d]=!S.tloop[d]; renderMarks(); });
 
-/* ── § 3.2c — Sample pool — slots pré-carregados para disparo momentâneo ── */
+/* ── § 3.4 — Sample pool ── */
 function poolAssign(n){
   const v=VJ(); if(!v||!S.slots[n]) return;
   if(S.poolOf[n]!=null){ v.sampLoad(S.poolOf[n],S.slots[n].id,S.slots[n].in||0); renderSlots(); return; }
   const i=S.poolNext%S.pool.length; S.poolNext++;
-  const antigo=S.pool[i];
-  if(antigo!=null) delete S.poolOf[antigo];
+  const antigo=S.pool[i]; if(antigo!=null) delete S.poolOf[antigo];
   S.pool[i]=n; S.poolOf[n]=i;
-  v.sampLoad(i,S.slots[n].id,S.slots[n].in||0);
-  renderSlots();
+  v.sampLoad(i,S.slots[n].id,S.slots[n].in||0); renderSlots();
 }
 function holdOn(n){
   const v=VJ(); if(!v||!S.slots[n]||S.held[n]) return;
@@ -457,7 +459,7 @@ function holdOff(n){
   document.querySelectorAll('.slot')[(n+9)%10]?.classList.remove('hot');
 }
 
-/* ── § 3.3 — Search ── */
+/* ── § 3.5 — Search ── */
 const KEY=()=>localStorage.getItem('vj.key')||'';
 el('key').value=KEY();
 el('savekey').onclick=()=>{ localStorage.setItem('vj.key',el('key').value.trim()); flash('key salva'); };
@@ -500,67 +502,71 @@ function renderResults(){
 }
 el('go').onclick=search;
 el('q').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.stopPropagation();search();} });
+const sw=el('searchwrap');
+function toggleSearch(force){
+  const closed=force!==undefined?!force:!sw.classList.contains('closed');
+  sw.classList.toggle('closed',closed);
+  localStorage.setItem('vj.search',JSON.stringify(!closed));
+  if(!closed) el('q').focus();
+}
+el('searchb').onclick=()=>toggleSearch();
+if(LS('vj.search')===false) sw.classList.add('closed');
 
-/* ── § 3.4 — Cue — preview that never reaches the output ── */
+/* ── § 3.6 — Cue ── */
 function cue(r){
   if(!r||!PREV||!PREV.loadVideoById) return;
+  r=clean(r);
   S.now.P=r; el('tP').textContent=r.title;
   S.mark.P={in:r.in??null,out:r.out??null}; renderMarks();
   PREV.loadVideoById(r.id);
   try{ PREV.setVolume(+el('vP').value); }catch(e){}
 }
-// cue e decks são fontes de arraste: levam o vídeo com o trecho marcado neles
-document.querySelectorAll('[data-grab]').forEach(h=>{
-  const d=h.dataset.grab;
-  h.ondragstart=e=>{
-    const r=S.now[d];
-    if(!r){ e.preventDefault(); return; }
-    const m=S.mark[d]||{};
-    e.dataTransfer.setData('text/plain',
-      JSON.stringify({...clean(r),in:m.in??null,out:m.out??null}));
-    e.dataTransfer.effectAllowed='copy';
-  };
-});
 el('vP').oninput=e=>{ try{PREV.setVolume(+e.target.value)}catch(err){} };
 el('toA').onclick=()=>sendCue('A');
 el('toB').onclick=()=>sendCue('B');
 el('addA').onclick=()=>{ if(S.now.P) addTo('A',S.now.P); };
 el('addB').onclick=()=>{ if(S.now.P) addTo('B',S.now.P); };
-// manda o que está no cue para um deck, a partir do ponto que você estava assistindo
 function sendCue(d){
   if(!S.now.P){ flash('nada no cue'); return; }
   let t=0; try{ t=PREV.getCurrentTime()||0; }catch(e){}
-  // se há trecho marcado no cue, ele viaja junto e o deck já entra em loop de trecho
   const m=S.mark.P;
   if(m.in!=null||m.out!=null){
     S.mark[d]={in:m.in,out:m.out}; S.tloop[d]=m.out!=null; t=m.in??t; renderMarks();
   }
   play(d,S.now.P,t);
 }
+document.querySelectorAll('[data-grab]').forEach(h=>{
+  const d=h.dataset.grab;
+  h.ondragstart=e=>{
+    const r=S.now[d]; if(!r){ e.preventDefault(); return; }
+    const m=S.mark[d]||{};
+    e.dataTransfer.setData('text/plain',JSON.stringify({...clean(r),in:m.in??null,out:m.out??null}));
+    e.dataTransfer.effectAllowed='copy';
+  };
+});
 
-/* ── § 3.5 — Library ── */
-['A','B','C'].forEach(d=>{
+/* ── § 3.7 — Library ── */
+['A','B'].forEach(d=>{
   const col=el('col'+d);
   col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drop');});
   col.addEventListener('dragleave',()=>col.classList.remove('drop'));
-  col.addEventListener('drop',e=>{
-    e.preventDefault(); col.classList.remove('drop'); drop(d,e);
-  });
+  col.addEventListener('drop',e=>{e.preventDefault();col.classList.remove('drop');drop(d,e);});
 });
-// o cue não tem lista: soltar nele é só carregar para consulta
+const bedm=el('bedmon');
+bedm.addEventListener('dragover',e=>{e.preventDefault();bedm.style.borderColor='var(--ok)';});
+bedm.addEventListener('dragleave',()=>bedm.style.borderColor='');
+bedm.addEventListener('drop',e=>{e.preventDefault();bedm.style.borderColor='';drop('C',e);});
 const cueBox=el('cue');
 cueBox.addEventListener('dragover',e=>{e.preventDefault();cueBox.style.borderColor='var(--ok)';});
 cueBox.addEventListener('dragleave',()=>cueBox.style.borderColor='');
 cueBox.addEventListener('drop',e=>{
-  e.preventDefault(); e.stopPropagation(); cueBox.style.borderColor='';
-  try{ cue(clean(JSON.parse(e.dataTransfer.getData('text/plain')))); }catch(err){}
+  e.preventDefault();e.stopPropagation();cueBox.style.borderColor='';
+  try{ cue(JSON.parse(e.dataTransfer.getData('text/plain'))); }catch(err){}
 });
 function addTo(d,r){
-  if(!r||S.lib[d].some(x=>x.id===r.id)){ flash('já está na lista '+d); return; }
+  if(!r||S.lib[d].some(x=>x.id===r.id)){ flash('já está em '+d); return; }
   S.lib[d].push(clean(r)); save(); renderLib(d); flash('→ '+d);
 }
-const clean=r=>{ const {_from,...rest}=r; return rest; };
-// arrastar entre listas move; com Ctrl, copia
 function drop(dest,e){
   let r; try{ r=JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
   const from=r._from;
@@ -571,7 +577,7 @@ function drop(dest,e){
   }
 }
 function renderLib(d){
-  const c=el('lib'+d); c.innerHTML='';
+  const c=d==='C'?el('bedlist'):el('lib'+d); c.innerHTML='';
   if(!S.lib[d].length){ c.innerHTML='<div class="empty">arraste vídeos aqui</div>'; return; }
   S.lib[d].forEach((r,i)=>{
     const it=document.createElement('div');
@@ -580,18 +586,17 @@ function renderLib(d){
     it.innerHTML=`<img src="${r.thumb}"><span>${r.title}</span><div class="x">×</div>`;
     it.ondragstart=ev=>{
       ev.dataTransfer.setData('text/plain',JSON.stringify({...r,_from:d}));
-      ev.dataTransfer.effectAllowed='copyMove';
-    };
+      ev.dataTransfer.effectAllowed='copyMove'; };
     it.onclick=ev=>{
       if(ev.target.classList.contains('x')){ S.lib[d].splice(i,1); save(); renderLib(d); return; }
-      d==='C'?play('C',r):cue(r);
-    };
+      d==='C'?play('C',r):cue(r); };
     it.ondblclick=()=>play(d,r);
     c.appendChild(it);
   });
 }
+el('bedb').onclick=()=>el('bedlist').classList.toggle('open');
 
-/* ── § 3.6 — Transport ── */
+/* ── § 3.8 — Transport ── */
 function play(d,r,at){
   if(!r) return;
   if(d==='C'){
@@ -622,10 +627,9 @@ function nextC(){
 document.querySelectorAll('[data-pp]').forEach(b=>b.onclick=()=>pp(b.dataset.pp));
 document.querySelectorAll('[data-arm]').forEach(b=>b.onclick=()=>setArmed(b.dataset.arm));
 document.querySelectorAll('[data-clear]').forEach(b=>b.onclick=()=>{
-  S.lib[b.dataset.clear]=[]; save(); renderLib(b.dataset.clear);
-});
+  S.lib[b.dataset.clear]=[]; save(); renderLib(b.dataset.clear); });
 
-/* ── § 3.7 — Slots ── */
+/* ── § 3.9 — Slots ── */
 function renderSlots(){
   const c=el('slots'); c.innerHTML='';
   for(let i=0;i<10;i++){
@@ -634,27 +638,25 @@ function renderSlots(){
     d.className='slot'+(s&&S.poolOf[n]!=null?' armed':'');
     d.innerHTML=(s?`<img src="${s.thumb}">`:'')+`<span class="n">${n}</span>`
       +(s&&s.out!=null?`<span class="tr">${fmt(s.in||0)}–${fmt(s.out)}</span>`:'');
-    d.onclick=()=>fire(n);
+    d.onclick=()=>{ if(S.slots[n]) cue(S.slots[n]); };
     d.oncontextmenu=e=>{e.preventDefault(); assign(n);};
     d.ondragover=e=>{e.preventDefault();d.classList.add('drop');};
     d.ondragleave=()=>d.classList.remove('drop');
     d.ondrop=e=>{e.preventDefault();e.stopPropagation();d.classList.remove('drop');
       try{ S.slots[n]=clean(JSON.parse(e.dataTransfer.getData('text/plain'))); save();
-           poolAssign(n); flash('slot '+n+' ← trecho'); }catch(err){}};
+           poolAssign(n); flash('slot '+n); }catch(err){}};
     c.appendChild(d);
   }
 }
-// grava no slot o que está no cue, junto com o trecho marcado lá
 function assign(n){
   const base=S.now.P||(S.sel!=null?S.results[S.sel]:null);
   if(!base) return;
   const m=S.now.P?S.mark.P:{};
-  S.slots[n]={...base,in:m.in??null,out:m.out??null};
+  S.slots[n]={...clean(base),in:m.in??null,out:m.out??null};
   save(); poolAssign(n); flash('slot '+n);
 }
-function fire(n){ if(S.slots[n]) play(S.armed,S.slots[n],S.slots[n].in||0); }
 
-/* ── § 3.8 — FX buses ── */
+/* ── § 3.10 — FX buses ── */
 function renderBus(b){ const v=VJ(); if(v) v.bus(b,[...S.fx[b]],S.amt[b]); }
 function toggleFx(name,b){
   b=b||S.bus;
@@ -662,32 +664,40 @@ function toggleFx(name,b){
   renderBus(b); syncFxUI();
 }
 function syncFxUI(){
-  document.querySelectorAll('.fx').forEach(x=>x.classList.toggle('on',S.fx[S.bus].has(x.dataset.fx)));
-  document.querySelectorAll('.busb').forEach(x=>x.classList.toggle('on',x.dataset.bus===S.bus));
-  el('busnote').textContent='editando: '+(S.bus==='M'?'MASTER':'DECK '+S.bus);
-  el('amt').value=Math.round(S.amt[S.bus]*100);
-  el('amtv').textContent=el('amt').value;
+  document.querySelectorAll('.fx').forEach(x=>
+    x.classList.toggle('on',S.fx[x.dataset.bus].has(x.dataset.fx)));
+  document.querySelectorAll('[data-fxbus]').forEach(x=>
+    x.classList.toggle('focus',x.dataset.fxbus===S.bus));
+  el('fxfocus').textContent='fx: '+(S.bus==='M'?'master':'deck '+S.bus);
 }
-document.querySelectorAll('.fx').forEach(b=>b.onclick=()=>toggleFx(b.dataset.fx));
-document.querySelectorAll('.busb').forEach(b=>b.onclick=()=>{S.bus=b.dataset.bus;syncFxUI();});
-el('amt').oninput=e=>{ S.amt[S.bus]=+e.target.value/100; el('amtv').textContent=e.target.value; renderBus(S.bus); };
+document.querySelectorAll('.fx').forEach(b=>b.onclick=()=>{
+  S.bus=b.dataset.bus; toggleFx(b.dataset.fx,b.dataset.bus); });
+document.querySelectorAll('[data-amt]').forEach(r=>r.oninput=e=>{
+  const b=r.dataset.amt; S.amt[b]=+e.target.value/100; renderBus(b); });
 el('panic').onclick=panic;
 function panic(){ ['A','B','M'].forEach(b=>{S.fx[b].clear();renderBus(b);}); syncFxUI(); flash('fx zerados'); }
 
-/* ── § 3.9 — Mixer ── */
+/* ── § 3.11 — Mixer ── */
 const xf=el('xf'), smooth=el('smooth');
-smooth.oninput=()=>{ el('smoothv').textContent=smooth.value+'ms'; const v=VJ(); if(v) v.smooth(+smooth.value); };
+smooth.oninput=()=>{ el('smoothv').textContent=smooth.value; const v=VJ(); if(v) v.smooth(+smooth.value); };
 xf.oninput=()=>{S.xf=+xf.value;applyXf();};
-function applyXf(){ const v=VJ(); if(v) v.xf(S.xf); applyAudio(); }
+function applyXf(){
+  const v=VJ(); if(v) v.xf(S.xf);
+  el('xfv').textContent = S.xf===0?'A' : S.xf===100?'B' : `A ${100-S.xf} · ${S.xf} B`;
+  applyAudio();
+}
+['A','B'].forEach(d=>{
+  el('op'+d).oninput=e=>{
+    el('op'+d+'v').textContent=e.target.value;
+    const v=VJ(); if(v) v.opacity(d,+e.target.value/100);
+  };
+});
 el('blend').onchange=e=>{ const v=VJ(); if(v) v.blend(e.target.value); };
 el('sblend').onchange=e=>{ const v=VJ(); if(v) v.sampBlend(e.target.value); };
-el('sfade').oninput=e=>{ el('sfadev').textContent=e.target.value+'ms';
-  const v=VJ(); if(v) v.sampFade(+e.target.value); };
-// som dos samples é opt-in: por padrão eles entram mudos, só imagem
+el('sfade').oninput=e=>{ const v=VJ(); if(v) v.sampFade(+e.target.value); };
 const saudb=el('saudb');
 function applySampVol(){
   const on=saudb.classList.contains('on'), val=on?+el('svol').value:0;
-  el('svolv').textContent=on?val:'mudo';
   const v=VJ(); if(v) v.sampVol(val);
 }
 saudb.onclick=()=>{ saudb.classList.toggle('on'); applySampVol(); };
@@ -706,7 +716,7 @@ function autofade(){
 }
 el('autofade').onclick=autofade;
 
-/* ── § 3.10 — Frame, loop, captions ── */
+/* ── § 3.12 — Frame, loop, captions ── */
 const SRC=16/9;
 function applyFrame(){
   const [w,h]=S.ar.split('/').map(Number), T=w/h, r=document.documentElement.style;
@@ -724,8 +734,7 @@ const loopb=el('loopb');
 function toggleLoop(){
   S.loop=!S.loop; localStorage.setItem('vj.loop',JSON.stringify(S.loop));
   loopb.classList.toggle('on',S.loop);
-  const v=VJ(); if(v) v.loop(S.loop);
-  flash('loop '+(S.loop?'on':'off'));
+  const v=VJ(); if(v) v.loop(S.loop); flash('loop '+(S.loop?'on':'off'));
 }
 loopb.onclick=toggleLoop; loopb.classList.toggle('on',S.loop);
 const ccb=el('ccb');
@@ -738,12 +747,13 @@ function toggleCC(){
 }
 ccb.onclick=toggleCC; ccb.classList.toggle('on',S.cc);
 
-/* ── § 3.11 — Audio ── */
+/* ── § 3.13 — Audio ── */
 const vA=el('vA'),vB=el('vB'),vC=el('vC'),amode=el('amode');
 [vA,vB,vC,amode].forEach(e=>{e.oninput=applyAudio;e.onchange=applyAudio});
 function applyAudio(){
   const m=amode.value, t=S.xf/100;
   let a=+vA.value,b=+vB.value;
+  el('vAv').textContent=vA.value; el('vBv').textContent=vB.value;
   if(m==='follow'){ a*=(1-t); b*=t; }
   else if(m==='lockA') b=0;
   else if(m==='lockB') a=0;
@@ -752,7 +762,7 @@ function applyAudio(){
   try{ if(BED&&BED.setVolume) BED.setVolume(Math.round(+vC.value)); }catch(e){}
 }
 
-/* ── § 3.12 — Keyboard ── */
+/* ── § 3.14 — Keyboard ── */
 function setArmed(d){
   S.armed=d;
   el('monA').classList.toggle('armed',d==='A');
@@ -760,14 +770,13 @@ function setArmed(d){
 }
 const FXKEY={q:'glitch',w:'invert',e:'melt',r:'hue',t:'strobe'}, BUSKEY={z:'A',x:'B',c:'M'};
 addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
-  const k=e.key, kl=k.toLowerCase();
-  // segurar o número mantém o sample no ar; soltar tira. Shift grava o slot.
-  if(/^[0-9]$/.test(k)){
-    e.preventDefault();
-    if(e.repeat) return;
-    e.shiftKey?assign(+k):holdOn(+k);
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'){
+    if(e.key==='Escape') e.target.blur();
     return; }
+  const k=e.key, kl=k.toLowerCase();
+  if(/^[0-9]$/.test(k)){ e.preventDefault(); if(e.repeat) return;
+    e.shiftKey?assign(+k):holdOn(+k); return; }
+  if(k==='/'){ e.preventDefault(); toggleSearch(true); return; }
   if(k==='['){ sendCue('A'); return; }
   if(k===']'){ sendCue('B'); return; }
   if(k==='Tab'){ e.preventDefault(); setArmed(S.armed==='A'?'B':'A'); return; }
@@ -791,13 +800,13 @@ addEventListener('blur',()=>{ Object.keys(S.held).forEach(n=>holdOff(+n)); });
 const HELP=el('help');
 el('helpb').onclick=()=>HELP.style.display=HELP.style.display==='block'?'none':'block';
 
-/* ── § 3.13 — Misc ── */
+/* ── § 3.15 — Misc ── */
 let ft; const HELPHTML=HELP.innerHTML;
 function flash(msg){
   HELP.textContent=msg; HELP.style.display='block';
-  clearTimeout(ft); ft=setTimeout(()=>{HELP.style.display='none';HELP.innerHTML=HELPHTML;},1600);
+  clearTimeout(ft); ft=setTimeout(()=>{HELP.style.display='none';HELP.innerHTML=HELPHTML;},1500);
 }
 addEventListener('beforeunload',()=>{ if(OUTW&&!OUTW.closed) OUTW.close(); });
 renderResults(); ['A','B','C'].forEach(renderLib); renderSlots(); setArmed('A');
-smooth.oninput(); syncFxUI(); applyFrame(); renderMarks(); markOut();
+smooth.oninput(); syncFxUI(); applyFrame(); renderMarks(); applyXf(); markOut();
 </script>
