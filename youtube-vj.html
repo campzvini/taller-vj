@@ -47,9 +47,17 @@ button:hover{background:#2a2a34}
 .mon{background:#000;border:1px solid var(--line);flex:0 0 auto;aspect-ratio:var(--ar,16/9);
   overflow:hidden;position:relative}
 .mon.armed{border-color:var(--acc)}
-.mon iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
+/* o monitor tem os controles nativos e serve de controle remoto da saída */
+.mon iframe{position:absolute;left:50%;top:50%;border:0;
   width:var(--covw,100%);height:var(--covh,100%);
   transform:translate(-50%,-50%) scale(var(--zoom,1))}
+
+/* ── § 1.2b — Marks — in/out trecho ── */
+.marks{display:flex;gap:3px;align-items:center;flex-wrap:wrap;font-size:10px}
+.mk{padding:3px 6px;font-size:10px}
+.mk.on{background:var(--accb);border-color:var(--accb);color:#fff}
+.rng{color:var(--dim);font-size:9px;min-width:88px}
+.rng.set{color:var(--ok)}
 
 /* ── § 1.3 — Cue — preview that never reaches the output ── */
 #cue{background:#000;border:1px solid var(--accb);aspect-ratio:16/9;overflow:hidden;position:relative;flex:0 0 auto}
@@ -75,6 +83,9 @@ button:hover{background:#2a2a34}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
 .slot .n{position:relative;font-weight:700;font-size:14px;text-shadow:0 0 4px #000}
 .slot.drop{border-color:var(--accb)}
+.slot.armed{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+.slot.hot{background:var(--ok)}
+.slot .tr{position:absolute;bottom:1px;left:2px;font-size:8px;color:var(--ok);text-shadow:0 0 3px #000}
 
 /* ── § 1.6 — Bottom ── */
 #bottom{background:var(--panel);border-top:1px solid var(--line);padding:8px;
@@ -118,6 +129,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   <div class="col" id="colA" data-deck="A">
     <div class="lbl"><span>Deck <b>A</b></span><span class="now" id="tA"></span></div>
     <div class="mon" id="monA"><div id="ytAmon"></div></div>
+    <div class="marks">
+      <button class="mk" data-in="A">IN</button><button class="mk" data-out="A">OUT</button>
+      <button class="mk" data-tloop="A">⟲ trecho</button><button class="mk" data-mclr="A">×</button>
+      <span class="rng" id="rngA">—</span></div>
     <div class="row"><button data-pp="A">▶/❚❚</button><button data-arm="A">armar</button>
       <button data-clear="A">limpar</button></div>
     <div class="lib" id="libA"></div>
@@ -126,13 +141,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   <div class="col">
     <div class="lbl"><span>Cue / consulta <b>(não vai ao ar)</b></span><span class="now" id="tP"></span></div>
     <div id="cue"><div id="ytPrev"></div></div>
+    <div class="marks">
+      <button class="mk" data-in="P">IN</button><button class="mk" data-out="P">OUT</button>
+      <button class="mk" data-mclr="P">×</button>
+      <span class="rng" id="rngP">—</span>
+      <span id="grab" draggable="true" title="arraste para um slot"
+        style="cursor:grab;border:1px dashed var(--accb);padding:3px 8px;border-radius:3px">⇢ arraste o trecho</span>
+    </div>
     <div id="cuebar">
       <button class="send" id="toA">◄ tocar em A  [</button>
       <button class="send" id="toB">tocar em B  ]</button>
       <button id="addA">+ lista A</button>
       <button id="addB">+ lista B</button>
       <span class="tag">CUE VOL</span>
-      <input type="range" id="vP" min="0" max="100" value="0" style="max-width:80px">
+      <input type="range" id="vP" min="0" max="100" value="0" style="max-width:70px">
     </div>
     <div id="slots"></div>
   </div>
@@ -140,6 +162,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   <div class="col" id="colB" data-deck="B">
     <div class="lbl"><span>Deck <b>B</b></span><span class="now" id="tB"></span></div>
     <div class="mon" id="monB"><div id="ytBmon"></div></div>
+    <div class="marks">
+      <button class="mk" data-in="B">IN</button><button class="mk" data-out="B">OUT</button>
+      <button class="mk" data-tloop="B">⟲ trecho</button><button class="mk" data-mclr="B">×</button>
+      <span class="rng" id="rngB">—</span></div>
     <div class="row"><button data-pp="B">▶/❚❚</button><button data-arm="B">armar</button>
       <button data-clear="B">limpar</button></div>
     <div class="lib" id="libB"></div>
@@ -168,6 +194,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
         <option>multiply</option><option>exclusion</option><option>overlay</option>
         <option>hard-light</option><option>color-dodge</option><option>luminosity</option>
       </select></div>
+    <div class="row"><span class="tag">SAMPLES 0–9</span>
+      <select id="sblend">
+        <option>screen</option><option>normal</option><option>difference</option>
+        <option>multiply</option><option>exclusion</option><option>overlay</option>
+        <option>hard-light</option><option>lighten</option>
+      </select>
+      <span class="tag">FADE</span>
+      <input type="range" id="sfade" min="0" max="600" value="90" style="min-width:60px">
+      <span class="tag" id="sfadev">90ms</span></div>
   </div>
 
   <div class="grp">
@@ -218,7 +253,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 <b>O</b> abre a janela de saída (arraste pro projetor, F11)<br>
 <b>arraste</b> resultado para coluna A/B, slot, ou Audio Bed<br>
 <b>clique</b> num resultado carrega no Cue · <b>[</b> manda pra A · <b>]</b> pra B<br>
-<b>0–9</b> dispara slot no deck armado · <b>Shift+0–9</b> grava slot<br>
+<b>segure 0–9</b> o sample entra no blend enquanto a tecla estiver apertada<br>
+<b>Shift+0–9</b> grava o cue (com o trecho marcado) no slot<br>
+<b>IN / OUT / ⟲</b> marcam trecho em A, B e no Cue · arraste "⇢ trecho" pro slot<br>
 <b>Tab</b> troca deck armado · <b>Espaço</b> play/pause · <b>V</b> bed<br>
 <b>← →</b> crossfader · <b>Home/End</b> corte · <b>G</b> auto fade<br>
 <b>Z X C</b> bus de fx · <b>Q W E R T</b> efeitos · <b>P</b> panic<br>
@@ -237,7 +274,11 @@ const S={
   slots:LS('vj.slots')||Array(10).fill(null),
   xf:0, bus:'M', loop:LS('vj.loop')!==false,
   ar:localStorage.getItem('vj.ar')||'16/9', zoom:1, cc:LS('vj.cc')===true,
-  fx:{A:new Set(),B:new Set(),M:new Set()}, amt:{A:1,B:1,M:1}
+  fx:{A:new Set(),B:new Set(),M:new Set()}, amt:{A:1,B:1,M:1},
+  mark:{A:{},B:{},P:{}},        // pontos de entrada/saída por deck
+  tloop:{A:false,B:false},      // repetir só o trecho marcado
+  pool:[null,null,null,null],   // qual slot ocupa cada player de sample
+  poolOf:{}, poolNext:0, held:{}
 };
 const MON={};              // espelhos locais dos decks (mudos)
 let PREV=null, BED=null;   // cue e audio bed vivem no controlador
@@ -276,14 +317,17 @@ function pushAll(){
   v.smooth(+el('smooth').value); v.blend(el('blend').value); v.xf(S.xf);
   ['A','B','M'].forEach(b=>v.bus(b,[...S.fx[b]],S.amt[b]));
   ['A','B'].forEach(d=>{ if(S.now[d]) v.load(d,S.now[d].id); });
+  v.sampBlend(el('sblend').value); v.sampFade(+el('sfade').value);
+  S.pool.forEach((n,i)=>{ if(n!=null&&S.slots[n]) v.sampLoad(i,S.slots[n].id,S.slots[n].in||0); });
   applyAudio();
 }
 el('outb').onclick=openOutput;
 
 /* ── § 3.2 — Local players — monitors, cue, bed ── */
+// monitores com controles nativos: servem de scrub e viram controle remoto da saída
 function mk(id,cb){
   return new YT.Player(id,{height:'100%',width:'100%',videoId:'',
-    playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
+    playerVars:{controls:1,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
       playsinline:1,cc_load_policy:0},
     events:{onReady:cb,onStateChange:e=>{ if(e.data===1&&!S.cc) ccOff(e.target); }}});
 }
@@ -305,22 +349,103 @@ function onYouTubeIframeAPIReady(){
       playsinline:1,cc_load_policy:0},
     events:{onReady:e=>{e.target.setPlaybackQuality('small');applyAudio();},
       onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) nextC(); }}});
-  setInterval(drift,2500);
+  setInterval(drift,400);   // rápido o bastante para o loop de trecho responder
 }
 if(window.YT&&YT.Player) onYouTubeIframeAPIReady();
 
-// o monitor é uma segunda cópia; alinhamos pelo tempo que a saída reporta
+// O monitor é uma segunda cópia. Normalmente ele segue a saída; mas se você arrastar
+// a barra dele, o salto é grande demais para ser deriva — aí quem manda é o monitor,
+// e a saída é que pula. É isso que torna o scrub do monitor um controle real.
+const seen={A:{t:0,ts:0},B:{t:0,ts:0}};
 function drift(){
   const v=VJ(); if(!v) return;
+  const now=performance.now();
   ['A','B'].forEach(d=>{
     const m=MON[d]; if(!m||!m.seekTo) return;
     try{
-      const st=v.state(d), t=v.time(d);
-      if(st===1&&m.getPlayerState()!==1) m.playVideo();
-      if(st!==1&&m.getPlayerState()===1) m.pauseVideo();
-      if(st===1&&Math.abs(m.getCurrentTime()-t)>0.4) m.seekTo(t,true);
+      const st=v.state(d), out=v.time(d), mon=m.getCurrentTime();
+      const prev=seen[d], dt=(now-prev.ts)/1000;
+      const esperado=prev.ts?prev.t+(m.getPlayerState()===1?dt:0):mon;
+      const saltou=prev.ts&&Math.abs(mon-esperado)>1.0;
+
+      if(saltou){ v.seek(d,mon); if(st===1) v.play(d); }
+      else{
+        if(st===1&&m.getPlayerState()!==1) m.playVideo();
+        if(st!==1&&m.getPlayerState()===1) m.pauseVideo();
+        if(st===1&&Math.abs(mon-out)>0.4) m.seekTo(out,true);
+      }
+      seen[d]={t:m.getCurrentTime(),ts:now};
+
+      // trecho: quando passa do OUT, volta pro IN
+      const mk=S.mark[d];
+      if(S.tloop[d]&&mk.out!=null&&st===1&&out>=mk.out-0.1){
+        v.seek(d,mk.in||0); m.seekTo(mk.in||0,true);
+        seen[d]={t:mk.in||0,ts:now};
+      }
     }catch(e){}
   });
+  // samples também respeitam o trecho gravado
+  S.pool.forEach((n,i)=>{
+    if(n==null||!S.held[n]) return;
+    const s=S.slots[n]; if(!s||s.out==null) return;
+    try{ if(v.sampTime(i)>=s.out-0.1) v.sampSeek(i,s.in||0); }catch(e){}
+  });
+}
+
+/* ── § 3.2b — Marks — in / out / trecho ── */
+const fmt=t=>t==null?'—':`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+function headAt(d){
+  if(d==='P'){ try{ return PREV.getCurrentTime()||0 }catch(e){ return 0 } }
+  const v=VJ(); return v?v.time(d):0;
+}
+function renderMarks(){
+  ['A','B','P'].forEach(d=>{
+    const m=S.mark[d], r=el('rng'+d);
+    const has=m.in!=null||m.out!=null;
+    r.textContent=has?`${fmt(m.in)} → ${fmt(m.out)}`:'—';
+    r.classList.toggle('set',has);
+    const tl=document.querySelector(`[data-tloop="${d}"]`);
+    if(tl) tl.classList.toggle('on',!!S.tloop[d]);
+  });
+}
+document.querySelectorAll('[data-in]').forEach(b=>b.onclick=()=>{
+  const d=b.dataset.in; S.mark[d].in=headAt(d); renderMarks(); flash('IN '+fmt(S.mark[d].in));
+});
+document.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>{
+  const d=b.dataset.out; S.mark[d].out=headAt(d); renderMarks(); flash('OUT '+fmt(S.mark[d].out));
+});
+document.querySelectorAll('[data-mclr]').forEach(b=>b.onclick=()=>{
+  const d=b.dataset.mclr; S.mark[d]={}; S.tloop[d]=false; renderMarks();
+});
+document.querySelectorAll('[data-tloop]').forEach(b=>b.onclick=()=>{
+  const d=b.dataset.tloop;
+  if(S.mark[d].out==null){ flash('marque OUT antes'); return; }
+  S.tloop[d]=!S.tloop[d]; renderMarks();
+});
+
+/* ── § 3.2c — Sample pool — slots pré-carregados para disparo momentâneo ── */
+function poolAssign(n){
+  const v=VJ(); if(!v||!S.slots[n]) return;
+  if(S.poolOf[n]!=null){ v.sampLoad(S.poolOf[n],S.slots[n].id,S.slots[n].in||0); renderSlots(); return; }
+  const i=S.poolNext%S.pool.length; S.poolNext++;
+  const antigo=S.pool[i];
+  if(antigo!=null) delete S.poolOf[antigo];
+  S.pool[i]=n; S.poolOf[n]=i;
+  v.sampLoad(i,S.slots[n].id,S.slots[n].in||0);
+  renderSlots();
+}
+function holdOn(n){
+  const v=VJ(); if(!v||!S.slots[n]||S.held[n]) return;
+  const i=S.poolOf[n];
+  if(i==null){ poolAssign(n); flash('slot '+n+' carregando — aperte de novo'); return; }
+  S.held[n]=true; v.sampOn(i);
+  document.querySelectorAll('.slot')[(n+9)%10]?.classList.add('hot');
+}
+function holdOff(n){
+  const v=VJ(); if(!v||!S.held[n]) return;
+  S.held[n]=false;
+  const i=S.poolOf[n]; if(i!=null) v.sampOff(i,S.slots[n]?.in||0);
+  document.querySelectorAll('.slot')[(n+9)%10]?.classList.remove('hot');
 }
 
 /* ── § 3.3 — Search ── */
@@ -370,9 +495,17 @@ el('q').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.stopPropagation();
 function cue(r){
   if(!r||!PREV||!PREV.loadVideoById) return;
   S.now.P=r; el('tP').textContent=r.title;
+  S.mark.P={in:r.in??null,out:r.out??null}; renderMarks();
   PREV.loadVideoById(r.id);
   try{ PREV.setVolume(+el('vP').value); }catch(e){}
 }
+// o cue é a fonte de arraste: leva o vídeo com o trecho marcado
+el('grab').ondragstart=e=>{
+  if(!S.now.P){ e.preventDefault(); return; }
+  const p={...S.now.P,in:S.mark.P.in??null,out:S.mark.P.out??null};
+  e.dataTransfer.setData('text/plain',JSON.stringify(p));
+  e.dataTransfer.effectAllowed='copy';
+};
 el('vP').oninput=e=>{ try{PREV.setVolume(+e.target.value)}catch(err){} };
 el('toA').onclick=()=>sendCue('A');
 el('toB').onclick=()=>sendCue('B');
@@ -382,6 +515,11 @@ el('addB').onclick=()=>{ if(S.now.P) addTo('B',S.now.P); };
 function sendCue(d){
   if(!S.now.P){ flash('nada no cue'); return; }
   let t=0; try{ t=PREV.getCurrentTime()||0; }catch(e){}
+  // se há trecho marcado no cue, ele viaja junto e o deck já entra em loop de trecho
+  const m=S.mark.P;
+  if(m.in!=null||m.out!=null){
+    S.mark[d]={in:m.in,out:m.out}; S.tloop[d]=m.out!=null; t=m.in??t; renderMarks();
+  }
   play(d,S.now.P,t);
 }
 
@@ -453,22 +591,29 @@ function renderSlots(){
   const c=el('slots'); c.innerHTML='';
   for(let i=0;i<10;i++){
     const n=(i+1)%10, s=S.slots[n];
-    const d=document.createElement('div'); d.className='slot';
-    d.innerHTML=(s?`<img src="${s.thumb}">`:'')+`<span class="n">${n}</span>`;
+    const d=document.createElement('div');
+    d.className='slot'+(s&&S.poolOf[n]!=null?' armed':'');
+    d.innerHTML=(s?`<img src="${s.thumb}">`:'')+`<span class="n">${n}</span>`
+      +(s&&s.out!=null?`<span class="tr">${fmt(s.in||0)}–${fmt(s.out)}</span>`:'');
     d.onclick=()=>fire(n);
     d.oncontextmenu=e=>{e.preventDefault(); assign(n);};
     d.ondragover=e=>{e.preventDefault();d.classList.add('drop');};
     d.ondragleave=()=>d.classList.remove('drop');
     d.ondrop=e=>{e.preventDefault();e.stopPropagation();d.classList.remove('drop');
-      try{ S.slots[n]=JSON.parse(e.dataTransfer.getData('text/plain')); save(); renderSlots(); }catch(err){}};
+      try{ S.slots[n]=JSON.parse(e.dataTransfer.getData('text/plain')); save();
+           poolAssign(n); flash('slot '+n+' ← trecho'); }catch(err){}};
     c.appendChild(d);
   }
 }
+// grava no slot o que está no cue, junto com o trecho marcado lá
 function assign(n){
-  const r=S.now.P||(S.sel!=null?S.results[S.sel]:null);
-  if(r){ S.slots[n]=r; save(); renderSlots(); flash('slot '+n); }
+  const base=S.now.P||(S.sel!=null?S.results[S.sel]:null);
+  if(!base) return;
+  const m=S.now.P?S.mark.P:{};
+  S.slots[n]={...base,in:m.in??null,out:m.out??null};
+  save(); poolAssign(n); flash('slot '+n);
 }
-function fire(n){ if(S.slots[n]) play(S.armed,S.slots[n]); }
+function fire(n){ if(S.slots[n]) play(S.armed,S.slots[n],S.slots[n].in||0); }
 
 /* ── § 3.8 — FX buses ── */
 function renderBus(b){ const v=VJ(); if(v) v.bus(b,[...S.fx[b]],S.amt[b]); }
@@ -496,6 +641,9 @@ smooth.oninput=()=>{ el('smoothv').textContent=smooth.value+'ms'; const v=VJ(); 
 xf.oninput=()=>{S.xf=+xf.value;applyXf();};
 function applyXf(){ const v=VJ(); if(v) v.xf(S.xf); applyAudio(); }
 el('blend').onchange=e=>{ const v=VJ(); if(v) v.blend(e.target.value); };
+el('sblend').onchange=e=>{ const v=VJ(); if(v) v.sampBlend(e.target.value); };
+el('sfade').oninput=e=>{ el('sfadev').textContent=e.target.value+'ms';
+  const v=VJ(); if(v) v.sampFade(+e.target.value); };
 let fading=null;
 function autofade(){
   if(fading){ cancelAnimationFrame(fading); fading=null; return; }
@@ -566,7 +714,12 @@ const FXKEY={q:'glitch',w:'invert',e:'melt',r:'hue',t:'strobe'}, BUSKEY={z:'A',x
 addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
   const k=e.key, kl=k.toLowerCase();
-  if(/^[0-9]$/.test(k)){ e.preventDefault(); e.shiftKey?assign(+k):fire(+k); return; }
+  // segurar o número mantém o sample no ar; soltar tira. Shift grava o slot.
+  if(/^[0-9]$/.test(k)){
+    e.preventDefault();
+    if(e.repeat) return;
+    e.shiftKey?assign(+k):holdOn(+k);
+    return; }
   if(k==='['){ sendCue('A'); return; }
   if(k===']'){ sendCue('B'); return; }
   if(k==='Tab'){ e.preventDefault(); setArmed(S.armed==='A'?'B':'A'); return; }
@@ -585,6 +738,8 @@ addEventListener('keydown',e=>{
   if(kl==='g'){ autofade(); return; }
   if(kl==='p'){ panic(); return; }
 });
+addEventListener('keyup',e=>{ if(/^[0-9]$/.test(e.key)) holdOff(+e.key); });
+addEventListener('blur',()=>{ Object.keys(S.held).forEach(n=>holdOff(+n)); });
 const HELP=el('help');
 el('helpb').onclick=()=>HELP.style.display=HELP.style.display==='block'?'none':'block';
 
@@ -596,5 +751,5 @@ function flash(msg){
 }
 addEventListener('beforeunload',()=>{ if(OUTW&&!OUTW.closed) OUTW.close(); });
 renderResults(); ['A','B','C'].forEach(renderLib); renderSlots(); setArmed('A');
-smooth.oninput(); syncFxUI(); applyFrame(); markOut();
+smooth.oninput(); syncFxUI(); applyFrame(); renderMarks(); markOut();
 </script>

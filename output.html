@@ -1,13 +1,13 @@
 <!-- ──────────────────────────────────────────── -->
-<!-- TALLER TOYS 0.5 — output.html -->
-<!-- § - Dedicated projection window: owns the program players · HTML -->
+<!-- TALLER TOYS 0.6 — output.html -->
+<!-- § - Dedicated projection window: program players and sample pool · HTML -->
 <!-- Taller Dev 2026 -->
 <!-- VAI CORINTHIANS! -->
 <!-- ──────────────────────────────────────────── -->
 <meta charset="utf-8">
 <title>Taller VJ — OUTPUT</title>
 
-<!-- ── § 1 — STYLE — Bus chain and frame ── -->
+<!-- ── § 1 — STYLE — Bus chain, frame, sample layer ── -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#000;overflow:hidden;cursor:none}
@@ -16,6 +16,7 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none}
   aspect-ratio:var(--ar,16/9);max-width:100%;max-height:100%;width:100%}
 .bus{position:absolute;inset:0}
 .layer{position:absolute;inset:0}
+.samp{position:absolute;inset:0;opacity:0;transition:opacity var(--sfade,90ms) linear}
 iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
   width:var(--covw,100%);height:var(--covh,100%);
   transform:translate(-50%,-50%) scale(var(--zoom,1))}
@@ -32,7 +33,7 @@ iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
 @keyframes strobe{0%,49%{opacity:1}50%,100%{opacity:var(--s,.05)}}
 </style>
 
-<!-- ── § 2 — MARKUP — Program chain ── -->
+<!-- ── § 2 — MARKUP — Program chain with sample layer on top ── -->
 <div id="stage"><div id="frame">
   <div class="bus" id="hueM"><div class="bus" id="baseM"><div class="bus" id="animM">
     <div class="layer" id="pgA">
@@ -41,6 +42,12 @@ iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
     <div class="layer" id="pgB">
       <div class="bus" id="hueB"><div class="bus" id="baseB"><div class="bus" id="animB">
         <div id="ytBout"></div></div></div></div></div>
+    <div class="layer" id="pgS">
+      <div class="samp" id="s0"><div id="ytS0"></div></div>
+      <div class="samp" id="s1"><div id="ytS1"></div></div>
+      <div class="samp" id="s2"><div id="ytS2"></div></div>
+      <div class="samp" id="s3"><div id="ytS3"></div></div>
+    </div>
   </div></div></div>
 </div></div>
 <div id="hint">SAÍDA — arraste esta janela para o projetor e aperte F11 · o controle fica na outra janela</div>
@@ -48,24 +55,35 @@ iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
 <!-- ── § 3 — LOGIC — Command surface for the controller ── -->
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-const P={}, ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1};
+const P={}, SP=[], ST={xf:0,cc:false,loop:true,ar:'16/9',zoom:1};
 const el=id=>document.getElementById(id);
+const NSAMP=4;
 
+function mk(id,deck){
+  return new YT.Player(id,{height:'100%',width:'100%',videoId:'',
+    playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
+      playsinline:1,cc_load_policy:0},
+    events:{
+      onReady:e=>{ try{e.target.setLoop(ST.loop)}catch(err){} },
+      onStateChange:e=>{
+        if(e.data===YT.PlayerState.PLAYING&&!ST.cc) ccOff(e.target);
+        if(e.data===YT.PlayerState.ENDED&&deck){
+          if(ST.loop){ try{e.target.seekTo(0,true);e.target.playVideo();}catch(err){} }
+          if(VJ.onEnded) VJ.onEnded(deck);
+        }
+      }}});
+}
 function onYouTubeIframeAPIReady(){
-  ['A','B'].forEach(d=>{
-    P[d]=new YT.Player('yt'+d+'out',{height:'100%',width:'100%',videoId:'',
+  P.A=mk('ytAout','A'); P.B=mk('ytBout','B');
+  // pool de samples: ficam carregados e pausados no ponto de entrada,
+  // porque carregar no momento do disparo levaria segundos
+  for(let i=0;i<NSAMP;i++){
+    SP[i]=new YT.Player('ytS'+i,{height:'100%',width:'100%',videoId:'',
       playerVars:{controls:0,disablekb:1,modestbranding:1,rel:0,iv_load_policy:3,
         playsinline:1,cc_load_policy:0},
-      events:{
-        onReady:e=>{ try{e.target.setLoop(ST.loop);}catch(err){} VJ.ready=true; },
-        onStateChange:e=>{
-          if(e.data===YT.PlayerState.PLAYING&&!ST.cc) ccOff(e.target);
-          if(e.data===YT.PlayerState.ENDED){
-            if(ST.loop){ try{e.target.seekTo(0,true);e.target.playVideo();}catch(err){} }
-            if(VJ.onEnded) VJ.onEnded(d);
-          }
-        }}});
-  });
+      events:{onReady:e=>{e.target.mute();e.target.setVolume(0);ccOff(e.target);}}});
+  }
+  VJ.ready=true;
 }
 if(window.YT&&YT.Player) onYouTubeIframeAPIReady();
 
@@ -94,10 +112,32 @@ const VJ=window.VJ={
   smooth(ms){ el('pgB').style.transition=`opacity ${ms}ms linear`; },
   blend(m){ el('pgB').style.mixBlendMode=m; },
 
-  // espelha o estado de um bus de efeito vindo do controlador
+  /* samples — pool pré-carregado, disparo momentâneo */
+  sampLoad(i,id,tin){
+    const p=SP[i]; if(!p||!p.loadVideoById) return;
+    p.loadVideoById({videoId:id,startSeconds:tin||0});
+    p.mute();
+    // o load dá play automático: deixamos pausado no ponto de entrada
+    setTimeout(()=>{ try{p.seekTo(tin||0,true);p.pauseVideo();}catch(e){} },1100);
+  },
+  sampOn(i){ const p=SP[i]; if(!p) return;
+    try{p.playVideo()}catch(e){} el('s'+i).style.opacity=1; },
+  sampOff(i,tin){ const p=SP[i]; if(!p) return;
+    el('s'+i).style.opacity=0;
+    try{ p.pauseVideo(); p.seekTo(tin||0,true); }catch(e){} },
+  sampTime(i){ try{return SP[i].getCurrentTime()}catch(e){return 0} },
+  sampSeek(i,t){ try{SP[i].seekTo(t,true)}catch(e){} },
+  sampBlend(m){ el('pgS').style.mixBlendMode=m; },
+  // fade 0 remove a transição por completo: transição em janela oculta congela,
+  // e o disparo momentâneo não pode depender disso
+  sampFade(ms){
+    document.documentElement.style.setProperty('--sfade',ms+'ms');
+    for(let i=0;i<NSAMP;i++) el('s'+i).style.transition = ms>0 ? '' : 'none';
+  },
+
+  // espelha um bus de efeito vindo do controlador
   bus(b,names,k){
-    const set=new Set(names);
-    const f=[];
+    const set=new Set(names), f=[];
     if(set.has('invert')) f.push(`invert(${k})`);
     if(set.has('melt'))   f.push(`blur(${(k*7).toFixed(1)}px) contrast(${(1+k*2.4).toFixed(2)}) saturate(${(1+k).toFixed(2)})`);
     el('base'+b).style.filter=f.join(' ');
@@ -123,7 +163,6 @@ const VJ=window.VJ={
       if(b){ try{['captions','cc'].forEach(m=>p.loadModule(m))}catch(e){} } else ccOff(p); }); }
 };
 
-// a dica some sozinha; teclas seguem valendo na janela de controle
 setTimeout(()=>{el('hint').style.opacity=0;},6000);
 addEventListener('keydown',e=>{ if(e.key==='F11') return; if(window.opener) window.opener.focus(); });
 </script>
