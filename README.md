@@ -8,6 +8,11 @@ Built for playing, not for broadcasting. See [Scope and limits](#scope-and-limit
 ![status](https://img.shields.io/badge/status-toy-informational)
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
 
+![Taller VJ in use](demo.gif)
+
+*Two decks mixed in `difference` blend, deck monitors on both sides, hot slots below the
+Program, audio bed bottom right.*
+
 ## What it does
 
 Two video decks (A and B) play simultaneously into a composited Program output, with
