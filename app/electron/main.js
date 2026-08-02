@@ -34,11 +34,17 @@ function serve() {
         res.end(buf);
       });
     });
-    // porta efêmera: o SO escolhe uma livre
-    server.listen(0, '127.0.0.1', () => {
-      origin = `http://127.0.0.1:${server.address().port}`;
-      resolve(origin);
-    });
+    // Porta fixa e hostname "localhost": é a origem que a versão HTML usa e que o
+    // YouTube trata como desenvolvimento local. Origem estável também mantém o
+    // localStorage entre execuções e permite restringir a chave de API a ela.
+    const tentar = porta => {
+      server.once('error', () => tentar(0));   // ocupada? cai para efêmera
+      server.listen(porta, '127.0.0.1', () => {
+        origin = `http://localhost:${server.address().port}`;
+        resolve(origin);
+      });
+    };
+    tentar(8788);
   });
 }
 
@@ -189,6 +195,23 @@ async function selftest() {
         await new Promise(r => setTimeout(r, 300));
         return { aberto, fechouAoClicarFora: !document.getElementById('bedlist') };
       })()`);
+
+    // 7b) bateria de vídeos de tipos diferentes: erro por vídeo, não por chute
+    result.catalogo = await output.webContents.executeJavaScript(`
+      (async () => {
+        const ids = ['jNQXAC9IVRw','aqz-KE-bpKQ','dQw4w9WgXcQ','9bZkp7q19f0','kJQP7kiw5Fk'];
+        const r = [];
+        for (const id of ids) {
+          window.__lastError = null;
+          VJ.load('A', id);
+          await new Promise(s => setTimeout(s, 5000));
+          const d = VJ.data('A') || {};
+          r.push({ id, titulo: (d.title || '').slice(0, 26), erro: window.__lastError?.text || d.errorCode || null,
+                   estado: VJ.state('A') });
+        }
+        return r;
+      })()`);
+    result.origem = await output.webContents.executeJavaScript(`location.origin`);
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

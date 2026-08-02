@@ -6,7 +6,7 @@
 // ────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { makeBus, type Cmd, type Deck, type FxBus, type Msg } from '../../bus';
-import { usePlayer, ccOff } from '../../hooks/usePlayer';
+import { usePlayer, ccOff, errText } from '../../hooks/usePlayer';
 import './output.css';
 
 const NSAMP = 4;
@@ -17,8 +17,12 @@ export default function OutputApp() {
   // estado do React: toda mudança visual é escrita direto no style dos nós.
   // setLoop só repete playlist; vídeo avulso precisa ser rebobinado na mão no ENDED
   const onEnd = useRef<(d: Deck, state: number) => void>(() => { });
-  const pA = usePlayer('ytAout', { onState: s => onEnd.current('A', s) });
-  const pB = usePlayer('ytBout', { onState: s => onEnd.current('B', s) });
+  const err = (d: Deck) => (code: number) => {
+    (window as any).__lastError = { deck: d, code, text: errText(code) };
+    console.warn('[vj] deck', d, errText(code));
+  };
+  const pA = usePlayer('ytAout', { onState: s => onEnd.current('A', s), onError: err('A') });
+  const pB = usePlayer('ytBout', { onState: s => onEnd.current('B', s), onError: err('B') });
   const s0 = usePlayer('ytS0', { muted: true, quality: 'small' });
   const s1 = usePlayer('ytS1', { muted: true, quality: 'small' });
   const s2 = usePlayer('ytS2', { muted: true, quality: 'small' });
