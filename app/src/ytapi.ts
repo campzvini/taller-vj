@@ -22,6 +22,11 @@ export function ytReady(): Promise<void> {
 declare global {
   interface Window {
     onYouTubeIframeAPIReady?: () => void;
-    vj?: { displays(): Promise<unknown>; openOutput(): Promise<boolean> };
+    vj?: {
+      displays(): Promise<unknown>;
+      openOutput(): Promise<boolean>;
+      setAspect?(ar: string): Promise<boolean>;
+      checklist?(): Promise<Record<string, unknown>>;
+    };
   }
 }

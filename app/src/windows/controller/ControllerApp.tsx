@@ -4,10 +4,11 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from '../../store';
 import { out, onBus } from '../../out';
-import { setFlash } from '../../actions';
+import { setFlash, setPattern, toggleBlackout } from '../../actions';
+import { getKey } from '../../search';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useSync } from '../../hooks/useSync';
 import Deck from './components/Deck';
@@ -24,12 +25,34 @@ export default function ControllerApp() {
   useKeyboard();
   useSync();
 
+  const flash = (m: string) => setFlashNow(m);
+  const setFlashNow = (m: string) => { setMsg(m); clearTimeout(flashT.current); flashT.current = setTimeout(() => setMsg(null), 2600); };
+  const flashT = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
     setFlash(m => { setMsg(m); clearTimeout(t); t = setTimeout(() => setMsg(null), 1600); });
     // a saída pode nascer depois do controlador: quando ela anuncia, reenviamos tudo
     return onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
   }, []);
+
+  // checklist pré-show: o que costuma faltar cinco minutos antes de começar
+  const runChecklist = async () => {
+    const v = useSession.getState();
+    const info = (await window.vj?.checklist?.()) as Record<string, unknown> | undefined;
+    const itens = [
+      [!!info?.saida, 'saída aberta'],
+      [!!info?.fullscreen || (info?.telas as number) === 1, 'saída em tela cheia'],
+      [(info?.telas as number) > 1, 'segunda tela conectada'],
+      [!!getKey(), 'chave de API salva'],
+      [navigator.onLine, 'internet'],
+      [!!v.now.A || !!v.now.B, 'ao menos um deck carregado'],
+      [!v.blackout, 'blackout desligado'],
+      [!v.pattern, 'padrão de calibração desligado']
+    ] as [boolean, string][];
+    const faltando = itens.filter(([ok]) => !ok).map(([, t]) => t);
+    flash(faltando.length ? '⚠ ' + faltando.join(' · ') : '✓ tudo pronto');
+  };
 
   const pushAll = () => {
     const v = useSession.getState();
@@ -67,6 +90,17 @@ export default function ControllerApp() {
           onClick={() => { const on = !s.loop; s.set('loop', on); s.save(); out.loop(on); }}>loop (L)</button>
         <button className={'tgl' + (s.cc ? ' on' : '')}
           onClick={() => { const on = !s.cc; s.set('cc', on); s.save(); out.cc(on); }}>CC (K)</button>
+        <div className="fsep" />
+        <button className={'tgl' + (s.blackout ? ' on' : '')}
+          onClick={toggleBlackout} title="apaga a saída (B)">blackout</button>
+        <span className="tag">calibrar</span>
+        {[['grid', 'grade'], ['bars', 'barras'], ['focus', 'foco']].map(([k, t]) => (
+          <button key={k} className={'tgl' + (s.pattern === k ? ' on' : '')}
+            onClick={() => setPattern(k)}>{t}</button>
+        ))}
+        <div style={{ flex: 1 }} />
+        {!s.outLive && <span className="tag treino">modo treino — sem saída</span>}
+        <button onClick={runChecklist}>checar</button>
       </div>
 
       <SearchStrip />

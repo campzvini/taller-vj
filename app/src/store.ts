@@ -5,8 +5,8 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import { create } from 'zustand';
-import type { Deck, FxBus, FxName, Item, Lane, Mark, MarkOwner } from './types';
-import { clean } from './types';
+import type { Curve, Deck, FxBus, FxName, Item, Lane, Mark, MarkOwner, Pos } from './types';
+import { clean, POS0 } from './types';
 
 const LS = <T,>(k: string, fb: T): T => {
   try { const v = localStorage.getItem(k); return v ? JSON.parse(v) as T : fb; } catch { return fb; }
@@ -26,6 +26,7 @@ export type Session = {
 
   // mixer
   xf: number; op: Record<Deck, number>; zoom: Record<Deck, number>;
+  pos: Record<Deck, Pos>; curve: Curve; blackout: boolean; pattern: string | null;
   blend: string; smooth: number; ar: string;
   fx: Record<FxBus, Set<FxName>>; amt: Record<FxBus, number>;
   bus: FxBus;
@@ -59,6 +60,7 @@ export const useSession = create<Session>((set, get) => ({
   armed: 'A',
 
   xf: 0, op: { A: 100, B: 100 }, zoom: { A: 100, B: 100 },
+  pos: { A: { ...POS0 }, B: { ...POS0 } }, curve: 'linear', blackout: false, pattern: null,
   blend: 'normal', smooth: 60, ar: localStorage.getItem('vj.ar') || '16/9',
   fx: { A: new Set(), B: new Set(), M: new Set() }, amt: { A: 1, B: 1, M: 1 },
   bus: 'M',

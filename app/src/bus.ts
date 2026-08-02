@@ -23,6 +23,10 @@ export type Cmd =
   | { c: 'blend'; mode: string }
   | { c: 'bus'; bus: FxBus; fx: string[]; amt: number }
   | { c: 'frame'; ar: string }
+  | { c: 'pos'; deck: Deck; pan: [number, number]; rot: number; flipH: boolean; flipV: boolean;
+      crop: [number, number, number, number] }   // top right bottom left, em %
+  | { c: 'blackout'; on: boolean }
+  | { c: 'pattern'; name: string | null }
   | { c: 'loop'; on: boolean }
   | { c: 'cc'; on: boolean }
   | { c: 'sampLoad'; i: number; id: string; tin: number }

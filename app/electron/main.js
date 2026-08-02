@@ -94,6 +94,29 @@ ipcMain.handle('vj:displays', () => screen.getAllDisplays().map(d => ({
 })));
 ipcMain.handle('vj:openOutput', () => { if (!output || output.isDestroyed()) makeOutput(); else output.focus(); return true; });
 
+// a JANELA assume a proporção escolhida; o vídeo preenche por cover no renderer
+ipcMain.handle('vj:setAspect', (_e, ar) => {
+  if (!output || output.isDestroyed()) return false;
+  const [w, h] = String(ar).split('/').map(Number);
+  if (!w || !h) return false;
+  output.setAspectRatio(w / h);
+  if (!output.isFullScreen()) {
+    const b = output.getBounds();
+    output.setBounds({ ...b, height: Math.round(b.width * h / w) });
+  }
+  return true;
+});
+
+ipcMain.handle('vj:checklist', () => ({
+  saida: !!(output && !output.isDestroyed()),
+  fullscreen: !!(output && !output.isDestroyed() && output.isFullScreen()),
+  telas: screen.getAllDisplays().length,
+  telaDaSaida: output && !output.isDestroyed()
+    ? screen.getDisplayMatching(output.getBounds()).id : null,
+  telaPrincipal: screen.getPrimaryDisplay().id,
+  online: true
+}));
+
 // ── § 3 — SELF TEST — proves the three unknowns without a human watching ──
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -122,12 +145,19 @@ async function selftest() {
         b.postMessage({c:'frame',ar:'4/3'});
         return true; })()`);
     await wait(800);
-    result.bus = await output.webContents.executeJavaScript(`({
-      opB: document.getElementById('pgB').style.opacity,
-      fxA: document.getElementById('baseA').style.filter,
-      ar: getComputedStyle(document.documentElement).getPropertyValue('--ar').trim(),
-      covw: getComputedStyle(document.documentElement).getPropertyValue('--covw').trim()
-    })`);
+    result.bus = await output.webContents.executeJavaScript(`(() => {
+      const f = document.querySelector('.frame');
+      const T = f.clientWidth / f.clientHeight;
+      const cw = getComputedStyle(document.documentElement).getPropertyValue('--covw').trim();
+      const ch = getComputedStyle(document.documentElement).getPropertyValue('--covh').trim();
+      return {
+        opB: document.getElementById('pgB').style.opacity,
+        fxA: document.getElementById('baseA').style.filter,
+        // o quadro preenche a janela e o vídeo cobre o quadro sem distorcer
+        preenche: Math.abs(f.clientWidth - innerWidth) < 2 && Math.abs(f.clientHeight - innerHeight) < 2,
+        coverCoerente: T >= 16/9 ? cw === '100%' : ch === '100%'
+      };
+    })()`);
 
     // 3) a telemetria da saída volta para o controlador?
     result.tele = await controller.webContents.executeJavaScript(`
@@ -212,6 +242,26 @@ async function selftest() {
         return r;
       })()`);
     result.origem = await output.webContents.executeJavaScript(`location.origin`);
+
+    // 7c) fase 0: proporção da janela, posicionamento, blackout e padrões
+    result.fase0 = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const b = new BroadcastChannel('vj');
+        b.postMessage({c:'pos',deck:'A',pan:[10,-5],rot:12,flipH:true,flipV:false,crop:[5,0,5,0]});
+        b.postMessage({c:'blackout',on:true});
+        b.postMessage({c:'pattern',name:'grid'});
+        await new Promise(r => setTimeout(r, 600));
+        return true;
+      })()`);
+    result.fase0out = await output.webContents.executeJavaScript(`({
+      panx: document.getElementById('pgA').style.getPropertyValue('--panx'),
+      rot: document.getElementById('pgA').style.getPropertyValue('--rot'),
+      flip: document.getElementById('pgA').style.getPropertyValue('--fx'),
+      crop: document.getElementById('pgA').style.getPropertyValue('--ct'),
+      black: document.getElementById('black').classList.contains('on'),
+      pattern: document.getElementById('pattern').classList.contains('on'),
+      cover: getComputedStyle(document.documentElement).getPropertyValue('--covw').trim()
+    })`);
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

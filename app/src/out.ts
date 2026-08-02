@@ -46,6 +46,11 @@ export const out = {
   blend: (mode: string) => send({ c: 'blend', mode }),
   fxBus: (b: FxBus, fx: string[], amt: number) => send({ c: 'bus', bus: b, fx, amt }),
   frame: (ar: string) => send({ c: 'frame', ar }),
+  pos: (deck: Deck, p: { pan: [number, number]; rot: number; flipH: boolean; flipV: boolean;
+                         crop: [number, number, number, number] }) =>
+    send({ c: 'pos', deck, ...p }),
+  blackout: (on: boolean) => send({ c: 'blackout', on }),
+  pattern: (name: string | null) => send({ c: 'pattern', name }),
   loop: (on: boolean) => send({ c: 'loop', on }),
   cc: (on: boolean) => send({ c: 'cc', on }),
   sampLoad: (i: number, id: string, tin: number) => send({ c: 'sampLoad', i, id, tin }),

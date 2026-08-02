@@ -60,12 +60,20 @@ export default function OutputApp() {
       anim.style.animation = a.join(', ');
     };
 
-    const applyFrame = (ar: string) => {
-      const [w, h] = ar.split('/').map(Number), T = w / h;
-      root.setProperty('--ar', ar);
+    // O cover é recalculado a partir do tamanho REAL do quadro, então vale tanto para
+    // a janela com proporção forçada quanto para tela cheia no projetor.
+    const recover = () => {
+      const f = document.querySelector('.frame') as HTMLElement | null;
+      if (!f || !f.clientHeight) return;
+      const T = f.clientWidth / f.clientHeight;
       if (T < SRC) { root.setProperty('--covh', '100%'); root.setProperty('--covw', (SRC / T * 100).toFixed(2) + '%'); }
       else { root.setProperty('--covw', '100%'); root.setProperty('--covh', (T / SRC * 100).toFixed(2) + '%'); }
     };
+    const ro = new ResizeObserver(recover);
+    const frameEl = document.querySelector('.frame');
+    if (frameEl) ro.observe(frameEl);
+
+    const applyFrame = (ar: string) => { window.vj?.setAspect?.(ar); recover(); };
 
     const run = (m: Cmd) => {
       const p = 'deck' in m ? deck(m.deck) : null;
@@ -85,6 +93,28 @@ export default function OutputApp() {
         case 'blend': el('pgB').style.mixBlendMode = m.mode; break;
         case 'bus': applyBus(m.bus, m.fx, m.amt); break;
         case 'frame': applyFrame(m.ar); break;
+        case 'pos': {
+          const l = el('pg' + m.deck).style;
+          l.setProperty('--panx', m.pan[0] + '%'); l.setProperty('--pany', m.pan[1] + '%');
+          l.setProperty('--rot', m.rot + 'deg');
+          l.setProperty('--fx', m.flipH ? '-1' : '1'); l.setProperty('--fy', m.flipV ? '-1' : '1');
+          const [t, r, b, lf] = m.crop;
+          l.setProperty('--ct', t + '%'); l.setProperty('--cr', r + '%');
+          l.setProperty('--cb', b + '%'); l.setProperty('--cl', lf + '%');
+          break;
+        }
+        case 'blackout': el('black').classList.toggle('on', m.on); break;
+        case 'pattern': {
+          const p = el('pattern');
+          p.classList.toggle('on', !!m.name);
+          p.innerHTML = !m.name ? '' :
+            m.name === 'grid' ? '<div class="pt-grid"></div><div class="pt-cross"></div><div class="pt-edge"></div>' :
+            m.name === 'bars' ? '<div class="pt-bars">' +
+              ['#fff','#ff0','#0ff','#0f0','#f0f','#f00','#00f','#000']
+                .map(c => `<i style="background:${c}"></i>`).join('') + '</div>' :
+            m.name === 'focus' ? '<div class="pt-focus"></div><div class="pt-cross"></div>' : '';
+          break;
+        }
         case 'loop': st.current.loop = m.on; (['A', 'B'] as Deck[]).forEach(d => deck(d)?.setLoop(m.on)); break;
         case 'cc':
           st.current.cc = m.on;
@@ -169,7 +199,7 @@ export default function OutputApp() {
       present: (d: Deck, v: boolean) => run({ c: 'present', deck: d, v })
     };
 
-    return () => { off(); bus.close(); clearInterval(tele); clearTimeout(t); };
+    return () => { off(); bus.close(); clearInterval(tele); clearTimeout(t); ro.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -194,6 +224,8 @@ export default function OutputApp() {
             <div className="samp" id="s3"><div id="ytS3" /></div>
           </div>
         </div></div></div>
+        <div id="pattern" />
+        <div id="black" />
       </div>
       <div className="hint" ref={hint}>SAÍDA — o controle fica na outra janela</div>
     </div>

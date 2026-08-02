@@ -21,6 +21,24 @@ export type Item = {
 
 export type Mark = { in?: number | null; out?: number | null };
 
+// posicionamento por canal, além do zoom
+export type Pos = {
+  pan: [number, number];      // % do quadro
+  rot: number;                // graus
+  flipH: boolean; flipV: boolean;
+  crop: [number, number, number, number];   // top right bottom left, em %
+};
+export const POS0: Pos = { pan: [0, 0], rot: 0, flipH: false, flipV: false, crop: [0, 0, 0, 0] };
+
+// curva do crossfader: muda completamente a sensação da mão
+export type Curve = 'linear' | 'log' | 'cut';
+export const curveAt = (v: number, c: Curve) => {
+  const t = v / 100;
+  if (c === 'cut') return t < .5 ? 0 : 100;
+  if (c === 'log') return Math.round(Math.pow(t, 2.2) * 100);
+  return v;
+};
+
 export const FX_NAMES = ['glitch', 'invert', 'melt', 'hue', 'strobe'] as const;
 export type FxName = typeof FX_NAMES[number];
 

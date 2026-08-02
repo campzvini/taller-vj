@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { useSession } from '../store';
 import { out } from '../out';
 import {
-  applyXf, assignSlot, autofade, holdOff, holdOn, panic, sendCue, toggle, toggleFx
+  applyXf, assignSlot, autofade, holdOff, holdOn, panic, sendCue, toggle, toggleBlackout, toggleFx
 } from '../actions';
 import type { Deck, FxBus, FxName } from '../types';
 
@@ -48,6 +48,7 @@ export function useKeyboard() {
       if (kl === 'o') { window.vj?.openOutput(); return; }
       if (kl === 'v') { toggle('C'); return; }
       if (kl === 'g') { autofade(); return; }
+      if (kl === 'b') { toggleBlackout(); return; }
       if (kl === 'p') { panic(); return; }
       if (kl === 'l') {
         const on = !s.loop; s.set('loop', on); s.save(); out.loop(on); return;

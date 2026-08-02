@@ -8,7 +8,7 @@ import { useRef } from 'react';
 import { useSession } from '../../../store';
 import { out } from '../../../out';
 import { applyXf, autofade, setAmt, toggleFx } from '../../../actions';
-import { FX_NAMES, type FxName } from '../../../types';
+import { FX_NAMES, type Curve, type FxName } from '../../../types';
 
 const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL', hue: 'HUE', strobe: 'STR' };
 const BLENDS = ['normal', 'difference', 'screen', 'multiply', 'exclusion', 'overlay', 'hard-light', 'color-dodge', 'luminosity'];
@@ -36,9 +36,16 @@ export default function Mixer() {
           <span className="tag">auto</span>
           <input ref={secs} defaultValue="4" style={{ width: 34 }} />
           <button onClick={fade}>fade (G)</button>
-          <select value={s.blend} style={{ maxWidth: 96 }}
+          <select value={s.blend} style={{ maxWidth: 90 }}
             onChange={e => { s.set('blend', e.target.value); out.blend(e.target.value); }}>
             {BLENDS.map(b => <option key={b}>{b}</option>)}
+          </select>
+          {/* a curva muda a sensação da mão sem mexer no traço do fader */}
+          <select value={s.curve} style={{ maxWidth: 70 }} title="curva do crossfader"
+            onChange={e => { s.set('curve', e.target.value as Curve); applyXf(s.xf); }}>
+            <option value="linear">linear</option>
+            <option value="log">suave</option>
+            <option value="cut">corte</option>
           </select>
         </div>
       </div>

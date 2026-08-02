@@ -7,8 +7,8 @@
 import { useSession } from './store';
 import { out, outLive, tele } from './out';
 import { L, mon } from './players';
-import type { Deck, FxName, Item, Lane, MarkOwner } from './types';
-import { clean } from './types';
+import type { Deck, FxName, Item, Lane, MarkOwner, Pos } from './types';
+import { clean, curveAt, POS0 } from './types';
 
 const S = () => useSession.getState();
 export let flashMsg: (s: string) => void = () => { };
@@ -151,7 +151,28 @@ export function holdOff(n: number) {
 }
 
 /* ── § 5 — Mixer ── */
-export function applyXf(v: number) { S().set('xf', v); out.xf(v); applyAudio(); }
+export function applyXf(v: number) {
+  const s = S();
+  s.set('xf', v);
+  out.xf(curveAt(v, s.curve));   // a curva mora aqui: a UI continua linear na mão
+  applyAudio();
+}
+export function applyPos(d: Deck, patch: Partial<Pos>) {
+  const s = S();
+  const next = { ...s.pos[d], ...patch };
+  s.set('pos', { ...s.pos, [d]: next } as any);
+  out.pos(d, next);
+}
+export function resetPos(d: Deck) { applyPos(d, { ...POS0 }); }
+export function toggleBlackout() {
+  const s = S(); const on = !s.blackout;
+  s.set('blackout', on); out.blackout(on);
+}
+export function setPattern(name: string | null) {
+  const s = S();
+  const next = s.pattern === name ? null : name;
+  s.set('pattern', next); out.pattern(next);
+}
 export function applyOpacity(d: Deck, v: number) {
   const s = S(); s.set('op', { ...s.op, [d]: v } as any); out.opacity(d, v / 100);
 }

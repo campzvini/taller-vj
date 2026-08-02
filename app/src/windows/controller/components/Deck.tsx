@@ -13,6 +13,7 @@ import {
 } from '../../../actions';
 import { FX_NAMES, fmt, type Deck as D, type FxName } from '../../../types';
 import Library from './Library';
+import PosPanel from './PosPanel';
 
 const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL', hue: 'HUE', strobe: 'STR' };
 
@@ -81,6 +82,7 @@ export default function Deck({ side }: { side: D }) {
           <button className="mk" onClick={() => setMark(side, 'out')}>OUT</button>
           <button className={'mk' + (s.tloop[side] ? ' on' : '')} onClick={() => toggleTloop(side)}>⟲</button>
           <button className="mk" onClick={() => clearMark(side)}>×</button>
+          <PosPanel side={side} />
           <span className="grabh" draggable
             onDragStart={e => {
               const it = s.now[side];
