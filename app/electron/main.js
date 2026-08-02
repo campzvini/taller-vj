@@ -118,7 +118,38 @@ async function selftest() {
                                   timeA: +e.data.decks.A.time.toFixed(1), samples: e.data.samp.length }); } };
       })`);
 
-    // 4) a janela de saída está mesmo em tela cheia / na tela certa?
+    // 4) o controlador React montou e o fluxo real funciona ponta a ponta?
+    result.ui = await controller.webContents.executeJavaScript(`({
+      colunas: document.querySelectorAll('#main > .col').length,
+      slots: document.querySelectorAll('.slot').length,
+      players: document.querySelectorAll('iframe').length,
+      decks: [...document.querySelectorAll('.hd b')].map(e => e.textContent),
+      rodape: !!document.getElementById('foot')
+    })`);
+
+    // busca por ID -> cue -> manda pro deck A, tudo pela interface
+    result.flow = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const set = (el, v) => {
+          const d = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          d.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        set(document.getElementById('q'), 'aqz-KE-bpKQ');
+        [...document.querySelectorAll('#sbar button')].find(b => b.textContent === 'Buscar').click();
+        await new Promise(r => setTimeout(r, 2500));
+        const noCue = document.querySelectorAll('.hd .now')[1]?.textContent || '';
+        [...document.querySelectorAll('button')].find(b => b.textContent.startsWith('◄ A')).click();
+        await new Promise(r => setTimeout(r, 2500));
+        return { resultados: document.querySelectorAll('.res').length, noCue,
+                 noDeckA: document.querySelectorAll('.hd .now')[0]?.textContent || '' };
+      })()`);
+
+    result.afterFlow = await output.webContents.executeJavaScript(`({
+      tituloA: (VJ.data('A') || {}).title || null,
+      opA: document.getElementById('pgA').style.opacity
+    })`);
+
+    // 5) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();
     result.iframes = await output.webContents.executeJavaScript(`document.querySelectorAll('iframe').length`);

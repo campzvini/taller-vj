@@ -1,92 +1,84 @@
 // ────────────────────────────────────────────
-// TALLER VJ APP 0.2 — ControllerApp.tsx
-// § - Controller window: temporary driver while the port advances · TSX
+// TALLER VJ APP 0.3 — ControllerApp.tsx
+// § - Three columns: deck A, cue and mixer, deck B · TSX
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-import { useEffect, useRef, useState } from 'react';
-import { makeBus, type Cmd, type Deck, type Tele } from '../../bus';
+import { useEffect, useState } from 'react';
+import { useSession } from '../../store';
+import { out, onBus } from '../../out';
+import { setFlash } from '../../actions';
+import { useKeyboard } from '../../hooks/useKeyboard';
+import { useSync } from '../../hooks/useSync';
+import Deck from './components/Deck';
+import Cue from './components/Cue';
+import Slots from './components/Slots';
+import Mixer from './components/Mixer';
+import Footer from './components/Footer';
+import SearchStrip from './components/SearchStrip';
 import './controller.css';
 
-const FX = ['glitch', 'invert', 'melt', 'hue', 'strobe'];
-
 export default function ControllerApp() {
-  const bus = useRef(makeBus());
-  const [tele, setTele] = useState<Tele | null>(null);
-  const [vid, setVid] = useState('jNQXAC9IVRw');
-  const [xf, setXf] = useState(0);
-  const [op, setOp] = useState<Record<Deck, number>>({ A: 100, B: 100 });
-  const [fx, setFx] = useState<Record<string, Set<string>>>({ A: new Set(), B: new Set(), M: new Set() });
-
-  const send = (c: Cmd) => bus.current.send(c);
+  const s = useSession();
+  const [msg, setMsg] = useState<string | null>(null);
+  useKeyboard();
+  useSync();
 
   useEffect(() => {
-    const b = bus.current;
-    return b.on(m => {
-      if ('t' in m && m.t === 'tele') setTele(m);
-      if ('t' in m && m.t === 'up') send({ c: 'frame', ar: '16/9' });   // saída renasceu: reenvia estado
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let t: ReturnType<typeof setTimeout>;
+    setFlash(m => { setMsg(m); clearTimeout(t); t = setTimeout(() => setMsg(null), 1600); });
+    // a saída pode nascer depois do controlador: quando ela anuncia, reenviamos tudo
+    return onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
   }, []);
 
-  const load = (d: Deck) => {
-    send({ c: 'load', deck: d, id: vid.trim() });
-    send({ c: 'present', deck: d, v: true });
-  };
-  const toggleFx = (b: 'A' | 'B' | 'M', name: string) => {
-    const next = new Set(fx[b]);
-    next.has(name) ? next.delete(name) : next.add(name);
-    setFx({ ...fx, [b]: next });
-    send({ c: 'bus', bus: b, fx: [...next], amt: 1 });
+  const pushAll = () => {
+    const v = useSession.getState();
+    out.frame(v.ar); out.loop(v.loop); out.cc(v.cc);
+    out.smooth(v.smooth); out.blend(v.blend);
+    (['A', 'B'] as const).forEach(d => {
+      out.opacity(d, v.op[d] / 100);
+      out.zoomCh(d, +(v.zoom[d] / 100).toFixed(3));
+      out.present(d, !!v.now[d]);
+      if (v.now[d]) out.load(d, v.now[d]!.id);
+    });
+    out.xf(v.xf);
+    (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
+    out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
+    out.sampZoom(+(v.sampZoom / 100).toFixed(3));
+    out.sampVol(v.sampAudio ? v.sampVol : 0);
+    v.pool.forEach((n, i) => { if (n != null && v.slots[n]) out.sampLoad(i, v.slots[n]!.id, v.slots[n]!.in ?? 0); });
   };
 
   return (
-    <div className="wrap">
-      <h1>TALLER VJ — controlador (port em andamento)</h1>
-
-      <section className="card">
-        <div className="row">
-          <input value={vid} onChange={e => setVid(e.target.value)} style={{ flex: 1 }} />
-          <button onClick={() => load('A')}>carregar em A</button>
-          <button onClick={() => load('B')}>carregar em B</button>
-          <button onClick={() => window.vj?.openOutput()}>abrir saída</button>
-        </div>
-
-        <div className="row">
-          <b>A</b>
-          <input type="range" min={0} max={100} value={xf}
-            onChange={e => { const v = +e.target.value; setXf(v); send({ c: 'xf', v }); }} />
-          <b>B</b><span className="val">{xf}</span>
-        </div>
-
-        {(['A', 'B'] as Deck[]).map(d => (
-          <div className="row" key={d}>
-            <span className="tag">opac {d}</span>
-            <input type="range" min={0} max={100} value={op[d]}
-              onChange={e => { const v = +e.target.value; setOp({ ...op, [d]: v }); send({ c: 'opacity', deck: d, v: v / 100 }); }} />
-            <span className="val">{op[d]}</span>
-            <button onClick={() => send({ c: 'toggle', deck: d })}>▶❚❚</button>
-          </div>
+    <>
+      <div id="bar">
+        <span className="name">TALLER VJ</span>
+        <button className={s.outLive ? 'live' : ''} onClick={() => window.vj?.openOutput()}>
+          {s.outLive ? 'SAÍDA NO AR' : 'ABRIR SAÍDA (O)'}
+        </button>
+        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>busca (/)</button>
+        <div className="fsep" />
+        <span className="tag">formato</span>
+        {['16/9', '4/3'].map(a => (
+          <button key={a} className={'tgl' + (s.ar === a ? ' on' : '')}
+            onClick={() => { s.set('ar', a); s.save(); out.frame(a); }}>{a.replace('/', ':')}</button>
         ))}
+        <button className={'tgl' + (s.loop ? ' on' : '')}
+          onClick={() => { const on = !s.loop; s.set('loop', on); s.save(); out.loop(on); }}>loop (L)</button>
+        <button className={'tgl' + (s.cc ? ' on' : '')}
+          onClick={() => { const on = !s.cc; s.set('cc', on); s.save(); out.cc(on); }}>CC (K)</button>
+      </div>
 
-        {(['A', 'B', 'M'] as const).map(b => (
-          <div className="row" key={b}>
-            <span className="tag">fx {b}</span>
-            {FX.map(f => (
-              <button key={f} className={fx[b].has(f) ? 'on' : ''} onClick={() => toggleFx(b, f)}>{f}</button>
-            ))}
-          </div>
-        ))}
-      </section>
+      <SearchStrip />
 
-      <section className="card">
-        <span className="tag">telemetria da saída</span>
-        <pre>{tele
-          ? `A  ${tele.decks.A.time.toFixed(1)}s / ${tele.decks.A.dur.toFixed(0)}s  estado ${tele.decks.A.state}\n` +
-            `B  ${tele.decks.B.time.toFixed(1)}s / ${tele.decks.B.dur.toFixed(0)}s  estado ${tele.decks.B.state}\n` +
-            `samples ${tele.samp.map(t => t.toFixed(1)).join('  ')}`
-          : 'sem sinal da saída'}</pre>
-      </section>
-    </div>
+      <div id="main">
+        <Deck side="A" />
+        <div className="col"><Cue /><Slots /><Mixer /></div>
+        <Deck side="B" />
+      </div>
+
+      <Footer />
+      {msg && <div id="flash">{msg}</div>}
+    </>
   );
 }
