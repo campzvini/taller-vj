@@ -19,6 +19,8 @@ import Mixer from './components/Mixer';
 import Footer from './components/Footer';
 import SearchStrip from './components/SearchStrip';
 import ModPanel from './components/ModPanel';
+import Scenes from './components/Scenes';
+import RecPanel from './components/RecPanel';
 import Settings from './components/Settings';
 import { startModulation, stopModulation } from '../../modulation';
 import './controller.css';
@@ -108,6 +110,8 @@ export default function ControllerApp() {
             onClick={() => setPattern(k)}>{t}</button>
         ))}
         <div className="fsep" />
+        <RecPanel />
+        <div className="fsep" />
         <button onClick={() => setCfg(true)}>config</button>
         <button onClick={exportSession} title="salvar sessão em arquivo">salvar sessão</button>
         <button onClick={() => importSession(pushAll)}>abrir sessão</button>
@@ -120,7 +124,7 @@ export default function ControllerApp() {
 
       <div id="main">
         <Deck side="A" />
-        <div className="col midcol"><Cue /><Slots /><Mixer /><ModPanel /></div>
+        <div className="col midcol"><Cue /><Slots /><Mixer /><Scenes /><ModPanel /></div>
         <Deck side="B" />
       </div>
 

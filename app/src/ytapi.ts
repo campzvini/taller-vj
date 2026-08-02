@@ -34,6 +34,11 @@ declare global {
       pickFiles?(): Promise<string[]>;
       pickFolder?(): Promise<{ dir: string; files: string[] } | null>;
       thumb?(file: string, at?: number): Promise<string | null>;
+      clip?(o: { file: string; start: number; end: number }): Promise<string | null>;
+      toMp4?(src: string): Promise<string | null>;
+      sources?(): Promise<{ id: string; name: string; tipo: string }[]>;
+      saveRec?(bytes: Uint8Array, ext?: string): Promise<string | null>;
+      reveal?(p: string): Promise<boolean>;
     };
   }
 }

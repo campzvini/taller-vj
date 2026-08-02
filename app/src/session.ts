@@ -7,6 +7,8 @@
 import { useSession } from './store';
 import { flashMsg } from './actions';
 import type { Curve, Item, Pos } from './types';
+import type { Cena } from './scenes';
+import type { Mod } from './modulation';
 
 export const SESSION_VERSION = 1;
 
@@ -23,6 +25,8 @@ export type SessionFile = {
     sampBlend: string; sampFade: number; sampZoom: number; sampVol: number; sampAudio: boolean;
   };
   audio: { amode: string; vol: Record<string, number> };
+  cenas?: Cena[];
+  mods?: Mod[];
   // a chave de API NUNCA entra no arquivo: sessão é feita para ser compartilhada
 };
 
@@ -40,7 +44,9 @@ export function snapshot(nome?: string): SessionFile {
       sampBlend: s.sampBlend, sampFade: s.sampFade, sampZoom: s.sampZoom,
       sampVol: s.sampVol, sampAudio: s.sampAudio
     },
-    audio: { amode: s.amode, vol: s.vol }
+    audio: { amode: s.amode, vol: s.vol },
+    // cenas e rotas são o trabalho da noite: viajam junto com a sessão
+    cenas: s.cenas, mods: s.mods
   };
 }
 
@@ -62,6 +68,8 @@ export function restore(f: SessionFile) {
     s.set('sampAudio', !!m.sampAudio);
   }
   if (f.audio) { s.set('amode', f.audio.amode ?? 'follow'); s.set('vol', f.audio.vol as any); }
+  if (Array.isArray(f.cenas)) s.set('cenas', f.cenas);
+  if (Array.isArray(f.mods)) s.set('mods', f.mods);
   // pool é volátil: os samples serão recarregados sob demanda
   s.set('pool', Array(8).fill(null)); s.set('poolOf', {}); s.set('held', {});
   s.save();

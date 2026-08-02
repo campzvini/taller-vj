@@ -13,10 +13,10 @@ import { L, M } from '../../../players';
 import {
   applyAudio, applyOpacity, applyZoom, clearMark, dropInto, setAmt, setMark, toggle, toggleFx, toggleTloop
 } from '../../../actions';
-import { FX_NAMES, fmt, type Deck as D, type FxName } from '../../../types';
+import { FX_NAMES, fmt, kindOf, type Deck as D, type FxName } from '../../../types';
 import Library from './Library';
 import PosPanel from './PosPanel';
-import { importFiles, importFolder } from '../../../catalog';
+import { importFiles, importFolder, salvarTrecho } from '../../../catalog';
 
 const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL', hue: 'HUE', strobe: 'STR' };
 
@@ -109,7 +109,11 @@ export default function Deck({ side }: { side: D }) {
         </div>
 
         <div className="row"><span className={'rng' + (has ? ' set' : '')}>
-          {has ? `${fmt(mk.in)} → ${fmt(mk.out)}` : '—'}</span></div>
+          {has ? `${fmt(mk.in)} → ${fmt(mk.out)}` : '—'}</span>
+          {kindOf(s.now[side]) === 'file' && mk.out != null && (
+            <button className="mk" title="salvar o trecho marcado como arquivo novo"
+              onClick={() => salvarTrecho(s.now[side], mk.in, mk.out)}>✂ salvar trecho</button>
+          )}</div>
 
         <div className={'row fxrow' + (s.bus === side ? ' focus' : '')}>
           {FX_NAMES.map(f => (

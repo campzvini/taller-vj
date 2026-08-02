@@ -6,6 +6,7 @@
 // ────────────────────────────────────────────
 import { create } from 'zustand';
 import type { Mod } from './modulation';
+import type { Cena } from './scenes';
 import { GLFX0, type GlFx } from './gl/renderer';
 import type { Curve, Deck, FxBus, FxName, Item, Lane, Mark, MarkOwner, Pos } from './types';
 import { clean, POS0 } from './types';
@@ -44,6 +45,10 @@ export type Session = {
 
   // tempo e modulação
   mods: Mod[]; bpmManual: number; audioOn: boolean; audioFonte: string;
+
+  // cenas e gravação
+  cenas: Cena[]; cenaFade: number;
+  recAlvo: string; recSom: boolean; recMp4: boolean; recMbps: number;
 
   // configurações
   engine: 'dom' | 'gl'; glfx: Record<Deck, GlFx>;
@@ -84,6 +89,10 @@ export const useSession = create<Session>((set, get) => ({
   mods: LS('vj.mods', [] as Mod[]), bpmManual: 0, audioOn: false,
   audioFonte: localStorage.getItem('vj.audioFonte') || 'system',
 
+  cenas: LS('vj.cenas', [] as Cena[]), cenaFade: LS('vj.cenaFade', 0),
+  recAlvo: localStorage.getItem('vj.recAlvo') || '',
+  recSom: LS('vj.recSom', true), recMp4: LS('vj.recMp4', false), recMbps: LS('vj.recMbps', 12),
+
   engine: LS<'dom' | 'gl'>('vj.engine', 'dom'),
   glfx: LS('vj.glfx', { A: { ...GLFX0 }, B: { ...GLFX0 } }),
   monQuality: localStorage.getItem('vj.monq') || 'small',
@@ -120,5 +129,11 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.glfx', JSON.stringify(s.glfx));
     localStorage.setItem('vj.monq', s.monQuality);
     localStorage.setItem('vj.poolSize', JSON.stringify(s.poolSize));
+    localStorage.setItem('vj.cenas', JSON.stringify(s.cenas));
+    localStorage.setItem('vj.cenaFade', JSON.stringify(s.cenaFade));
+    localStorage.setItem('vj.recAlvo', s.recAlvo);
+    localStorage.setItem('vj.recSom', JSON.stringify(s.recSom));
+    localStorage.setItem('vj.recMp4', JSON.stringify(s.recMp4));
+    localStorage.setItem('vj.recMbps', JSON.stringify(s.recMbps));
   }
 }));

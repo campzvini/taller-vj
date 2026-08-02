@@ -4,7 +4,7 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-const { app, BrowserWindow, screen, ipcMain, dialog, desktopCapturer } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, dialog, desktopCapturer, shell } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -150,6 +150,24 @@ ipcMain.handle('vj:setAspect', (_e, ar) => {
 ipcMain.handle('vj:sources', async () => {
   const s = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 0, height: 0 } });
   return s.map(x => ({ id: x.id, name: x.name, tipo: x.id.startsWith('screen') ? 'tela' : 'janela' }));
+});
+
+// ── § 2.0.1 — RECORDING — o renderer captura, o main só encosta no disco ──
+// Sem diálogo: em performance ninguém quer escolher pasta. Vai para Vídeos/taller-vj
+// com carimbo de data, e o botão "abrir pasta" resolve o resto depois.
+ipcMain.handle('vj:saveRec', async (_e, bytes, ext) => {
+  const dir = path.join(app.getPath('videos'), 'taller-vj');
+  await fs.promises.mkdir(dir, { recursive: true });
+  const carimbo = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const alvo = path.join(dir, `taller-vj-${carimbo}.${ext || 'webm'}`);
+  await fs.promises.writeFile(alvo, Buffer.from(bytes));
+  return alvo;
+});
+
+ipcMain.handle('vj:reveal', (_e, p) => {
+  if (!p || !fs.existsSync(p)) return false;
+  shell.showItemInFolder(p);
+  return true;
 });
 
 // ── § 2.1 — SESSION FILES — a sessão deixa de viver só no localStorage ──
@@ -423,6 +441,61 @@ async function selftest() {
       })()`);
     result.modDepois = await output.webContents.executeJavaScript(
       `document.getElementById('pgB').style.opacity`);
+
+    // 7i) fase 6: a cena guarda a mistura e a devolve inteira quando chamada
+    result.cena = await controller.webContents.executeJavaScript(`
+      (async () => {
+        // input controlado pelo React só aceita valor pelo setter nativo
+        const põe = (el, v) => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const xf = document.getElementById('xf');
+        põe(xf, 20);
+        await new Promise(r => setTimeout(r, 200));
+        const guardar = [...document.querySelectorAll('button')].find(b => b.textContent.includes('guardar mistura'));
+        if (!guardar) return 'sem painel de cenas';
+        guardar.click();
+        await new Promise(r => setTimeout(r, 300));
+        põe(xf, 90);
+        await new Promise(r => setTimeout(r, 200));
+        const antes = +xf.value;
+        document.querySelector('.cenab').click();
+        await new Promise(r => setTimeout(r, 400));
+        return { guardadas: document.querySelectorAll('.cenab').length, antes, depois: +xf.value };
+      })()`);
+    result.cenaOut = await output.webContents.executeJavaScript(
+      `getComputedStyle(document.getElementById('pgB')).opacity`);
+
+    // 7j) fase 5: gravar a janela de verdade e ver o arquivo aparecer no disco
+    result.gravacao = await controller.webContents.executeJavaScript(`
+      (async () => {
+        try {
+          const fontes = await window.vj.sources();
+          const alvo = fontes.find(f => /taller.*(output|saída)/i.test(f.name)) || fontes[0];
+          if (!alvo) return { erro: 'sem fontes' };
+          const st = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: alvo.id,
+                                  maxWidth: 640, maxHeight: 360, maxFrameRate: 15 } }
+          });
+          const pedaços = [];
+          const mr = new MediaRecorder(st, { mimeType: 'video/webm' });
+          mr.ondataavailable = e => { if (e.data.size) pedaços.push(e.data); };
+          mr.start(500);
+          await new Promise(r => setTimeout(r, 2000));
+          await new Promise(r => { mr.onstop = r; mr.stop(); });
+          st.getTracks().forEach(t => t.stop());
+          const blob = new Blob(pedaços, { type: 'video/webm' });
+          const p = await window.vj.saveRec(new Uint8Array(await blob.arrayBuffer()), 'webm');
+          return { alvo: alvo.name, bytes: blob.size, path: p };
+        } catch (e) { return { erro: String(e.message || e) }; }
+      })()`);
+    if (result.gravacao?.path) {
+      result.gravacao.existe = fs.existsSync(result.gravacao.path);
+      result.gravacao.tamanho = result.gravacao.existe ? fs.statSync(result.gravacao.path).size : 0;
+      try { fs.unlinkSync(result.gravacao.path); } catch { /* deixa para o operador */ }
+    }
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

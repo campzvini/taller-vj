@@ -50,6 +50,18 @@ export async function importFolder(lane: 'A' | 'B' | 'C' = 'A') {
   await importar(r.files.slice(0, 200), lane);   // teto para não travar em pasta gigante
 }
 
+/** IN/OUT viram arquivo novo: o garimpo de uma noite fica como acervo.
+ *  Só vale para arquivo local — do YouTube não temos os bytes. */
+export async function salvarTrecho(it: Item | null, inn?: number | null, out?: number | null) {
+  if (!it || it.kind !== 'file' || !it.src) { flashMsg('só para arquivo local'); return; }
+  const start = inn ?? 0;
+  const end = out ?? (it.dur || 0);
+  if (!(end > start)) { flashMsg('marque IN e OUT antes'); return; }
+  flashMsg('cortando…');
+  const p = await window.vj?.clip?.({ file: it.src, start, end }).catch(() => null);
+  flashMsg(p ? 'trecho salvo: ' + p.split(/[\\/]/).pop() : 'cancelado');
+}
+
 /** Arrastar arquivos do explorador direto para a janela. */
 export async function dropFiles(files: FileList, lane: 'A' | 'B' | 'C') {
   const paths: string[] = [];

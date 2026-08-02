@@ -8,8 +8,9 @@ import { useEffect } from 'react';
 import { useSession } from '../store';
 import { out } from '../out';
 import {
-  applyXf, assignSlot, autofade, holdOff, holdOn, panic, sendCue, toggle, toggleBlackout, toggleFx
+  applyXf, assignSlot, autofade, flashMsg, holdOff, holdOn, panic, sendCue, toggle, toggleBlackout, toggleFx
 } from '../actions';
+import { capturar, chamar } from '../scenes';
 import type { Deck, FxBus, FxName } from '../types';
 
 const FXKEY: Record<string, FxName> = { q: 'glitch', w: 'invert', e: 'melt', r: 'hue', t: 'strobe' };
@@ -30,6 +31,19 @@ export function useKeyboard() {
         e.preventDefault();
         if (e.repeat) return;
         e.shiftKey ? assignSlot(+k) : holdOn(+k);
+        return;
+      }
+      // F1..F8 chamam cena; com Shift, regravam a cena por cima da mistura atual
+      const f = /^F([1-8])$/.exec(k);
+      if (f) {
+        e.preventDefault();
+        const i = +f[1] - 1;
+        if (e.shiftKey) {
+          const l = [...s.cenas];
+          if (l[i]) { l[i] = { ...capturar(l[i].nome), id: l[i].id }; flashMsg('cena ' + (i + 1) + ' regravada'); }
+          else { while (l.length < i) l.push(capturar('cena ' + (l.length + 1))); l[i] = capturar('cena ' + (i + 1)); flashMsg('cena ' + (i + 1) + ' guardada'); }
+          s.set('cenas', l); s.save();
+        } else if (!chamar(i)) flashMsg('cena ' + (i + 1) + ' vazia');
         return;
       }
       if (k === '/') { e.preventDefault(); s.set('searchOpen', true); s.save(); return; }
