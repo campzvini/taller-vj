@@ -4,7 +4,7 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-const { app, BrowserWindow, screen, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, dialog, desktopCapturer } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -136,6 +136,14 @@ ipcMain.handle('vj:setAspect', (_e, ar) => {
     output.setBounds({ ...b, height: Math.round(b.width * h / w) });
   }
   return true;
+});
+
+// ── § 2.0 — CAPTURE — fonte para o áudio do sistema e para gravação de tela ──
+// Não lemos o áudio de dentro do iframe, mas lemos o que sai da PLACA: é assim
+// que a reatividade ao som passa a valer para qualquer fonte, inclusive YouTube.
+ipcMain.handle('vj:sources', async () => {
+  const s = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 0, height: 0 } });
+  return s.map(x => ({ id: x.id, name: x.name, tipo: x.id.startsWith('screen') ? 'tela' : 'janela' }));
 });
 
 // ── § 2.1 — SESSION FILES — a sessão deixa de viver só no localStorage ──
@@ -338,6 +346,30 @@ async function selftest() {
                    dur: +(v.duration || 0).toFixed(1), visivel: v.style.display !== 'none' };
         })()`);
     }
+
+    // 7f) fase 2: captura do áudio do sistema e modulação escrevendo no parâmetro
+    result.audio = await controller.webContents.executeJavaScript(`
+      (async () => {
+        try {
+          const st = await navigator.mediaDevices.getUserMedia({
+            audio: { mandatory: { chromeMediaSource: 'desktop' } },
+            video: { mandatory: { chromeMediaSource: 'desktop', maxWidth: 2, maxHeight: 2 } }
+          });
+          const faixas = st.getAudioTracks().length;
+          st.getTracks().forEach(t => t.stop());
+          return { loopback: faixas > 0, faixas };
+        } catch (e) { return { loopback: false, erro: String(e.message || e) }; }
+      })()`);
+
+    result.modul = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const painel = [...document.querySelectorAll('button')].find(b => b.textContent === '+ rota');
+        if (!painel) return 'sem painel';
+        painel.click();
+        await new Promise(r => setTimeout(r, 400));
+        return { rotas: document.querySelectorAll('.modrow').length,
+                 fontes: document.querySelectorAll('.modrow select').length };
+      })()`);
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

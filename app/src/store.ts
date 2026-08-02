@@ -5,6 +5,7 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import { create } from 'zustand';
+import type { Mod } from './modulation';
 import type { Curve, Deck, FxBus, FxName, Item, Lane, Mark, MarkOwner, Pos } from './types';
 import { clean, POS0 } from './types';
 
@@ -40,6 +41,9 @@ export type Session = {
   pool: (number | null)[]; poolOf: Record<number, number>; poolNext: number;
   held: Record<number, boolean>;
 
+  // tempo e modulação
+  mods: Mod[]; bpmManual: number; audioOn: boolean;
+
   // ui
   searchOpen: boolean; mirror: boolean; outLive: boolean;
 
@@ -71,6 +75,8 @@ export const useSession = create<Session>((set, get) => ({
 
   pool: [null, null, null, null], poolOf: {}, poolNext: 0, held: {},
 
+  mods: LS('vj.mods', [] as Mod[]), bpmManual: 0, audioOn: false,
+
   searchOpen: LS('vj.search', true), mirror: false, outLive: false,
 
   set: (k, v) => set({ [k]: v } as any),
@@ -96,5 +102,6 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.loop', JSON.stringify(s.loop));
     localStorage.setItem('vj.cc', JSON.stringify(s.cc));
     localStorage.setItem('vj.search', JSON.stringify(s.searchOpen));
+    localStorage.setItem('vj.mods', JSON.stringify(s.mods));
   }
 }));

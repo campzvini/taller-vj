@@ -19,5 +19,6 @@ contextBridge.exposeInMainWorld('vj', {
   pickFiles: () => ipcRenderer.invoke('vj:pickFiles'),
   pickFolder: () => ipcRenderer.invoke('vj:pickFolder'),
   clip: opts => ipcRenderer.invoke('vj:clip', opts),
-  toMp4: src => ipcRenderer.invoke('vj:toMp4', src)
+  toMp4: src => ipcRenderer.invoke('vj:toMp4', src),
+  sources: () => ipcRenderer.invoke('vj:sources')
 });

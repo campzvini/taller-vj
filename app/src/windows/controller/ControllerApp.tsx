@@ -18,6 +18,8 @@ import Slots from './components/Slots';
 import Mixer from './components/Mixer';
 import Footer from './components/Footer';
 import SearchStrip from './components/SearchStrip';
+import ModPanel from './components/ModPanel';
+import { startModulation, stopModulation } from '../../modulation';
 import './controller.css';
 
 export default function ControllerApp() {
@@ -33,8 +35,10 @@ export default function ControllerApp() {
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
     setFlash(m => { setMsg(m); clearTimeout(t); t = setTimeout(() => setMsg(null), 1600); });
+    startModulation();
     // a saída pode nascer depois do controlador: quando ela anuncia, reenviamos tudo
-    return onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
+    const off = onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
+    return () => { off(); stopModulation(); };
   }, []);
 
   // checklist pré-show: o que costuma faltar cinco minutos antes de começar
@@ -111,7 +115,7 @@ export default function ControllerApp() {
 
       <div id="main">
         <Deck side="A" />
-        <div className="col"><Cue /><Slots /><Mixer /></div>
+        <div className="col midcol"><Cue /><Slots /><Mixer /><ModPanel /></div>
         <Deck side="B" />
       </div>
 
