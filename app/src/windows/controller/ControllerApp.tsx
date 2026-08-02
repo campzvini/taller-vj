@@ -9,6 +9,7 @@ import { useSession } from '../../store';
 import { out, onBus } from '../../out';
 import { setFlash, setPattern, toggleBlackout } from '../../actions';
 import { getKey } from '../../search';
+import { exportSession, importSession } from '../../session';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useSync } from '../../hooks/useSync';
 import Deck from './components/Deck';
@@ -98,6 +99,9 @@ export default function ControllerApp() {
           <button key={k} className={'tgl' + (s.pattern === k ? ' on' : '')}
             onClick={() => setPattern(k)}>{t}</button>
         ))}
+        <div className="fsep" />
+        <button onClick={exportSession} title="salvar sessão em arquivo">salvar sessão</button>
+        <button onClick={() => importSession(pushAll)}>abrir sessão</button>
         <div style={{ flex: 1 }} />
         {!s.outLive && <span className="tag treino">modo treino — sem saída</span>}
         <button onClick={runChecklist}>checar</button>

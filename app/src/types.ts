@@ -9,15 +9,24 @@ export type Lane = 'A' | 'B' | 'C';        // C = audio bed
 export type FxBus = 'A' | 'B' | 'M';
 export type MarkOwner = 'A' | 'B' | 'P';   // P = cue
 
+// fontes convivem: YouTube segue padrão, as outras são opção do operador
+export type Kind = 'yt' | 'file';
+
 export type Item = {
   id: string;
   title: string;
   thumb: string;
+  kind?: Kind;           // ausente = 'yt', para compatibilidade com sessões antigas
+  src?: string;          // caminho no disco, quando kind='file'
+  dur?: number;
   plist?: string;        // se for playlist
   in?: number | null;    // trecho
   out?: number | null;
   _from?: Lane | 'res';  // origem do arraste, nunca persistido
 };
+export const kindOf = (i?: Item | null): Kind => i?.kind ?? 'yt';
+// caminho local vira URL servida pelo http interno (file:// é bloqueado numa página http)
+export const localUrl = (p: string) => `${location.origin}/local?p=${encodeURIComponent(p)}`;
 
 export type Mark = { in?: number | null; out?: number | null };
 

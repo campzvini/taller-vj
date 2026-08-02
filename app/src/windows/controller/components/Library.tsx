@@ -30,8 +30,9 @@ export default function Library({ lane, className = 'lib' }: { lane: Lane; class
           onClick={() => (lane === 'C' ? play('C', it) : cue(it))}
           onDoubleClick={() => play(lane, it)}
         >
-          <img src={it.thumb} alt="" />
+          {it.thumb ? <img src={it.thumb} alt="" /> : <div className="noimg" />}
           <span>{it.title}</span>
+          {it.kind === 'file' && <span className="kind" title={it.src}>arq</span>}
           <div className="x" onClick={e => { e.stopPropagation(); removeFrom(lane, it.id); }}>×</div>
         </div>
       ))}

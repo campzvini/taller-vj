@@ -5,10 +5,10 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import { useSession } from './store';
-import { out, outLive, tele } from './out';
-import { L, mon } from './players';
+import { out, outLive, send, tele } from './out';
+import { L, M, mon } from './players';
 import type { Deck, FxName, Item, Lane, MarkOwner, Pos } from './types';
-import { clean, curveAt, POS0 } from './types';
+import { clean, curveAt, kindOf, localUrl, POS0 } from './types';
 
 const S = () => useSession.getState();
 export let flashMsg: (s: string) => void = () => { };
@@ -28,17 +28,21 @@ export function play(lane: Lane, it: Item | null, at = 0) {
     return;
   }
   const d = lane as Deck;
+  const arquivo = kindOf(it) === 'file' && it.src;
+
   if (outLive()) {
-    if (it.plist) out.loadList(d, it.plist); else out.load(d, it.id);
+    if (arquivo) send({ c: 'load', deck: d, id: it.id, kind: 'file', src: localUrl(it.src!) });
+    else if (it.plist) out.loadList(d, it.plist);
+    else out.load(d, it.id);
     out.present(d, true);
-    if (at > 1) setTimeout(() => out.seek(d, at), 900);
+    if (at > 1) setTimeout(() => out.seek(d, at), arquivo ? 300 : 900);
   }
-  const m = mon(d);
-  if (m) {
-    if (it.plist && !outLive()) m.loadPlaylist({ list: it.plist, listType: 'playlist' });
-    else m.loadVideoById(it.id);
-    if (at > 1) setTimeout(() => { try { m.seekTo(at, true); } catch { /* ignore */ } }, 900);
-  }
+
+  if (arquivo) M.loadFile(d, localUrl(it.src!));
+  else if (it.plist && !outLive()) { M.setKind(d, 'yt'); mon(d)?.loadPlaylist({ list: it.plist, listType: 'playlist' }); }
+  else M.loadYt(d, it.id);
+  if (at > 1) setTimeout(() => M.seek(d, at), arquivo ? 300 : 900);
+
   s.set('now', { ...s.now, [d]: it } as any);
   applyAudio();
 }
@@ -50,8 +54,7 @@ export function toggle(lane: Lane) {
   }
   const d = lane as Deck;
   if (outLive()) { out.toggle(d); return; }
-  const m = mon(d); if (!m) return;
-  try { m.getPlayerState() === 1 ? m.pauseVideo() : m.playVideo(); } catch { /* ignore */ }
+  M.toggle(d);
 }
 
 export function nextBed() {
@@ -92,7 +95,7 @@ export function sendCue(d: Deck) {
 export function headAt(o: MarkOwner): number {
   if (o === 'P') { try { return L.cue?.getCurrentTime() ?? 0; } catch { return 0; } }
   if (outLive()) return tele.decks[o].time;
-  try { return mon(o)?.getCurrentTime() ?? 0; } catch { return 0; }
+  return M.time(o);
 }
 export const setMark = (o: MarkOwner, which: 'in' | 'out') => {
   const s = S();
@@ -226,12 +229,9 @@ export function applyAudio() {
 
   if (outLive()) {
     out.vol('A', a); out.vol('B', b);
-    [L.monA, L.monB].forEach(p => { try { p?.mute(); } catch { /* ignore */ } });
+    (['A', 'B'] as Deck[]).forEach(d => M.mute(d));      // espelho volta a ser mudo
   } else {
-    ([['A', a], ['B', b]] as [Deck, number][]).forEach(([d, val]) => {
-      const p = mon(d); if (!p) return;
-      try { if (val > 0) { p.unMute(); p.setVolume(Math.round(val)); } else p.mute(); } catch { /* ignore */ }
-    });
+    ([['A', a], ['B', b]] as [Deck, number][]).forEach(([d, val]) => M.vol(d, val));
   }
   try { L.bed?.setVolume(Math.round(s.vol.C)); } catch { /* ignore */ }
 }

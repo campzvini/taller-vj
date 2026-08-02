@@ -7,13 +7,14 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
-import { L } from '../../../players';
+import { L, M } from '../../../players';
 import {
   applyAudio, applyOpacity, applyZoom, clearMark, dropInto, setAmt, setMark, toggle, toggleFx, toggleTloop
 } from '../../../actions';
 import { FX_NAMES, fmt, type Deck as D, type FxName } from '../../../types';
 import Library from './Library';
 import PosPanel from './PosPanel';
+import { importFiles, importFolder } from '../../../catalog';
 
 const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL', hue: 'HUE', strobe: 'STR' };
 
@@ -36,6 +37,7 @@ export default function Deck({ side }: { side: D }) {
     const t = setInterval(() => {
       if (!p.current) return;
       if (side === 'A') L.monA = p.current; else L.monB = p.current;
+      M.setKind(side, 'yt');
       applyAudio();
       clearInterval(t);
     }, 200);
@@ -54,9 +56,13 @@ export default function Deck({ side }: { side: D }) {
     >
       <div className="hd"><span>Deck <b>{side}</b></span><span className="now">{s.now[side]?.title ?? ''}</span></div>
 
+      {/* as duas fontes convivem no monitor; só uma fica visível por vez */}
       <div className={'mon' + (s.armed === side ? ' armed' : '')} id={'mon' + side}
         style={{ ['--zoom' as any]: (s.zoom[side] / 100).toFixed(3) }}>
-        <div id={'yt' + side + 'mon'} />
+        <div className="srcwrap" id={'ytwrap' + side}><div id={'yt' + side + 'mon'} /></div>
+        <video className="srcvid" id={'vid' + side + 'mon'} playsInline controls muted
+          style={{ display: 'none' }}
+          ref={el => { if (side === 'A') L.vidA = el; else L.vidB = el; }} />
       </div>
 
       <div className="card">
@@ -106,6 +112,11 @@ export default function Deck({ side }: { side: D }) {
         </div>
       </div>
 
+      <div className="row libbar">
+        <span className="tag">acervo</span>
+        <button className="mk" onClick={() => importFiles(side)}>+ arquivos</button>
+        <button className="mk" onClick={() => importFolder(side)}>+ pasta</button>
+      </div>
       <Library lane={side} />
     </div>
   );

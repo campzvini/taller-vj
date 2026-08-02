@@ -33,9 +33,42 @@ export default function OutputApp() {
 
   useEffect(() => {
     const samp = [s0, s1, s2, s3];
-    const deck = (d: Deck) => (d === 'A' ? pA : pB).current;
+    const yt = (d: Deck) => (d === 'A' ? pA : pB).current;
     const el = (id: string) => document.getElementById(id)!;
+    const vid = (d: Deck) => el('vid' + d + 'out') as HTMLVideoElement;
     const root = document.documentElement.style;
+
+    // Cada deck aceita duas fontes; a ativa manda no transporte. YouTube segue
+    // sendo o padrão — arquivo é opção, e as duas convivem sem se atrapalhar.
+    const kind: Record<Deck, 'yt' | 'file'> = { A: 'yt', B: 'yt' };
+    const isFile = (d: Deck) => kind[d] === 'file';
+    const setKind = (d: Deck, k: 'yt' | 'file') => {
+      kind[d] = k;
+      el('ytwrap' + d).style.display = k === 'yt' ? '' : 'none';
+      vid(d).style.display = k === 'file' ? '' : 'none';
+      if (k === 'file') { try { yt(d)?.pauseVideo(); } catch { /* ignore */ } }
+      else { try { vid(d).pause(); } catch { /* ignore */ } }
+    };
+    const T = {
+      play: (d: Deck) => isFile(d) ? void vid(d).play().catch(() => { }) : yt(d)?.playVideo(),
+      pause: (d: Deck) => isFile(d) ? vid(d).pause() : yt(d)?.pauseVideo(),
+      toggle: (d: Deck) => {
+        if (isFile(d)) { const v = vid(d); v.paused ? v.play().catch(() => { }) : v.pause(); return; }
+        const p = yt(d); if (p) p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo();
+      },
+      seek: (d: Deck, t: number) => isFile(d) ? (vid(d).currentTime = t) : yt(d)?.seekTo(t, true),
+      vol: (d: Deck, v: number) => isFile(d) ? (vid(d).volume = Math.max(0, Math.min(1, v / 100)))
+                                            : yt(d)?.setVolume(Math.round(v)),
+      time: (d: Deck) => { try { return isFile(d) ? vid(d).currentTime : (yt(d)?.getCurrentTime() ?? 0); } catch { return 0; } },
+      dur: (d: Deck) => { try { return isFile(d) ? (vid(d).duration || 0) : (yt(d)?.getDuration() ?? 0); } catch { return 0; } },
+      state: (d: Deck) => {
+        try {
+          if (!isFile(d)) return yt(d)?.getPlayerState() ?? -1;
+          const v = vid(d);
+          return v.ended ? 0 : v.paused ? 2 : 1;    // espelha os códigos da IFrame API
+        } catch { return -1; }
+      }
+    };
 
     // a saída é o monitor conjunto: o crossfader só arbitra com os dois presentes
     const paint = () => {
@@ -76,15 +109,24 @@ export default function OutputApp() {
     const applyFrame = (ar: string) => { window.vj?.setAspect?.(ar); recover(); };
 
     const run = (m: Cmd) => {
-      const p = 'deck' in m ? deck(m.deck) : null;
       switch (m.c) {
-        case 'load': p?.loadVideoById(m.id); break;
-        case 'loadList': p?.loadPlaylist({ list: m.list, listType: 'playlist' }); break;
-        case 'play': p?.playVideo(); break;
-        case 'pause': p?.pauseVideo(); break;
-        case 'toggle': p && (p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo()); break;
-        case 'seek': p?.seekTo(m.t, true); break;
-        case 'vol': p?.setVolume(Math.round(m.v)); break;
+        case 'load':
+          if (m.kind === 'file' && m.src) {
+            setKind(m.deck, 'file');
+            const v = vid(m.deck);
+            v.src = m.src; v.loop = st.current.loop;
+            v.play().catch(() => { });
+          } else {
+            setKind(m.deck, 'yt');
+            yt(m.deck)?.loadVideoById(m.id);
+          }
+          break;
+        case 'loadList': setKind(m.deck, 'yt'); yt(m.deck)?.loadPlaylist({ list: m.list, listType: 'playlist' }); break;
+        case 'play': T.play(m.deck); break;
+        case 'pause': T.pause(m.deck); break;
+        case 'toggle': T.toggle(m.deck); break;
+        case 'seek': T.seek(m.deck, m.t); break;
+        case 'vol': T.vol(m.deck, m.v); break;
         case 'opacity': st.current[m.deck === 'A' ? 'opA' : 'opB'] = m.v; paint(); break;
         case 'present': st.current[m.deck === 'A' ? 'hasA' : 'hasB'] = m.v; paint(); break;
         case 'zoomCh': el('pg' + m.deck).style.setProperty('--zoom', String(m.z)); break;
@@ -115,11 +157,14 @@ export default function OutputApp() {
             m.name === 'focus' ? '<div class="pt-focus"></div><div class="pt-cross"></div>' : '';
           break;
         }
-        case 'loop': st.current.loop = m.on; (['A', 'B'] as Deck[]).forEach(d => deck(d)?.setLoop(m.on)); break;
+        case 'loop':
+          st.current.loop = m.on;
+          (['A', 'B'] as Deck[]).forEach(d => { yt(d)?.setLoop(m.on); vid(d).loop = m.on; });
+          break;
         case 'cc':
           st.current.cc = m.on;
           (['A', 'B'] as Deck[]).forEach(d => {
-            const q = deck(d); if (!q) return;
+            const q = yt(d); if (!q) return;
             if (m.on) ['captions', 'cc'].forEach(mod => (q as any).loadModule(mod)); else ccOff(q);
           });
           break;
@@ -162,8 +207,7 @@ export default function OutputApp() {
 
     onEnd.current = (d, state) => {
       if (state !== 0 || !st.current.loop) return;   // 0 = ENDED
-      const p = deck(d);
-      try { p?.seekTo(0, true); p?.playVideo(); } catch { /* ignore */ }
+      try { yt(d)?.seekTo(0, true); yt(d)?.playVideo(); } catch { /* ignore */ }
     };
 
     const bus = makeBus();
@@ -171,11 +215,7 @@ export default function OutputApp() {
     bus.send({ t: 'up' });            // avisa o controlador que a saída nasceu
 
     const tele = setInterval(() => {
-      const grab = (d: Deck) => {
-        const q = deck(d);
-        try { return { time: q?.getCurrentTime() ?? 0, state: q?.getPlayerState() ?? -1, dur: q?.getDuration() ?? 0 }; }
-        catch { return { time: 0, state: -1, dur: 0 }; }
-      };
+      const grab = (d: Deck) => ({ time: T.time(d), state: T.state(d), dur: T.dur(d) });
       bus.send({
         t: 'tele', ready: !!pA.current,
         decks: { A: grab('A'), B: grab('B') },
@@ -189,11 +229,13 @@ export default function OutputApp() {
     // superfície imperativa só para o selftest do main process
     (window as any).VJ = {
       get ready() { return !!pA.current; },
-      load: (d: Deck, id: string) => deck(d)?.loadVideoById(id),
-      state: (d: Deck) => { try { return deck(d)?.getPlayerState() ?? -1; } catch { return -1; } },
-      time: (d: Deck) => { try { return deck(d)?.getCurrentTime() ?? 0; } catch { return 0; } },
-      seek: (d: Deck, t: number) => { try { deck(d)?.seekTo(t, true); } catch { /* ignore */ } },
-      data: (d: Deck) => { try { return deck(d)?.getVideoData(); } catch { return null; } },
+      load: (d: Deck, id: string) => run({ c: 'load', deck: d, id }),
+      loadFile: (d: Deck, src: string) => run({ c: 'load', deck: d, id: src, kind: 'file', src }),
+      kind: (d: Deck) => kind[d],
+      state: (d: Deck) => T.state(d),
+      time: (d: Deck) => T.time(d),
+      seek: (d: Deck, t: number) => T.seek(d, t),
+      data: (d: Deck) => { try { return yt(d)?.getVideoData(); } catch { return null; } },
       xf: (v: number) => { st.current.xf = v; st.current.hasA = true; st.current.hasB = true; paint(); },
       opacity: (d: Deck, v: number) => run({ c: 'opacity', deck: d, v }),
       present: (d: Deck, v: boolean) => run({ c: 'present', deck: d, v })
@@ -209,12 +251,14 @@ export default function OutputApp() {
         <div className="bus" id="hueM"><div className="bus" id="baseM"><div className="bus" id="animM">
           <div className="layer" id="pgA">
             <div className="bus" id="hueA"><div className="bus" id="baseA"><div className="bus" id="animA">
-              <div id="ytAout" />
+              <div className="srcwrap" id="ytwrapA"><div id="ytAout" /></div>
+              <video className="srcvid" id="vidAout" playsInline style={{ display: 'none' }} />
             </div></div></div>
           </div>
           <div className="layer" id="pgB">
             <div className="bus" id="hueB"><div className="bus" id="baseB"><div className="bus" id="animB">
-              <div id="ytBout" />
+              <div className="srcwrap" id="ytwrapB"><div id="ytBout" /></div>
+              <video className="srcvid" id="vidBout" playsInline style={{ display: 'none' }} />
             </div></div></div>
           </div>
           <div className="layer" id="pgS">

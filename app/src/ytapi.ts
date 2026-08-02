@@ -27,6 +27,13 @@ declare global {
       openOutput(): Promise<boolean>;
       setAspect?(ar: string): Promise<boolean>;
       checklist?(): Promise<Record<string, unknown>>;
+      saveSession?(data: unknown): Promise<string | null>;
+      openSession?(): Promise<{ path: string; data?: unknown; error?: string } | null>;
+      ffmpeg?(args: string[]): Promise<{ ok: boolean; out?: string; err?: string }>;
+      probe?(file: string): Promise<Record<string, unknown> | null>;
+      pickFiles?(): Promise<string[]>;
+      pickFolder?(): Promise<{ dir: string; files: string[] } | null>;
+      thumb?(file: string, at?: number): Promise<string | null>;
     };
   }
 }

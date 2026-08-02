@@ -10,7 +10,7 @@ export type FxBus = 'A' | 'B' | 'M';
 
 // ── § 1 — COMMANDS — controller → output ──
 export type Cmd =
-  | { c: 'load'; deck: Deck; id: string }
+  | { c: 'load'; deck: Deck; id: string; kind?: 'yt' | 'file'; src?: string }
   | { c: 'loadList'; deck: Deck; list: string }
   | { c: 'play' | 'pause' | 'toggle'; deck: Deck }
   | { c: 'seek'; deck: Deck; t: number }

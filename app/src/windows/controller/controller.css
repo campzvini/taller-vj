@@ -63,6 +63,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .mon iframe{position:absolute;left:50%;top:50%;border:0;
   width:var(--covw,100%);height:var(--covh,100%);
   transform:translate(-50%,-50%) scale(var(--zoom,1))}
+.srcwrap{position:absolute;inset:0}
+.srcvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.item .kind{font-size:8px;color:var(--ok);border:1px solid var(--ok);border-radius:2px;
+  padding:0 3px;flex:0 0 auto}
 
 /* ── § 3 — Deck controls ── */
 .mk{padding:3px 5px;font-size:10px}

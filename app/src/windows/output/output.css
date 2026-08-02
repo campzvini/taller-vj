@@ -14,6 +14,14 @@ html,body,#root{height:100%;background:#000;overflow:hidden;cursor:none}
 .layer{position:absolute;inset:0;
   clip-path:inset(var(--ct,0%) var(--cr,0%) var(--cb,0%) var(--cl,0%))}
 .samp{position:absolute;inset:0;opacity:0;transition:opacity var(--sfade,90ms) linear}
+.srcwrap{position:absolute;inset:0}
+/* arquivo local usa object-fit: já cobre sem precisar do truque de largura */
+.srcvid{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:cover;
+  transform:translate(-50%,-50%)
+            translate(var(--panx,0%),var(--pany,0%))
+            rotate(var(--rot,0deg))
+            scale(var(--zoom,1))
+            scaleX(var(--fx,1)) scaleY(var(--fy,1))}
 .frame iframe{position:absolute;left:50%;top:50%;border:0;pointer-events:none;
   width:var(--covw,100%);height:var(--covh,100%);
   transform:translate(-50%,-50%)

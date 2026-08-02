@@ -4,10 +4,11 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-const { app, BrowserWindow, screen, ipcMain } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, dialog } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const ROOT = path.join(__dirname, '..', 'dist');
 const SELFTEST = process.argv.includes('--selftest');
@@ -25,7 +26,37 @@ function serve() {
   if (DEV) return Promise.resolve((origin = DEV_URL));
   return new Promise(resolve => {
     server = http.createServer((req, res) => {
-      const rel = decodeURIComponent(req.url.split('?')[0]);
+      const u = new URL(req.url, 'http://localhost');
+
+      // Arquivos locais entram por aqui: a página é http, e carregar file://
+      // de uma origem http é bloqueado. Com Range o <video> consegue dar seek.
+      if (u.pathname === '/local') {
+        const p = u.searchParams.get('p');
+        if (!p) { res.writeHead(400).end(); return; }
+        let stat;
+        try { stat = fs.statSync(p); } catch { res.writeHead(404).end(); return; }
+        const type = { '.mp4': 'video/mp4', '.webm': 'video/webm', '.mkv': 'video/x-matroska',
+                       '.mov': 'video/quicktime', '.m4v': 'video/mp4', '.ogv': 'video/ogg',
+                       '.jpg': 'image/jpeg', '.png': 'image/png' }[path.extname(p).toLowerCase()]
+                     || 'application/octet-stream';
+        const range = req.headers.range;
+        if (range) {
+          const m = /bytes=(\d*)-(\d*)/.exec(range) || [];
+          const start = m[1] ? parseInt(m[1]) : 0;
+          const end = m[2] ? parseInt(m[2]) : stat.size - 1;
+          res.writeHead(206, {
+            'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+            'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Content-Type': type
+          });
+          fs.createReadStream(p, { start, end }).pipe(res);
+        } else {
+          res.writeHead(200, { 'Content-Length': stat.size, 'Accept-Ranges': 'bytes', 'Content-Type': type });
+          fs.createReadStream(p).pipe(res);
+        }
+        return;
+      }
+
+      const rel = decodeURIComponent(u.pathname);
       const file = path.join(ROOT, rel === '/' ? 'controller.html' : rel);
       if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
       fs.readFile(file, (err, buf) => {
@@ -105,6 +136,28 @@ ipcMain.handle('vj:setAspect', (_e, ar) => {
     output.setBounds({ ...b, height: Math.round(b.width * h / w) });
   }
   return true;
+});
+
+// ── § 2.1 — SESSION FILES — a sessão deixa de viver só no localStorage ──
+ipcMain.handle('vj:saveSession', async (_e, data) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(controller, {
+    title: 'Salvar sessão', defaultPath: `taller-vj-${new Date().toISOString().slice(0, 10)}.json`,
+    filters: [{ name: 'Sessão Taller VJ', extensions: ['json'] }]
+  });
+  if (canceled || !filePath) return null;
+  await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+  return filePath;
+});
+
+ipcMain.handle('vj:openSession', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(controller, {
+    title: 'Abrir sessão', properties: ['openFile'],
+    filters: [{ name: 'Sessão Taller VJ', extensions: ['json'] }]
+  });
+  if (canceled || !filePaths?.length) return null;
+  const txt = await fs.promises.readFile(filePaths[0], 'utf8');
+  try { return { path: filePaths[0], data: JSON.parse(txt) }; }
+  catch { return { path: filePaths[0], error: 'arquivo inválido' }; }
 });
 
 ipcMain.handle('vj:checklist', () => ({
@@ -263,6 +316,29 @@ async function selftest() {
       cover: getComputedStyle(document.documentElement).getPropertyValue('--covw').trim()
     })`);
 
+    // 7d) fase 1: ffmpeg vivo, arquivo local servido com Range e tocando na saída
+    {
+      const { execFile } = require('child_process');
+      const ff = require('ffmpeg-static');
+      const tmp = path.join(os.tmpdir(), 'taller-vj-selftest.mp4');
+      await new Promise(r => execFile(ff, ['-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=25',
+        '-t', '6', '-pix_fmt', 'yuv420p', '-y', tmp], { windowsHide: true }, () => r()));
+      result.ffmpeg = fs.existsSync(tmp);
+
+      const probe = await controller.webContents.executeJavaScript(
+        `window.vj.probe(${JSON.stringify(tmp)})`);
+      result.probe = probe;
+
+      result.arquivo = await output.webContents.executeJavaScript(`
+        (async () => {
+          VJ.loadFile('A', location.origin + '/local?p=' + encodeURIComponent(${JSON.stringify(tmp)}));
+          await new Promise(r => setTimeout(r, 3000));
+          const v = document.getElementById('vidAout');
+          return { kind: VJ.kind('A'), tocando: !v.paused, t: +v.currentTime.toFixed(1),
+                   dur: +(v.duration || 0).toFixed(1), visivel: v.style.display !== 'none' };
+        })()`);
+    }
+
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();
@@ -282,6 +358,7 @@ async function selftest() {
 // ── § 4 — BOOT ──
 app.whenReady().then(async () => {
   fixUserAgent();
+  require('./media').register(() => controller);
   await serve();
   makeController();
   makeOutput();

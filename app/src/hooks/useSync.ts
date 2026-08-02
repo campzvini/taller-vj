@@ -7,7 +7,7 @@
 import { useEffect, useRef } from 'react';
 import { useSession } from '../store';
 import { out, outLive, tele } from '../out';
-import { L, mon } from '../players';
+import { L, M } from '../players';
 import type { Deck } from '../types';
 
 const TICK = 400;
@@ -45,35 +45,33 @@ export function useSync() {
       // sem saída: o monitor é a fonte, só o trecho precisa ser vigiado
       if (!live) {
         (['A', 'B'] as Deck[]).forEach(d => {
-          const m = mon(d), mk = s.mark[d];
-          if (!m || !s.tloop[d] || mk.out == null) return;
-          try { if (m.getPlayerState() === 1 && m.getCurrentTime() >= mk.out - 0.1) m.seekTo(mk.in ?? 0, true); }
-          catch { /* ignore */ }
+          const mk = s.mark[d];
+          if (!s.tloop[d] || mk.out == null) return;
+          if (M.state(d) === 1 && M.time(d) >= mk.out - 0.1) M.seek(d, mk.in ?? 0);
         });
         return;
       }
 
       const now = performance.now();
       (['A', 'B'] as Deck[]).forEach(d => {
-        const m = mon(d); if (!m) return;
         try {
-          const st = tele.decks[d].state, o = tele.decks[d].time, cur = m.getCurrentTime();
+          const st = tele.decks[d].state, o = tele.decks[d].time, cur = M.time(d);
           const prev = seen.current[d], dt = (now - prev.ts) / 1000;
-          const esperado = prev.ts ? prev.t + (m.getPlayerState() === 1 ? dt : 0) : cur;
+          const esperado = prev.ts ? prev.t + (M.state(d) === 1 ? dt : 0) : cur;
           // um salto grande é scrub do operador no monitor: aí a saída é que segue
           if (prev.ts && Math.abs(cur - esperado) > 1.0) {
             out.seek(d, cur);
             if (st === 1) out.play(d);
           } else {
-            if (st === 1 && m.getPlayerState() !== 1) m.playVideo();
-            if (st !== 1 && m.getPlayerState() === 1) m.pauseVideo();
-            if (st === 1 && Math.abs(cur - o) > 0.4) m.seekTo(o, true);
+            if (st === 1 && M.state(d) !== 1) M.play(d);
+            if (st !== 1 && M.state(d) === 1) M.pause(d);
+            if (st === 1 && Math.abs(cur - o) > 0.4) M.seek(d, o);
           }
-          seen.current[d] = { t: m.getCurrentTime(), ts: now };
+          seen.current[d] = { t: M.time(d), ts: now };
 
           const mk = s.mark[d];
           if (s.tloop[d] && mk.out != null && st === 1 && o >= mk.out - 0.1) {
-            out.seek(d, mk.in ?? 0); m.seekTo(mk.in ?? 0, true);
+            out.seek(d, mk.in ?? 0); M.seek(d, mk.in ?? 0);
             seen.current[d] = { t: mk.in ?? 0, ts: now };
           }
         } catch { /* ignore */ }
