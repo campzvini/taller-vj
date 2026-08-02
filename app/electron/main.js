@@ -14,6 +14,9 @@ const ROOT = path.join(__dirname, '..', 'dist');
 const SELFTEST = process.argv.includes('--selftest');
 const DEV = process.argv.includes('--dev');
 const DEV_URL = 'http://localhost:5273';
+// partição sem 'persist:' vive em memória: o autoteste começa sempre do zero,
+// senão o localStorage de execuções passadas contamina o resultado
+const PART = SELFTEST ? { partition: 'selftest' } : {};
 let server, origin, controller, output;
 
 // ── § 1 — LOCAL SERVER — YouTube embeds refuse file://, so we serve over http ──
@@ -93,7 +96,7 @@ function makeController() {
   controller = new BrowserWindow({
     width: 1440, height: 900, backgroundColor: '#0a0a0c', title: 'Taller VJ',
     show: false,   // evita o piscar de janela pequena antes de maximizar
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
   });
   controller.maximize();
   controller.show();
@@ -117,7 +120,7 @@ function makeOutput() {
     x: x + 40, y: y + 40, width: Math.min(960, width - 80), height: Math.min(540, height - 80),
     backgroundColor: '#000', title: 'Taller VJ — OUTPUT',
     fullscreen: displays.length > 1,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
   });
   output.loadURL(`${origin}/output.html`);
   return output;
@@ -389,6 +392,37 @@ async function selftest() {
                  frames: info?.frames || 0, brilho: Math.round(info?.brilho || 0),
                  videoOculto: document.getElementById('vidAout').style.display === 'none' };
       })()`);
+
+    // 7h) modulação: escala derruba o valor e, ao remover a rota, ele VOLTA sozinho
+    result.modRelease = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const b = new BroadcastChannel('vj');
+        b.postMessage({ c: 'present', deck: 'A', v: true });
+        b.postMessage({ c: 'present', deck: 'B', v: true });
+        b.postMessage({ c: 'xf', v: 100 });
+        await new Promise(r => setTimeout(r, 300));
+        // parte limpo: checagens anteriores podem ter deixado rota viva
+        for (const linha of [...document.querySelectorAll('.modrow')]) {
+          [...linha.querySelectorAll('button')].pop().click();
+          await new Promise(r => setTimeout(r, 120));
+        }
+        const add = [...document.querySelectorAll('button')].find(x => x.textContent === '+ rota');
+        add.click();                       // nasce low -> opB, escala 100
+        await new Promise(r => setTimeout(r, 900));
+        const linha = document.querySelector('.modrow');
+        const remover = [...linha.querySelectorAll('button')].pop();
+        return { criou: !!linha, remover: !!remover };
+      })()`);
+    result.modDurante = await output.webContents.executeJavaScript(
+      `document.getElementById('pgB').style.opacity`);
+    await controller.webContents.executeJavaScript(`
+      (async () => {
+        const linha = document.querySelector('.modrow');
+        [...linha.querySelectorAll('button')].pop().click();
+        await new Promise(r => setTimeout(r, 900));
+      })()`);
+    result.modDepois = await output.webContents.executeJavaScript(
+      `document.getElementById('pgB').style.opacity`);
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

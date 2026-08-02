@@ -7,7 +7,9 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '../../../store';
 import { audio, listarFontes, startAudio, stopAudio, tap, type Fonte } from '../../../audio';
-import { DEST_LABEL, SRC_LABEL, novoMod, type Dest, type Src } from '../../../modulation';
+import {
+  DEST_LABEL, MODO_LABEL, SRC_LABEL, novoMod, type Dest, type Modo, type Src
+} from '../../../modulation';
 import { flashMsg } from '../../../actions';
 
 export default function ModPanel() {
@@ -70,6 +72,12 @@ export default function ModPanel() {
         <button className="mk" onClick={() => { s.set('mods', [...s.mods, novoMod()]); s.save(); }}>+ rota</button>
       </div>
 
+      {/* intensidade só tem efeito visível se houver algum efeito ligado naquele bus */}
+      {s.mods.some(m => m.on && m.dest === 'amtM') && s.fx.M.size === 0 && (
+        <p className="nota alerta">⚠ há rota para a intensidade do master, mas nenhum
+          efeito master está ligado — nada muda até acender GLI/INV/MEL/HUE/STR.</p>
+      )}
+
       {s.mods.map((m, i) => (
         <div className="row modrow" key={m.id}>
           <button className={'mk' + (m.on ? ' on' : '')}
@@ -90,7 +98,17 @@ export default function ModPanel() {
           }}>
             {Object.entries(DEST_LABEL).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
-          <input type="range" min={-100} max={100} value={m.amount} style={{ maxWidth: 60 }}
+          <select value={m.modo ?? 'escalar'} title={MODO_LABEL[m.modo ?? 'escalar']}
+            style={{ maxWidth: 62 }}
+            onChange={e => {
+              const mods = [...s.mods]; mods[i] = { ...m, modo: e.target.value as Modo };
+              s.set('mods', mods); s.save();
+            }}>
+            <option value="escalar">escala</option>
+            <option value="somar">soma</option>
+          </select>
+          <input type="range" min={(m.modo ?? 'escalar') === 'somar' ? -100 : 0} max={100}
+            value={m.amount} style={{ maxWidth: 56 }}
             onChange={e => {
               const mods = [...s.mods]; mods[i] = { ...m, amount: +e.target.value };
               s.set('mods', mods); s.save();

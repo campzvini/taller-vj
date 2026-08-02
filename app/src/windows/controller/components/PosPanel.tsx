@@ -23,8 +23,9 @@ export default function PosPanel({ side }: { side: Deck }) {
 
   return (
     <span className="poswrap">
-      <button ref={btn} className={'mk' + (mexido ? ' on' : '')}
-        onClick={() => setOpen(o => !o)} title="enquadramento">pos</button>
+      <button ref={btn} className={'posbtn' + (mexido ? ' on' : '')}
+        onClick={() => setOpen(o => !o)} title="enquadramento: pan, giro, espelho, corte">
+        ✥ enquadrar</button>
 
       {open && (
         <div className="pospanel" ref={box}>
@@ -45,8 +46,12 @@ export default function PosPanel({ side }: { side: Deck }) {
               onClick={() => applyPos(side, { flipH: !pos.flipH })}>espelhar ↔</button>
             <button className={'mk' + (pos.flipV ? ' on' : '')}
               onClick={() => applyPos(side, { flipV: !pos.flipV })}>espelhar ↕</button>
-            <button className="mk" onClick={() => resetPos(side)}>zerar</button>
+            <button className="mk" onClick={() => resetPos(side)}>zerar tudo</button>
           </div>
+          <p className="nota">
+            Se uma rota de modulação estiver escrevendo aqui, o valor volta ao que
+            está nestes controles assim que você desligar a rota.
+          </p>
           <div className="tag">corte das bordas</div>
           {(['topo', 'direita', 'base', 'esquerda'] as const).map((nome, i) => (
             <div className="row" key={nome}><span className="tag w40">{nome}</span>
