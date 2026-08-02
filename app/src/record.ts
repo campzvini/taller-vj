@@ -99,7 +99,7 @@ async function limpar() {
 }
 
 /** Encerra, grava em disco e devolve o caminho. Converter para MP4 é opcional. */
-export async function stopRec(paraMp4 = false): Promise<string | null> {
+export async function stopRec(paraMp4 = false, dir?: string): Promise<string | null> {
   if (!mr || !rec.ativo) return null;
   const fim = new Promise<void>(res => { mr!.onstop = () => res(); });
   mr.stop();
@@ -110,7 +110,7 @@ export async function stopRec(paraMp4 = false): Promise<string | null> {
   const blob = new Blob(pedacos, { type: 'video/webm' });
   pedacos = [];
   const bytes = new Uint8Array(await blob.arrayBuffer());
-  const p = (await window.vj?.saveRec?.(bytes, 'webm')) || null;
+  const p = (await window.vj?.saveRec?.(bytes, 'webm', dir)) || null;
   rec.ultimo = p;
   if (p && paraMp4) {
     const mp4 = await window.vj?.toMp4?.(p).catch(() => null);

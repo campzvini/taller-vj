@@ -37,7 +37,9 @@ declare global {
       clip?(o: { file: string; start: number; end: number }): Promise<string | null>;
       toMp4?(src: string): Promise<string | null>;
       sources?(): Promise<{ id: string; name: string; tipo: string }[]>;
-      saveRec?(bytes: Uint8Array, ext?: string): Promise<string | null>;
+      saveRec?(bytes: Uint8Array, ext?: string, dir?: string): Promise<string | null>;
+      recDir?(): Promise<string>;
+      pickDir?(atual?: string): Promise<string | null>;
       reveal?(p: string): Promise<boolean>;
     };
   }

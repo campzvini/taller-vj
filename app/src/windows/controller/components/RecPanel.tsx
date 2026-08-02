@@ -13,6 +13,7 @@ import { acharSaida, durMMSS, listarAlvos, rec, startRec, stopRec, type Alvo } f
 export default function RecPanel() {
   const s = useSession();
   const [alvos, setAlvos] = useState<Alvo[]>([]);
+  const [padrao, setPadrao] = useState('');   // Vídeos/taller-vj, resolvido pelo main
   const [open, setOpen] = useState(false);
   const [, forca] = useState(0);
   const btn = useRef<HTMLButtonElement>(null);
@@ -23,8 +24,11 @@ export default function RecPanel() {
   // o relógio da gravação vive fora do React
   useEffect(() => {
     const t = setInterval(() => forca(x => x + 1), 500);
+    window.vj?.recDir?.().then(setPadrao).catch(() => { });
     return () => clearInterval(t);
   }, []);
+
+  const pasta = s.recDir || padrao;
 
   const carregar = async () => {
     const l = await listarAlvos();
@@ -37,7 +41,7 @@ export default function RecPanel() {
 
   const alternar = async () => {
     if (rec.ativo) {
-      const p = await stopRec(s.recMp4);
+      const p = await stopRec(s.recMp4, s.recDir || undefined);
       flashMsg(p ? 'gravação salva' : 'falhou: ' + (rec.erro || 'sem arquivo'));
       return;
     }
@@ -88,17 +92,30 @@ export default function RecPanel() {
               onChange={e => { s.set('recMbps', +e.target.value); s.save(); }} />
             <span className="val">{s.recMbps} Mb/s</span>
           </div>
+          <div className="tag">onde salvar</div>
+          <div className="row">
+            <span className="nota caminho" title={pasta}>{pasta || 'lendo…'}</span>
+          </div>
+          <div className="row">
+            <button className="mk" onClick={async () => {
+              const d = await window.vj?.pickDir?.(s.recDir || pasta);
+              if (d) { s.set('recDir', d); s.save(); }
+            }}>escolher pasta</button>
+            <button className="mk" onClick={() => window.vj?.reveal?.(rec.ultimo || s.recDir || pasta)}
+              title="abre no explorador; se já houver gravação, seleciona o arquivo">
+              abrir pasta</button>
+            {!!s.recDir && (
+              <button className="mk" title="voltar para Vídeos/taller-vj"
+                onClick={() => { s.set('recDir', ''); s.save(); }}>padrão</button>
+            )}
+          </div>
           <p className="nota">
             Grava a <b>janela</b>, não a composição — é assim que o YouTube entra no
-            arquivo, já com os efeitos. Sai em WebM na pasta Vídeos/taller-vj; a
-            conversão para MP4 acontece depois de parar e demora.
+            arquivo, já com os efeitos. Sai em WebM; a conversão para MP4 acontece
+            depois de parar e demora. A janela do explorador pode abrir <b>atrás</b> da
+            projeção em tela cheia.
           </p>
-          {rec.ultimo && (
-            <div className="row">
-              <button className="mk" onClick={() => window.vj?.reveal?.(rec.ultimo!)}>abrir pasta</button>
-              <span className="nota">{rec.ultimo.split(/[\\/]/).pop()}</span>
-            </div>
-          )}
+          {rec.ultimo && <p className="nota">último: {rec.ultimo.split(/[\\/]/).pop()}</p>}
         </div>
       )}
     </span>

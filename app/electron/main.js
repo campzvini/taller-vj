@@ -155,19 +155,36 @@ ipcMain.handle('vj:sources', async () => {
 // ── § 2.0.1 — RECORDING — o renderer captura, o main só encosta no disco ──
 // Sem diálogo: em performance ninguém quer escolher pasta. Vai para Vídeos/taller-vj
 // com carimbo de data, e o botão "abrir pasta" resolve o resto depois.
-ipcMain.handle('vj:saveRec', async (_e, bytes, ext) => {
-  const dir = path.join(app.getPath('videos'), 'taller-vj');
-  await fs.promises.mkdir(dir, { recursive: true });
+const recDirPadrao = () => path.join(app.getPath('videos'), 'taller-vj');
+
+ipcMain.handle('vj:recDir', () => recDirPadrao());
+
+ipcMain.handle('vj:pickDir', async (_e, atual) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(controller, {
+    title: 'Pasta das gravações', defaultPath: atual || recDirPadrao(),
+    properties: ['openDirectory', 'createDirectory']
+  });
+  return canceled || !filePaths?.length ? null : filePaths[0];
+});
+
+ipcMain.handle('vj:saveRec', async (_e, bytes, ext, dir) => {
+  const destino = dir || recDirPadrao();
+  await fs.promises.mkdir(destino, { recursive: true });
   const carimbo = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const alvo = path.join(dir, `taller-vj-${carimbo}.${ext || 'webm'}`);
+  const alvo = path.join(destino, `taller-vj-${carimbo}.${ext || 'webm'}`);
   await fs.promises.writeFile(alvo, Buffer.from(bytes));
   return alvo;
 });
 
-ipcMain.handle('vj:reveal', (_e, p) => {
-  if (!p || !fs.existsSync(p)) return false;
-  shell.showItemInFolder(p);
-  return true;
+// abrir a pasta precisa funcionar mesmo sem arquivo ainda: é como o operador
+// confere o destino ANTES de gravar. Com arquivo, seleciona ele no explorador.
+ipcMain.handle('vj:reveal', async (_e, p) => {
+  if (p && fs.existsSync(p) && fs.statSync(p).isFile()) { shell.showItemInFolder(p); return true; }
+  const dir = p && fs.existsSync(p) ? p
+    : p ? path.dirname(p) : recDirPadrao();
+  await fs.promises.mkdir(dir, { recursive: true });
+  const erro = await shell.openPath(dir);
+  return !erro;
 });
 
 // ── § 2.1 — SESSION FILES — a sessão deixa de viver só no localStorage ──
@@ -487,8 +504,11 @@ async function selftest() {
           await new Promise(r => { mr.onstop = r; mr.stop(); });
           st.getTracks().forEach(t => t.stop());
           const blob = new Blob(pedaços, { type: 'video/webm' });
-          const p = await window.vj.saveRec(new Uint8Array(await blob.arrayBuffer()), 'webm');
-          return { alvo: alvo.name, bytes: blob.size, path: p };
+          // pasta escolhida pelo operador tem de valer; sem ela, cai no padrão
+          const padrao = await window.vj.recDir();
+          const p = await window.vj.saveRec(new Uint8Array(await blob.arrayBuffer()), 'webm',
+            ${JSON.stringify(path.join(os.tmpdir(), 'taller-vj-selftest-rec'))});
+          return { alvo: alvo.name, bytes: blob.size, path: p, padrao };
         } catch (e) { return { erro: String(e.message || e) }; }
       })()`);
     if (result.gravacao?.path) {

@@ -48,7 +48,7 @@ export type Session = {
 
   // cenas e gravação
   cenas: Cena[]; cenaFade: number;
-  recAlvo: string; recSom: boolean; recMp4: boolean; recMbps: number;
+  recAlvo: string; recSom: boolean; recMp4: boolean; recMbps: number; recDir: string;
 
   // configurações
   engine: 'dom' | 'gl'; glfx: Record<Deck, GlFx>;
@@ -92,6 +92,7 @@ export const useSession = create<Session>((set, get) => ({
   cenas: LS('vj.cenas', [] as Cena[]), cenaFade: LS('vj.cenaFade', 0),
   recAlvo: localStorage.getItem('vj.recAlvo') || '',
   recSom: LS('vj.recSom', true), recMp4: LS('vj.recMp4', false), recMbps: LS('vj.recMbps', 12),
+  recDir: localStorage.getItem('vj.recDir') || '',   // vazio = Vídeos/taller-vj
 
   engine: LS<'dom' | 'gl'>('vj.engine', 'dom'),
   glfx: LS('vj.glfx', { A: { ...GLFX0 }, B: { ...GLFX0 } }),
@@ -135,5 +136,6 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.recSom', JSON.stringify(s.recSom));
     localStorage.setItem('vj.recMp4', JSON.stringify(s.recMp4));
     localStorage.setItem('vj.recMbps', JSON.stringify(s.recMbps));
+    localStorage.setItem('vj.recDir', s.recDir);
   }
 }));
