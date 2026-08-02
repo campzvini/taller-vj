@@ -1,0 +1,55 @@
+<!-- ──────────────────────────────────────────── -->
+<!-- TALLER VJ APP 0.1 — controller.html (spike) -->
+<!-- § - Controller window: drives the output over BroadcastChannel · HTML -->
+<!-- Taller Dev 2026 -->
+<!-- VAI CORINTHIANS! -->
+<!-- ──────────────────────────────────────────── -->
+<meta charset="utf-8">
+<title>Taller VJ</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0c;color:#d8d8e0;font:12px/1.4 "Segoe UI",system-ui,sans-serif;
+    padding:16px;display:flex;flex-direction:column;gap:12px}
+  h1{font-size:12px;letter-spacing:.18em;color:#7a7a88;font-weight:700}
+  .card{background:#16161d;border:1px solid #26262e;border-radius:5px;padding:12px;
+    display:flex;flex-direction:column;gap:8px;max-width:520px}
+  input,button{background:#1c1c23;color:#d8d8e0;border:1px solid #26262e;padding:6px 9px;
+    font:inherit;border-radius:3px}
+  button{cursor:pointer}
+  input[type=range]{-webkit-appearance:none;background:#22222b;height:6px;padding:0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:22px;
+    background:#d8d8e0;border-radius:2px}
+  pre{background:#0f0f14;border:1px solid #26262e;border-radius:4px;padding:8px;
+    font-size:11px;color:#7a7a88;white-space:pre-wrap}
+</style>
+
+<h1>TALLER VJ — SPIKE</h1>
+<div class="card">
+  <div style="display:flex;gap:6px">
+    <input id="vid" value="jNQXAC9IVRw" style="flex:1">
+    <button id="send">carregar na saída</button>
+    <button id="openout">abrir saída</button>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <b>0</b><input type="range" id="xf" min="0" max="100" value="100"><b>100</b>
+    <span id="xfv">100</span>
+  </div>
+  <pre id="log">—</pre>
+</div>
+
+<script>
+const bus=window.__bus=new BroadcastChannel('vj');
+const log=t=>document.getElementById('log').textContent=t;
+
+document.getElementById('send').onclick=()=>{
+  bus.postMessage({cmd:'load',deck:'A',id:document.getElementById('vid').value.trim()});
+  log('load enviado');
+};
+document.getElementById('xf').oninput=e=>{
+  document.getElementById('xfv').textContent=e.target.value;
+  bus.postMessage({cmd:'xf',v:+e.target.value});
+};
+document.getElementById('openout').onclick=()=>window.vj.openOutput();
+
+window.vj.displays().then(d=>log('telas: '+JSON.stringify(d,null,1)));
+</script>
