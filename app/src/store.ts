@@ -6,6 +6,7 @@
 // ────────────────────────────────────────────
 import { create } from 'zustand';
 import type { Mod } from './modulation';
+import { GLFX0, type GlFx } from './gl/renderer';
 import type { Curve, Deck, FxBus, FxName, Item, Lane, Mark, MarkOwner, Pos } from './types';
 import { clean, POS0 } from './types';
 
@@ -44,6 +45,10 @@ export type Session = {
   // tempo e modulação
   mods: Mod[]; bpmManual: number; audioOn: boolean;
 
+  // configurações
+  engine: 'dom' | 'gl'; glfx: Record<Deck, GlFx>;
+  monQuality: string; poolSize: number;
+
   // ui
   searchOpen: boolean; mirror: boolean; outLive: boolean;
 
@@ -77,6 +82,11 @@ export const useSession = create<Session>((set, get) => ({
 
   mods: LS('vj.mods', [] as Mod[]), bpmManual: 0, audioOn: false,
 
+  engine: LS<'dom' | 'gl'>('vj.engine', 'dom'),
+  glfx: LS('vj.glfx', { A: { ...GLFX0 }, B: { ...GLFX0 } }),
+  monQuality: localStorage.getItem('vj.monq') || 'small',
+  poolSize: LS('vj.poolSize', 4),
+
   searchOpen: LS('vj.search', true), mirror: false, outLive: false,
 
   set: (k, v) => set({ [k]: v } as any),
@@ -103,5 +113,9 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.cc', JSON.stringify(s.cc));
     localStorage.setItem('vj.search', JSON.stringify(s.searchOpen));
     localStorage.setItem('vj.mods', JSON.stringify(s.mods));
+    localStorage.setItem('vj.engine', JSON.stringify(s.engine));
+    localStorage.setItem('vj.glfx', JSON.stringify(s.glfx));
+    localStorage.setItem('vj.monq', s.monQuality);
+    localStorage.setItem('vj.poolSize', JSON.stringify(s.poolSize));
   }
 }));

@@ -19,12 +19,14 @@ import Mixer from './components/Mixer';
 import Footer from './components/Footer';
 import SearchStrip from './components/SearchStrip';
 import ModPanel from './components/ModPanel';
+import Settings from './components/Settings';
 import { startModulation, stopModulation } from '../../modulation';
 import './controller.css';
 
 export default function ControllerApp() {
   const s = useSession();
   const [msg, setMsg] = useState<string | null>(null);
+  const [cfg, setCfg] = useState(false);
   useKeyboard();
   useSync();
 
@@ -71,6 +73,8 @@ export default function ControllerApp() {
     });
     out.xf(v.xf);
     (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
+    out.engine(v.engine);
+    (['A', 'B'] as const).forEach(d => out.glfx(d, v.glfx[d] as unknown as Record<string, number>));
     out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
     out.sampZoom(+(v.sampZoom / 100).toFixed(3));
     out.sampVol(v.sampAudio ? v.sampVol : 0);
@@ -104,6 +108,7 @@ export default function ControllerApp() {
             onClick={() => setPattern(k)}>{t}</button>
         ))}
         <div className="fsep" />
+        <button onClick={() => setCfg(true)}>config</button>
         <button onClick={exportSession} title="salvar sessão em arquivo">salvar sessão</button>
         <button onClick={() => importSession(pushAll)}>abrir sessão</button>
         <div style={{ flex: 1 }} />
@@ -120,6 +125,7 @@ export default function ControllerApp() {
       </div>
 
       <Footer />
+      {cfg && <Settings onClose={() => setCfg(false)} />}
       {msg && <div id="flash">{msg}</div>}
     </>
   );

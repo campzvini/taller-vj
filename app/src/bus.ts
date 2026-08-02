@@ -27,6 +27,8 @@ export type Cmd =
       crop: [number, number, number, number] }   // top right bottom left, em %
   | { c: 'blackout'; on: boolean }
   | { c: 'pattern'; name: string | null }
+  | { c: 'engine'; mode: 'dom' | 'gl' }                       // motor escolhido pelo operador
+  | { c: 'glfx'; deck: Deck; fx: Record<string, number> }     // shaders, só onde há pixels
   | { c: 'loop'; on: boolean }
   | { c: 'cc'; on: boolean }
   | { c: 'sampLoad'; i: number; id: string; tin: number }

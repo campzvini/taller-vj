@@ -50,6 +50,8 @@ export const out = {
                          crop: [number, number, number, number] }) =>
     send({ c: 'pos', deck, ...p }),
   blackout: (on: boolean) => send({ c: 'blackout', on }),
+  engine: (mode: 'dom' | 'gl') => send({ c: 'engine', mode }),
+  glfx: (deck: Deck, fx: Record<string, number>) => send({ c: 'glfx', deck, fx }),
   pattern: (name: string | null) => send({ c: 'pattern', name }),
   loop: (on: boolean) => send({ c: 'loop', on }),
   cc: (on: boolean) => send({ c: 'cc', on }),

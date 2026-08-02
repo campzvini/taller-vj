@@ -7,6 +7,7 @@
 import { useEffect, useRef } from 'react';
 import { makeBus, type Cmd, type Deck, type FxBus, type Msg } from '../../bus';
 import { usePlayer, ccOff, errText } from '../../hooks/usePlayer';
+import { GlLayer } from '../../gl/renderer';
 import './output.css';
 
 const NSAMP = 4;
@@ -42,10 +43,35 @@ export default function OutputApp() {
     // sendo o padrão — arquivo é opção, e as duas convivem sem se atrapalhar.
     const kind: Record<Deck, 'yt' | 'file'> = { A: 'yt', B: 'yt' };
     const isFile = (d: Deck) => kind[d] === 'file';
+
+    // Motor híbrido: o shader só alcança fontes com pixels. Com o YouTube no deck,
+    // aquela camada continua em DOM/CSS — não é escolha, é limite do iframe.
+    let engine: 'dom' | 'gl' = 'dom';
+    const gl: Partial<Record<Deck, GlLayer>> = {};
+    const glAtivo = (d: Deck) => engine === 'gl' && isFile(d) && !!gl[d]?.ok;
+
+    const montaGl = (d: Deck) => {
+      if (gl[d]) return gl[d]!;
+      try {
+        const c = el('gl' + d) as HTMLCanvasElement;
+        const layer = new GlLayer(c);
+        layer.attach(vid(d));
+        layer.start();
+        gl[d] = layer;
+        return layer;
+      } catch { return null; }
+    };
+    const pintaEngine = (d: Deck) => {
+      const usaGl = glAtivo(d);
+      el('gl' + d).style.display = usaGl ? '' : 'none';
+      vid(d).style.display = isFile(d) && !usaGl ? '' : 'none';
+      el('ytwrap' + d).style.display = kind[d] === 'yt' ? '' : 'none';
+    };
+
     const setKind = (d: Deck, k: 'yt' | 'file') => {
       kind[d] = k;
-      el('ytwrap' + d).style.display = k === 'yt' ? '' : 'none';
-      vid(d).style.display = k === 'file' ? '' : 'none';
+      if (k === 'file' && engine === 'gl') montaGl(d);
+      pintaEngine(d);
       if (k === 'file') { try { yt(d)?.pauseVideo(); } catch { /* ignore */ } }
       else { try { vid(d).pause(); } catch { /* ignore */ } }
     };
@@ -146,6 +172,20 @@ export default function OutputApp() {
           break;
         }
         case 'blackout': el('black').classList.toggle('on', m.on); break;
+        case 'engine':
+          engine = m.mode;
+          (['A', 'B'] as Deck[]).forEach(d => {
+            if (engine === 'gl' && isFile(d)) montaGl(d);
+            else if (engine === 'dom') { gl[d]?.stop(); }
+            if (engine === 'gl' && gl[d]) gl[d]!.start();
+            pintaEngine(d);
+          });
+          break;
+        case 'glfx': {
+          const layer = gl[m.deck];
+          if (layer) Object.assign(layer.fx, m.fx);
+          break;
+        }
         case 'pattern': {
           const p = el('pattern');
           p.classList.toggle('on', !!m.name);
@@ -232,6 +272,7 @@ export default function OutputApp() {
       load: (d: Deck, id: string) => run({ c: 'load', deck: d, id }),
       loadFile: (d: Deck, src: string) => run({ c: 'load', deck: d, id: src, kind: 'file', src }),
       kind: (d: Deck) => kind[d],
+      glInfo: (d: Deck) => gl[d] ? { frames: gl[d]!.frames, brilho: gl[d]!.brilho, ok: gl[d]!.ok } : null,
       state: (d: Deck) => T.state(d),
       time: (d: Deck) => T.time(d),
       seek: (d: Deck, t: number) => T.seek(d, t),
@@ -253,12 +294,14 @@ export default function OutputApp() {
             <div className="bus" id="hueA"><div className="bus" id="baseA"><div className="bus" id="animA">
               <div className="srcwrap" id="ytwrapA"><div id="ytAout" /></div>
               <video className="srcvid" id="vidAout" playsInline style={{ display: 'none' }} />
+              <canvas className="srcvid" id="glA" style={{ display: 'none' }} />
             </div></div></div>
           </div>
           <div className="layer" id="pgB">
             <div className="bus" id="hueB"><div className="bus" id="baseB"><div className="bus" id="animB">
               <div className="srcwrap" id="ytwrapB"><div id="ytBout" /></div>
               <video className="srcvid" id="vidBout" playsInline style={{ display: 'none' }} />
+              <canvas className="srcvid" id="glB" style={{ display: 'none' }} />
             </div></div></div>
           </div>
           <div className="layer" id="pgS">

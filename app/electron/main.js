@@ -371,6 +371,22 @@ async function selftest() {
                  fontes: document.querySelectorAll('.modrow select').length };
       })()`);
 
+    // 7g) motor híbrido: WebGL assume a camada quando a fonte tem pixels
+    result.engine = await output.webContents.executeJavaScript(`
+      (async () => {
+        const b = new BroadcastChannel('vj');
+        b.postMessage({ c: 'engine', mode: 'gl' });
+        await new Promise(r => setTimeout(r, 1200));
+        const c = document.getElementById('glA');
+        b.postMessage({ c: 'glfx', deck: 'A', fx: { kaleido: 0.6, rgb: 0.4 } });
+        await new Promise(r => setTimeout(r, 1200));
+        const info = VJ.glInfo('A');
+        return { canvasVisivel: c.style.display !== 'none',
+                 tamanho: c.width + 'x' + c.height,
+                 frames: info?.frames || 0, brilho: Math.round(info?.brilho || 0),
+                 videoOculto: document.getElementById('vidAout').style.display === 'none' };
+      })()`);
+
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();
