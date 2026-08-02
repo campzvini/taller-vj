@@ -10,7 +10,7 @@ import { usePlayer, ccOff, errText } from '../../hooks/usePlayer';
 import { GlLayer } from '../../gl/renderer';
 import './output.css';
 
-const NSAMP = 4;
+const NSAMP = 8;   // teto; o controlador usa os N primeiros conforme a configuração
 const SRC = 16 / 9;
 
 export default function OutputApp() {
@@ -28,12 +28,16 @@ export default function OutputApp() {
   const s1 = usePlayer('ytS1', { muted: true, quality: 'small' });
   const s2 = usePlayer('ytS2', { muted: true, quality: 'small' });
   const s3 = usePlayer('ytS3', { muted: true, quality: 'small' });
+  const s4 = usePlayer('ytS4', { muted: true, quality: 'small' });
+  const s5 = usePlayer('ytS5', { muted: true, quality: 'small' });
+  const s6 = usePlayer('ytS6', { muted: true, quality: 'small' });
+  const s7 = usePlayer('ytS7', { muted: true, quality: 'small' });
 
   const st = useRef({ xf: 0, opA: 1, opB: 1, hasA: false, hasB: false, svol: 0, loop: true, cc: false });
   const hint = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const samp = [s0, s1, s2, s3];
+    const samp = [s0, s1, s2, s3, s4, s5, s6, s7];
     const yt = (d: Deck) => (d === 'A' ? pA : pB).current;
     const el = (id: string) => document.getElementById(id)!;
     const vid = (d: Deck) => el('vid' + d + 'out') as HTMLVideoElement;
@@ -305,10 +309,9 @@ export default function OutputApp() {
             </div></div></div>
           </div>
           <div className="layer" id="pgS">
-            <div className="samp" id="s0"><div id="ytS0" /></div>
-            <div className="samp" id="s1"><div id="ytS1" /></div>
-            <div className="samp" id="s2"><div id="ytS2" /></div>
-            <div className="samp" id="s3"><div id="ytS3" /></div>
+            {Array.from({ length: NSAMP }, (_, i) => (
+              <div className="samp" id={'s' + i} key={i}><div id={'ytS' + i} /></div>
+            ))}
           </div>
         </div></div></div>
         <div id="pattern" />

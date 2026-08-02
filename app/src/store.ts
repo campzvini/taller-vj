@@ -43,7 +43,7 @@ export type Session = {
   held: Record<number, boolean>;
 
   // tempo e modulação
-  mods: Mod[]; bpmManual: number; audioOn: boolean;
+  mods: Mod[]; bpmManual: number; audioOn: boolean; audioFonte: string;
 
   // configurações
   engine: 'dom' | 'gl'; glfx: Record<Deck, GlFx>;
@@ -78,9 +78,10 @@ export const useSession = create<Session>((set, get) => ({
   amode: 'follow', vol: { A: 100, B: 100, C: 80, P: 0 },
   sampAudio: false, sampVol: 70, sampBlend: 'screen', sampFade: 90, sampZoom: 100,
 
-  pool: [null, null, null, null], poolOf: {}, poolNext: 0, held: {},
+  pool: Array(8).fill(null), poolOf: {}, poolNext: 0, held: {},
 
   mods: LS('vj.mods', [] as Mod[]), bpmManual: 0, audioOn: false,
+  audioFonte: localStorage.getItem('vj.audioFonte') || 'system',
 
   engine: LS<'dom' | 'gl'>('vj.engine', 'dom'),
   glfx: LS('vj.glfx', { A: { ...GLFX0 }, B: { ...GLFX0 } }),
@@ -113,6 +114,7 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.cc', JSON.stringify(s.cc));
     localStorage.setItem('vj.search', JSON.stringify(s.searchOpen));
     localStorage.setItem('vj.mods', JSON.stringify(s.mods));
+    localStorage.setItem('vj.audioFonte', s.audioFonte);
     localStorage.setItem('vj.engine', JSON.stringify(s.engine));
     localStorage.setItem('vj.glfx', JSON.stringify(s.glfx));
     localStorage.setItem('vj.monq', s.monQuality);

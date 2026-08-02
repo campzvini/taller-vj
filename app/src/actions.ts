@@ -117,7 +117,9 @@ export function poolAssign(n: number) {
   const s = S(), it = s.slots[n];
   if (!it || !outLive()) return;
   if (s.poolOf[n] != null) { out.sampLoad(s.poolOf[n], it.id, it.in ?? 0); return; }
-  const i = s.poolNext % s.pool.length;
+  // o tamanho do pool é configurável; a saída tem 8 players, usamos os N primeiros
+  const tam = Math.max(1, Math.min(8, s.poolSize || 4));
+  const i = s.poolNext % tam;
   const old = s.pool[i];
   const poolOf = { ...s.poolOf };
   if (old != null) delete poolOf[old];

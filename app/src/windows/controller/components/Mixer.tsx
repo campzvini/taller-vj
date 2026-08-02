@@ -6,6 +6,7 @@
 // ────────────────────────────────────────────
 import { useRef } from 'react';
 import { useSession } from '../../../store';
+import { useLive } from '../../../live';
 import { out } from '../../../out';
 import { applyXf, autofade, setAmt, toggleFx } from '../../../actions';
 import { FX_NAMES, type Curve, type FxName } from '../../../types';
@@ -16,17 +17,23 @@ const SBLENDS = ['screen', 'normal', 'difference', 'multiply', 'exclusion', 'lig
 
 export default function Mixer() {
   const s = useSession();
+  const liveXf = useLive(l => l.val.xf);
   const secs = useRef<HTMLInputElement>(null);
   const fade = () => autofade(parseFloat(secs.current?.value || '4') || 4);
 
-  const label = s.xf === 0 ? 'A' : s.xf === 100 ? 'B' : `A ${100 - s.xf} · ${s.xf} B`;
+  const xfMostrado = Math.round(liveXf ?? s.xf);
+  const label = xfMostrado === 0 ? 'A' : xfMostrado === 100 ? 'B'
+    : `A ${100 - xfMostrado} · ${xfMostrado} B`;
 
   return (
     <>
       <div id="xfbox">
         <div className="row"><span className="tag">crossfader</span><span className="tag">{label}</span></div>
+        {/* quando há modulação, o ponteiro mostra o valor efetivo: o som virou o VJ */}
         <div className="row"><b>A</b>
-          <input type="range" id="xf" min={0} max={100} value={s.xf}
+          <input type="range" id="xf" min={0} max={100}
+            className={liveXf != null ? 'modulado' : ''}
+            value={Math.round(liveXf ?? s.xf)}
             onChange={e => applyXf(+e.target.value)} /><b>B</b></div>
         <div className="row">
           <span className="tag">suav</span>

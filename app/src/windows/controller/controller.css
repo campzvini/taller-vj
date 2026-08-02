@@ -152,6 +152,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 
 /* ── § 8 — Tempo e modulação ── */
 .midcol{overflow-y:auto}
+/* controle sob modulação: o ponteiro anda sozinho e precisa se anunciar */
+input[type=range].modulado{background:#1d2a3a;box-shadow:inset 0 0 0 1px var(--accb)}
+input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .meters{display:flex;gap:4px;align-items:center}
 .meter{flex:1;height:6px;background:#22222b;border-radius:3px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--ok);transition:width 80ms linear}

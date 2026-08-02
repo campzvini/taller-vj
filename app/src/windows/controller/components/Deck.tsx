@@ -6,6 +6,8 @@
 // ────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { useSession } from '../../../store';
+import { useLive } from '../../../live';
+import type { Dest } from '../../../modulation';
 import { usePlayer } from '../../../hooks/usePlayer';
 import { L, M } from '../../../players';
 import {
@@ -20,10 +22,13 @@ const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL
 
 export default function Deck({ side }: { side: D }) {
   const s = useSession();
+  const liveOp = useLive(l => l.val[('op' + side) as Dest]);
+  const liveZoom = useLive(l => l.val[('zoom' + side) as Dest]);
   const [over, setOver] = useState(false);
   // monitor com controles nativos: serve de scrub e vira fonte quando não há saída
   const p = usePlayer('yt' + side + 'mon', {
-    controls: true, muted: true, quality: 'small',
+    controls: true, muted: true,
+    quality: (useSession.getState().monQuality || 'small') as YT.SuggestedVideoQuality,
     // sem saída aberta o monitor é a fonte, então o loop também acontece aqui
     onState: state => {
       if (state !== 0) return;
@@ -67,14 +72,18 @@ export default function Deck({ side }: { side: D }) {
 
       <div className="card">
         <div className="row"><span className="tag w34">opac</span>
-          <input type="range" min={0} max={100} value={s.op[side]}
+          <input type="range" min={0} max={100}
+            className={liveOp != null ? 'modulado' : ''}
+            value={Math.round(liveOp ?? s.op[side])}
             onChange={e => applyOpacity(side, +e.target.value)} />
-          <span className="val">{s.op[side]}</span></div>
+          <span className="val">{Math.round(liveOp ?? s.op[side])}</span></div>
 
         <div className="row"><span className="tag w34">zoom</span>
-          <input type="range" min={100} max={220} value={s.zoom[side]}
+          <input type="range" min={100} max={220}
+            className={liveZoom != null ? 'modulado' : ''}
+            value={Math.round(liveZoom ?? s.zoom[side])}
             onChange={e => applyZoom(side, +e.target.value)} />
-          <span className="val">{s.zoom[side]}</span></div>
+          <span className="val">{Math.round(liveZoom ?? s.zoom[side])}</span></div>
 
         <div className="row"><span className="tag w34">vol</span>
           <input type="range" min={0} max={100} value={s.vol[side]}

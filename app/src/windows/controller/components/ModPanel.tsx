@@ -6,25 +6,36 @@
 // ────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { useSession } from '../../../store';
-import { audio, startAudio, stopAudio, tap } from '../../../audio';
+import { audio, listarFontes, startAudio, stopAudio, tap, type Fonte } from '../../../audio';
 import { DEST_LABEL, SRC_LABEL, novoMod, type Dest, type Src } from '../../../modulation';
 import { flashMsg } from '../../../actions';
 
 export default function ModPanel() {
   const s = useSession();
   const [, forca] = useState(0);
+  const [fontes, setFontes] = useState<Fonte[]>([]);
 
   // medidores e BPM detectado vivem fora do React; puxamos num ritmo suave
   useEffect(() => {
     const t = setInterval(() => forca(x => x + 1), 120);
+    listarFontes().then(setFontes);
     return () => clearInterval(t);
   }, []);
 
   const ligarAudio = async () => {
     if (s.audioOn) { await stopAudio(); s.set('audioOn', false); return; }
-    const ok = await startAudio(false);
+    const ok = await startAudio(s.audioFonte);
     s.set('audioOn', ok);
-    if (!ok) flashMsg('sem áudio do sistema: ' + (audio.erro || 'não disponível'));
+    if (!ok) flashMsg('sem áudio: ' + (audio.erro || 'fonte indisponível'));
+  };
+
+  const trocarFonte = async (id: string) => {
+    s.set('audioFonte', id); s.save();
+    if (s.audioOn) {
+      const ok = await startAudio(id);
+      s.set('audioOn', ok);
+      if (!ok) flashMsg('sem áudio: ' + (audio.erro || 'fonte indisponível'));
+    }
   };
 
   const bpm = s.bpmManual || audio.bpm;
@@ -33,9 +44,13 @@ export default function ModPanel() {
   return (
     <div className="card">
       <div className="row">
-        <span className="tag">tempo</span>
-        <button className={'tgl' + (s.audioOn ? ' on' : '')} onClick={ligarAudio}
-          title="analisa o som que sai da placa — vale para qualquer fonte">ouvir sistema</button>
+        <span className="tag">som</span>
+        <select value={s.audioFonte} onChange={e => trocarFonte(e.target.value)}
+          style={{ maxWidth: 168 }} title="de onde vem o áudio analisado">
+          {fontes.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+        </select>
+        <button className={'tgl' + (s.audioOn ? ' on' : '')} onClick={ligarAudio}>
+          {s.audioOn ? 'ouvindo' : 'ouvir'}</button>
         <button onClick={() => { const v = tap(); s.set('bpmManual', v); }}>tap</button>
         <span className="val">{bpm ? bpm + ' bpm' : '—'}</span>
         {!!s.bpmManual && <button className="mk" onClick={() => s.set('bpmManual', 0)}>auto</button>}

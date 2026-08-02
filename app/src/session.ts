@@ -63,7 +63,7 @@ export function restore(f: SessionFile) {
   }
   if (f.audio) { s.set('amode', f.audio.amode ?? 'follow'); s.set('vol', f.audio.vol as any); }
   // pool é volátil: os samples serão recarregados sob demanda
-  s.set('pool', [null, null, null, null]); s.set('poolOf', {}); s.set('held', {});
+  s.set('pool', Array(8).fill(null)); s.set('poolOf', {}); s.set('held', {});
   s.save();
   return true;
 }

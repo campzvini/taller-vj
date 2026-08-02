@@ -31,11 +31,29 @@ const hist: number[] = [];
 const beats: number[] = [];
 let lastBeat = 0;
 
-export async function startAudio(mic = false): Promise<boolean> {
+export type Fonte = { id: string; label: string };
+
+/** Dispositivos de entrada + o loopback do sistema, que não aparece na lista. */
+export async function listarFontes(): Promise<Fonte[]> {
+  const base: Fonte[] = [{ id: 'system', label: 'som do sistema (o que sai da placa)' }];
+  try {
+    // sem permissão os rótulos vêm vazios; pedimos uma vez para poder nomear
+    await navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(s => s.getTracks().forEach(t => t.stop())).catch(() => { });
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    devs.filter(d => d.kind === 'audioinput').forEach((d, i) =>
+      base.push({ id: d.deviceId, label: d.label || `entrada ${i + 1}` }));
+  } catch { /* fica só o sistema */ }
+  return base;
+}
+
+export async function startAudio(fonte: string = 'system'): Promise<boolean> {
   await stopAudio();
   try {
-    if (mic) {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (fonte !== 'system') {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: { exact: fonte } }
+      });
     } else {
       // loopback do sistema: no Windows o Chromium entrega o áudio junto da tela
       stream = await navigator.mediaDevices.getUserMedia({

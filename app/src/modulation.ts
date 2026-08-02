@@ -7,6 +7,7 @@
 import { audio } from './audio';
 import { out } from './out';
 import { useSession } from './store';
+import { useLive } from './live';
 import type { Deck } from './types';
 
 /**
@@ -44,6 +45,7 @@ export const novoMod = (): Mod => ({
 let raf = 0;
 let ultimoEnvio: Record<string, number> = {};
 let decayBeat = 0;
+let ultimaUI = 0;
 
 const onda = (shape: Src, fase: number) => {
   switch (shape) {
@@ -74,7 +76,10 @@ export function startModulation() {
     raf = requestAnimationFrame(passo);
     const s = useSession.getState();
     const mods = s.mods.filter(m => m.on);
-    if (!mods.length) return;
+    if (!mods.length) {
+      if (Object.keys(useLive.getState().val).length) useLive.getState().limpar();
+      return;
+    }
 
     const t = performance.now();
     const alvo: Partial<Record<Dest, number>> = {};
@@ -89,18 +94,44 @@ export function startModulation() {
     };
     const lim = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 
+    // valores efetivos, para a interface mostrar o controle andando sozinho
+    const efetivo: Partial<Record<Dest, number>> = {};
+    const ativos: Partial<Record<Dest, boolean>> = {};
+    for (const m of mods) ativos[m.dest] = true;
+
     (['A', 'B'] as Deck[]).forEach(d => {
       const op = alvo[('op' + d) as Dest];
-      if (op != null) envia('op' + d, lim(s.op[d] + op, 0, 100), v => out.opacity(d, v / 100));
+      if (op != null) {
+        const v = lim(s.op[d] + op, 0, 100);
+        efetivo[('op' + d) as Dest] = v;
+        envia('op' + d, v, x => out.opacity(d, x / 100));
+      }
       const zm = alvo[('zoom' + d) as Dest];
-      if (zm != null) envia('zoom' + d, lim(s.zoom[d] + zm, 100, 300), v => out.zoomCh(d, +(v / 100).toFixed(3)));
+      if (zm != null) {
+        const v = lim(s.zoom[d] + zm, 100, 300);
+        efetivo[('zoom' + d) as Dest] = v;
+        envia('zoom' + d, v, x => out.zoomCh(d, +(x / 100).toFixed(3)));
+      }
       const px = alvo[('panx' + d) as Dest];
-      if (px != null) envia('panx' + d, lim(s.pos[d].pan[0] + px, -50, 50),
-        v => out.pos(d, { ...s.pos[d], pan: [v, s.pos[d].pan[1]] }));
+      if (px != null) {
+        const v = lim(s.pos[d].pan[0] + px, -50, 50);
+        efetivo[('panx' + d) as Dest] = v;
+        envia('panx' + d, v, x => out.pos(d, { ...s.pos[d], pan: [x, s.pos[d].pan[1]] }));
+      }
     });
-    if (alvo.xf != null) envia('xf', lim(s.xf + alvo.xf, 0, 100), v => out.xf(v));
-    if (alvo.amtM != null) envia('amtM', lim(s.amt.M * 100 + alvo.amtM, 0, 100),
-      v => out.fxBus('M', [...s.fx.M], v / 100));
+    if (alvo.xf != null) {
+      const v = lim(s.xf + alvo.xf, 0, 100);
+      efetivo.xf = v;
+      envia('xf', v, x => out.xf(x));
+    }
+    if (alvo.amtM != null) {
+      const v = lim(s.amt.M * 100 + alvo.amtM, 0, 100);
+      efetivo.amtM = v;
+      envia('amtM', v, x => out.fxBus('M', [...s.fx.M], x / 100));
+    }
+
+    // a interface acompanha a 30fps: suficiente para o olho, barato para o React
+    if (t - ultimaUI > 33) { ultimaUI = t; useLive.getState().push(efetivo, ativos); }
   };
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(passo);
@@ -109,4 +140,5 @@ export function startModulation() {
 export function stopModulation() {
   cancelAnimationFrame(raf);
   ultimoEnvio = {};
+  useLive.getState().limpar();
 }
