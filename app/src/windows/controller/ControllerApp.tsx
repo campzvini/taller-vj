@@ -112,6 +112,7 @@ export default function ControllerApp() {
         <div className="fsep" />
         <RecPanel />
         <div className="fsep" />
+        {/* o painel de gravação é fixo na tela; a barra recorta o que fica dentro dela */}
         <button onClick={() => setCfg(true)}>config</button>
         <button onClick={exportSession} title="salvar sessão em arquivo">salvar sessão</button>
         <button onClick={() => importSession(pushAll)}>abrir sessão</button>

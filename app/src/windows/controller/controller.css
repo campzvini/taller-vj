@@ -181,7 +181,13 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .tgl.rec{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;
   animation:pulsa 1.4s ease-in-out infinite}
 @keyframes pulsa{50%{opacity:.55}}
-.recpanel{width:288px;left:auto;right:0;bottom:auto;top:26px}
+/* fixo na tela: a barra tem overflow:hidden e recortaria o painel */
+.recpanel{position:fixed;width:294px;max-height:calc(100vh - 60px);overflow-y:auto;z-index:90;
+  background:#14141b;border:1px solid var(--accb);border-radius:4px;padding:8px;
+  display:flex;flex-direction:column;gap:5px;box-shadow:0 8px 24px #000c}
+.recpanel select{width:100%}
+.opt{display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer}
+.opt input{width:12px;height:12px;accent-color:var(--accb)}
 .caminho{word-break:break-all;color:var(--txt);background:#0d0d13;border:1px solid var(--line);
   border-radius:3px;padding:3px 5px;width:100%}
 

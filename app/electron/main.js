@@ -167,11 +167,12 @@ ipcMain.handle('vj:pickDir', async (_e, atual) => {
   return canceled || !filePaths?.length ? null : filePaths[0];
 });
 
-ipcMain.handle('vj:saveRec', async (_e, bytes, ext, dir) => {
+ipcMain.handle('vj:saveRec', async (_e, bytes, ext, dir, rotulo) => {
   const destino = dir || recDirPadrao();
   await fs.promises.mkdir(destino, { recursive: true });
   const carimbo = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const alvo = path.join(destino, `taller-vj-${carimbo}.${ext || 'webm'}`);
+  const sufixo = rotulo ? '-' + String(rotulo).replace(/[^\w-]/g, '') : '';
+  const alvo = path.join(destino, `taller-vj-${carimbo}${sufixo}.${ext || 'webm'}`);
   await fs.promises.writeFile(alvo, Buffer.from(bytes));
   return alvo;
 });
@@ -484,38 +485,58 @@ async function selftest() {
     result.cenaOut = await output.webContents.executeJavaScript(
       `getComputedStyle(document.getElementById('pgB')).opacity`);
 
-    // 7j) fase 5: gravar a janela de verdade e ver o arquivo aparecer no disco
+    // 7j) fase 5: o menu de gravação abre, oferece as três capturas, e gravar as
+    //     DUAS janelas pela interface produz dois arquivos no destino escolhido
+    const recDir = path.join(os.tmpdir(), 'taller-vj-selftest-rec');
+    fs.rmSync(recDir, { recursive: true, force: true });
+    result.recMenu = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const seta = [...document.querySelectorAll('#bar button')].find(b => b.textContent === '▾');
+        if (!seta) return { erro: 'sem botão de opções' };
+        seta.click();
+        await new Promise(r => setTimeout(r, 1200));
+        const p = document.querySelector('.recpanel');
+        if (!p) return { erro: 'menu não abriu' };
+        const cx = p.getBoundingClientRect();
+        // escolher "os dois" e apontar o destino sem passar por diálogo
+        const opts = [...p.querySelectorAll('.opt input')];
+        opts[2].click();
+        await new Promise(r => setTimeout(r, 200));
+        return {
+          abriu: true,
+          visivel: cx.height > 0 && cx.bottom <= innerHeight + 1 && cx.right <= innerWidth + 1,
+          opcoes: opts.length,
+          janelas: p.querySelectorAll('select').length,
+          temPasta: !!p.querySelector('.caminho')?.textContent
+        };
+      })()`);
+    // a pasta vem de diálogo nativo; no teste escrevemos direto no estado salvo
+    await controller.webContents.executeJavaScript(`
+      localStorage.setItem('vj.recDir', ${JSON.stringify(recDir)});
+      location.reload();`);
+    await wait(4000);
     result.gravacao = await controller.webContents.executeJavaScript(`
       (async () => {
-        try {
-          const fontes = await window.vj.sources();
-          const alvo = fontes.find(f => /taller.*(output|saída)/i.test(f.name)) || fontes[0];
-          if (!alvo) return { erro: 'sem fontes' };
-          const st = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: alvo.id,
-                                  maxWidth: 640, maxHeight: 360, maxFrameRate: 15 } }
-          });
-          const pedaços = [];
-          const mr = new MediaRecorder(st, { mimeType: 'video/webm' });
-          mr.ondataavailable = e => { if (e.data.size) pedaços.push(e.data); };
-          mr.start(500);
-          await new Promise(r => setTimeout(r, 2000));
-          await new Promise(r => { mr.onstop = r; mr.stop(); });
-          st.getTracks().forEach(t => t.stop());
-          const blob = new Blob(pedaços, { type: 'video/webm' });
-          // pasta escolhida pelo operador tem de valer; sem ela, cai no padrão
-          const padrao = await window.vj.recDir();
-          const p = await window.vj.saveRec(new Uint8Array(await blob.arrayBuffer()), 'webm',
-            ${JSON.stringify(path.join(os.tmpdir(), 'taller-vj-selftest-rec'))});
-          return { alvo: alvo.name, bytes: blob.size, path: p, padrao };
-        } catch (e) { return { erro: String(e.message || e) }; }
+        const botao = () => [...document.querySelectorAll('#bar button')]
+          .find(b => b.textContent.includes('gravar') || b.textContent.startsWith('●'));
+        const seta = [...document.querySelectorAll('#bar button')].find(b => b.textContent === '▾');
+        seta.click();
+        await new Promise(r => setTimeout(r, 1200));
+        const p = document.querySelector('.recpanel');
+        [...p.querySelectorAll('.opt input')][2].click();   // os dois
+        await new Promise(r => setTimeout(r, 300));
+        document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        botao().click();
+        await new Promise(r => setTimeout(r, 3000));
+        const rotulo = botao().textContent;
+        botao().click();
+        await new Promise(r => setTimeout(r, 5000));
+        return { rotulo, parou: botao().textContent };
       })()`);
-    if (result.gravacao?.path) {
-      result.gravacao.existe = fs.existsSync(result.gravacao.path);
-      result.gravacao.tamanho = result.gravacao.existe ? fs.statSync(result.gravacao.path).size : 0;
-      try { fs.unlinkSync(result.gravacao.path); } catch { /* deixa para o operador */ }
-    }
+    result.gravacao.arquivos = fs.existsSync(recDir)
+      ? fs.readdirSync(recDir).map(f => ({ f, kb: Math.round(fs.statSync(path.join(recDir, f)).size / 1024) }))
+      : [];
+    fs.rmSync(recDir, { recursive: true, force: true });
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
