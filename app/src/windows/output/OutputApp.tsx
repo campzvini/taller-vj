@@ -15,8 +15,10 @@ const SRC = 16 / 9;
 export default function OutputApp() {
   // Os players nascem uma vez e são comandados por método. Nada aqui depende de
   // estado do React: toda mudança visual é escrita direto no style dos nós.
-  const pA = usePlayer('ytAout');
-  const pB = usePlayer('ytBout');
+  // setLoop só repete playlist; vídeo avulso precisa ser rebobinado na mão no ENDED
+  const onEnd = useRef<(d: Deck, state: number) => void>(() => { });
+  const pA = usePlayer('ytAout', { onState: s => onEnd.current('A', s) });
+  const pB = usePlayer('ytBout', { onState: s => onEnd.current('B', s) });
   const s0 = usePlayer('ytS0', { muted: true, quality: 'small' });
   const s1 = usePlayer('ytS1', { muted: true, quality: 'small' });
   const s2 = usePlayer('ytS2', { muted: true, quality: 'small' });
@@ -124,6 +126,12 @@ export default function OutputApp() {
       }
     };
 
+    onEnd.current = (d, state) => {
+      if (state !== 0 || !st.current.loop) return;   // 0 = ENDED
+      const p = deck(d);
+      try { p?.seekTo(0, true); p?.playVideo(); } catch { /* ignore */ }
+    };
+
     const bus = makeBus();
     const off = bus.on((m: Msg) => { if ('c' in m) run(m); });
     bus.send({ t: 'up' });            // avisa o controlador que a saída nasceu
@@ -149,6 +157,8 @@ export default function OutputApp() {
       get ready() { return !!pA.current; },
       load: (d: Deck, id: string) => deck(d)?.loadVideoById(id),
       state: (d: Deck) => { try { return deck(d)?.getPlayerState() ?? -1; } catch { return -1; } },
+      time: (d: Deck) => { try { return deck(d)?.getCurrentTime() ?? 0; } catch { return 0; } },
+      seek: (d: Deck, t: number) => { try { deck(d)?.seekTo(t, true); } catch { /* ignore */ } },
       data: (d: Deck) => { try { return deck(d)?.getVideoData(); } catch { return null; } },
       xf: (v: number) => { st.current.xf = v; st.current.hasA = true; st.current.hasB = true; paint(); },
       opacity: (d: Deck, v: number) => run({ c: 'opacity', deck: d, v }),

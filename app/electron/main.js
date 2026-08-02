@@ -43,12 +43,26 @@ function serve() {
 }
 
 // ── § 2 — WINDOWS ──
+// O UA padrão do Electron carrega "Electron/x.y.z" e o nome do app; o YouTube
+// recusa embed para agentes que não parecem navegador, e o sintoma é justamente
+// parte dos vídeos não tocar. Aqui nos apresentamos como o Chrome que somos.
+function fixUserAgent() {
+  app.userAgentFallback =
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ` +
+    `Chrome/${process.versions.chrome} Safari/537.36`;
+}
+
 function makeController() {
   controller = new BrowserWindow({
     width: 1440, height: 900, backgroundColor: '#0a0a0c', title: 'Taller VJ',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
   });
   controller.loadURL(`${origin}/controller.html`);
+  // o controlador é a janela mestra: fechar ele encerra tudo que estiver aberto
+  controller.on('closed', () => {
+    if (output && !output.isDestroyed()) output.close();
+    if (!SELFTEST) app.quit();
+  });
   return controller;
 }
 
@@ -149,22 +163,56 @@ async function selftest() {
       opA: document.getElementById('pgA').style.opacity
     })`);
 
-    // 5) a janela de saída está mesmo em tela cheia / na tela certa?
+    // 5) o UA não pode denunciar Electron, senão parte dos vídeos recusa tocar
+    result.ua = await output.webContents.executeJavaScript(`navigator.userAgent`);
+    result.uaLimpo = !/Electron|taller/i.test(result.ua);
+
+    // 6) loop: joga para perto do fim e vê se rebobina sozinho
+    result.loop = await output.webContents.executeJavaScript(`
+      new Promise(res => {
+        VJ.load('A','jNQXAC9IVRw');
+        setTimeout(() => {
+          const p = document.querySelector('#ytAout');
+          VJ.seek && VJ.seek('A', 17.5);
+          setTimeout(() => res({ voltouPara: +VJ.time('A').toFixed(1), tocando: VJ.state('A') === 1 }), 7000);
+        }, 5000);
+      })`);
+
+    // 7) painel colapsável fecha ao clicar fora
+    result.clickFora = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const btn = [...document.querySelectorAll('#foot button')].find(b => b.textContent.includes('lista'));
+        btn.click();
+        await new Promise(r => setTimeout(r, 300));
+        const aberto = !!document.getElementById('bedlist');
+        document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 300));
+        return { aberto, fechouAoClicarFora: !document.getElementById('bedlist') };
+      })()`);
+
+    // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();
     result.iframes = await output.webContents.executeJavaScript(`document.querySelectorAll('iframe').length`);
+
+    // 9) fechar o controlador (master) leva a saída junto
+    controller.close();
+    await wait(700);
+    result.masterFecha = output.isDestroyed();
   } catch (e) {
     result.error = String(e);
   }
   console.log('SELFTEST ' + JSON.stringify(result));
-  app.quit();
+  app.exit(result.error ? 1 : 0);
 }
 
 // ── § 4 — BOOT ──
 app.whenReady().then(async () => {
+  fixUserAgent();
   await serve();
   makeController();
   makeOutput();
   if (SELFTEST) selftest();
 });
-app.on('window-all-closed', () => app.quit());
+// no selftest quem decide a hora de sair é a própria rotina, depois de imprimir
+app.on('window-all-closed', () => { if (!SELFTEST) app.quit(); });

@@ -4,9 +4,10 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
+import { useClickOutside } from '../../../hooks/useClickOutside';
 import { L } from '../../../players';
 import { applyAudio, dropInto, nextBed, panic, toggle } from '../../../actions';
 import Library from './Library';
@@ -21,7 +22,11 @@ export default function Footer() {
   const [over, setOver] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLDivElement>(null);
   const p = usePlayer('ytCout', { quality: 'small', onState: st => { if (st === 0) nextBed(); } });
+
+  const closeList = useCallback(() => setListOpen(false), []);
+  useClickOutside(listOpen, closeList, [list, btn]);
 
   useEffect(() => {
     const t = setInterval(() => { if (p.current) { L.bed = p.current; applyAudio(); clearInterval(t); } }, 200);
@@ -58,7 +63,7 @@ export default function Footer() {
 
       {listOpen && (
         // ancorada no botão, não no canto da tela
-        <div id="bedlist" style={{
+        <div id="bedlist" ref={list} style={{
           left: Math.max(6, Math.min(rect?.left ?? 6, Math.max(6, innerWidth - 286))),
           bottom: Math.max(6, innerHeight - (rect?.top ?? innerHeight) + 6)
         }}>

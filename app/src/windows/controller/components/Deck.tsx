@@ -20,7 +20,16 @@ export default function Deck({ side }: { side: D }) {
   const s = useSession();
   const [over, setOver] = useState(false);
   // monitor com controles nativos: serve de scrub e vira fonte quando não há saída
-  const p = usePlayer('yt' + side + 'mon', { controls: true, muted: true, quality: 'small' });
+  const p = usePlayer('yt' + side + 'mon', {
+    controls: true, muted: true, quality: 'small',
+    // sem saída aberta o monitor é a fonte, então o loop também acontece aqui
+    onState: state => {
+      if (state !== 0) return;
+      const st = useSession.getState();
+      if (!st.loop || st.outLive) return;
+      try { p.current?.seekTo(0, true); p.current?.playVideo(); } catch { /* ignore */ }
+    }
+  });
 
   useEffect(() => {
     const t = setInterval(() => {
