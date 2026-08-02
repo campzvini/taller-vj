@@ -2,6 +2,9 @@
 .agent-cache/
 *.log
 
+# planejamento de desenvolvimento: não reflete o app, não versiona
+docs/
+
 # os
 Thumbs.db
 desktop.ini
