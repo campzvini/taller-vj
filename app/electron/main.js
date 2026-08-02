@@ -9,8 +9,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', 'renderer');
+const ROOT = path.join(__dirname, '..', 'dist');
 const SELFTEST = process.argv.includes('--selftest');
+const DEV = process.argv.includes('--dev');
+const DEV_URL = 'http://localhost:5273';
 let server, origin, controller, output;
 
 // ── § 1 — LOCAL SERVER — YouTube embeds refuse file://, so we serve over http ──
@@ -18,6 +20,9 @@ const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
                '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png' };
 
 function serve() {
+  // em dev o Vite já serve por http (origem válida para o embed); em produção
+  // subimos o nosso, porque file:// faz o YouTube recusar
+  if (DEV) return Promise.resolve((origin = DEV_URL));
   return new Promise(resolve => {
     server = http.createServer((req, res) => {
       const rel = decodeURIComponent(req.url.split('?')[0]);
@@ -87,14 +92,36 @@ async function selftest() {
         }, 6000);
       })`);
 
-    // 2) BroadcastChannel atravessa as duas janelas?
-    await controller.webContents.executeJavaScript(`window.__bus.postMessage({cmd:'xf',v:73})`);
-    await wait(600);
-    result.bus = await output.webContents.executeJavaScript(`window.__lastXf`);
+    // 2) comandos reais atravessam as duas janelas e chegam a mexer na composição?
+    await controller.webContents.executeJavaScript(`
+      (() => { const b = new BroadcastChannel('vj');
+        b.postMessage({c:'present',deck:'A',v:true});
+        b.postMessage({c:'present',deck:'B',v:true});
+        b.postMessage({c:'xf',v:73});
+        b.postMessage({c:'bus',bus:'A',fx:['invert'],amt:0.6});
+        b.postMessage({c:'frame',ar:'4/3'});
+        return true; })()`);
+    await wait(800);
+    result.bus = await output.webContents.executeJavaScript(`({
+      opB: document.getElementById('pgB').style.opacity,
+      fxA: document.getElementById('baseA').style.filter,
+      ar: getComputedStyle(document.documentElement).getPropertyValue('--ar').trim(),
+      covw: getComputedStyle(document.documentElement).getPropertyValue('--covw').trim()
+    })`);
 
-    // 3) a janela de saída está mesmo em tela cheia / na tela certa?
+    // 3) a telemetria da saída volta para o controlador?
+    result.tele = await controller.webContents.executeJavaScript(`
+      new Promise(res => { const b = new BroadcastChannel('vj');
+        const to = setTimeout(() => res(null), 3000);
+        b.onmessage = e => { if (e.data && e.data.t === 'tele') {
+          clearTimeout(to); res({ ready: e.data.ready, stateA: e.data.decks.A.state,
+                                  timeA: +e.data.decks.A.time.toFixed(1), samples: e.data.samp.length }); } };
+      })`);
+
+    // 4) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();
+    result.iframes = await output.webContents.executeJavaScript(`document.querySelectorAll('iframe').length`);
   } catch (e) {
     result.error = String(e);
   }

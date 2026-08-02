@@ -1,0 +1,25 @@
+/* ────────────────────────────────────────────
+   TALLER VJ APP 0.2 — controller.css
+   § - Controller window styling · CSS
+   Taller Dev 2026
+   VAI CORINTHIANS!
+   ──────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0c;color:#d8d8e0;font:12px/1.4 "Segoe UI",system-ui,sans-serif}
+.wrap{padding:16px;display:flex;flex-direction:column;gap:12px;max-width:640px}
+h1{font-size:11px;letter-spacing:.18em;color:#7a7a88}
+.card{background:#16161d;border:1px solid #26262e;border-radius:5px;padding:12px;
+  display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:6px;align-items:center}
+.tag{font-size:9px;color:#7a7a88;letter-spacing:.08em;text-transform:uppercase;width:52px}
+.val{font-size:10px;color:#7a7a88;min-width:26px;text-align:right}
+input,button{background:#1c1c23;color:#d8d8e0;border:1px solid #26262e;padding:5px 8px;
+  font:inherit;border-radius:3px}
+button{cursor:pointer}
+button:hover{background:#282833}
+button.on{background:#ff3b3b;border-color:#ff3b3b;color:#fff}
+input[type=range]{-webkit-appearance:none;background:#22222b;height:6px;padding:0;flex:1}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:20px;
+  background:#d8d8e0;border-radius:2px;cursor:pointer}
+pre{background:#0f0f14;border:1px solid #26262e;border-radius:4px;padding:8px;
+  font-size:11px;color:#7a7a88;white-space:pre-wrap}

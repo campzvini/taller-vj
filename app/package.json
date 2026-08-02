@@ -1,16 +1,31 @@
 {
   "name": "taller-vj-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Taller VJ — standalone desktop shell",
   "author": "Vinicius Campos",
   "license": "MIT",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "start": "electron .",
-    "selftest": "electron . --selftest"
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "start": "npm run build && electron .",
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5273 && electron . --dev\"",
+    "selftest": "npm run build && electron . --selftest"
   },
   "devDependencies": {
-    "electron": "^43.2.0"
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/youtube": "^0.3.0",
+    "@vitejs/plugin-react": "^6.0.5",
+    "concurrently": "^10.0.4",
+    "electron": "^43.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "wait-on": "^9.1.0"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }
