@@ -33,7 +33,7 @@ export default function OutputApp() {
   const s6 = usePlayer('ytS6', { muted: true, quality: 'small' });
   const s7 = usePlayer('ytS7', { muted: true, quality: 'small' });
 
-  const st = useRef({ xf: 0, opA: 1, opB: 1, hasA: false, hasB: false, svol: 0, loop: true, cc: false });
+  const st = useRef({ xf: 50, opA: 1, opB: 1, hasA: false, hasB: false, svol: 0, loop: true, cc: false });
   const hint = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

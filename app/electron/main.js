@@ -92,8 +92,11 @@ function fixUserAgent() {
 function makeController() {
   controller = new BrowserWindow({
     width: 1440, height: 900, backgroundColor: '#0a0a0c', title: 'Taller VJ',
+    show: false,   // evita o piscar de janela pequena antes de maximizar
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
   });
+  controller.maximize();
+  controller.show();
   controller.loadURL(`${origin}/controller.html`);
   // o controlador é a janela mestra: fechar ele encerra tudo que estiver aberto
   controller.on('closed', () => {

@@ -68,7 +68,8 @@ export const useSession = create<Session>((set, get) => ({
   tloop: { A: false, B: false },
   armed: 'A',
 
-  xf: 0, op: { A: 100, B: 100 }, zoom: { A: 100, B: 100 },
+  // começa no meio: com os dois decks no ar, a mesa nasce equilibrada
+  xf: 50, op: { A: 100, B: 100 }, zoom: { A: 100, B: 100 },
   pos: { A: { ...POS0 }, B: { ...POS0 } }, curve: 'linear', blackout: false, pattern: null,
   blend: 'normal', smooth: 60, ar: localStorage.getItem('vj.ar') || '16/9',
   fx: { A: new Set(), B: new Set(), M: new Set() }, amt: { A: 1, B: 1, M: 1 },
