@@ -4,7 +4,7 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-const { app, BrowserWindow, screen, ipcMain, dialog, desktopCapturer, shell } = require('electron');
+const { app, BrowserWindow, Menu, screen, ipcMain, dialog, desktopCapturer, shell } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -96,6 +96,9 @@ function makeController() {
   controller = new BrowserWindow({
     width: 1440, height: 900, backgroundColor: '#0a0a0c', title: 'Taller VJ',
     show: false,   // evita o piscar de janela pequena antes de maximizar
+    // a barra do app É a barra de título: o chrome do sistema vira parte da interface
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#131318', symbolColor: '#d8d8e0', height: 32 },
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
   });
   controller.maximize();
@@ -538,6 +541,39 @@ async function selftest() {
       : [];
     fs.rmSync(recDir, { recursive: true, force: true });
 
+    // 7k) UI: o chrome do sistema sumiu, a barra virou barra de título, e o modo
+    //     palco esconde a preparação sem levar junto o que a mão toca
+    result.chrome = {
+      menuDoSistema: Menu.getApplicationMenu() !== null,
+      overlay: await controller.webContents.executeJavaScript(
+        `!!navigator.windowControlsOverlay?.visible`),
+      barraArrasta: await controller.webContents.executeJavaScript(
+        `getComputedStyle(document.getElementById('bar')).webkitAppRegion === 'drag'`)
+    };
+    result.palco = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const vis = el => !!el && el.getBoundingClientRect().height > 0;
+        const antes = { busca: vis(document.getElementById('searchwrap')),
+                        acervo: vis(document.querySelector('.lib')),
+                        fader: vis(document.getElementById('xf')) };
+        dispatchEvent(new KeyboardEvent('keydown', { key: 'F9', bubbles: true }));
+        await new Promise(r => setTimeout(r, 400));
+        const durante = { busca: vis(document.getElementById('searchwrap')),
+                          acervo: vis(document.querySelector('.lib')),
+                          fader: vis(document.getElementById('xf')) };
+        dispatchEvent(new KeyboardEvent('keydown', { key: 'F9', bubbles: true }));
+        await new Promise(r => setTimeout(r, 400));
+        // zona fechada continua anunciando o que está aceso lá dentro
+        const zhd = [...document.querySelectorAll('.zona > .zhd')]
+          .find(h => h.textContent.includes('modulação'));
+        zhd.click();
+        await new Promise(r => setTimeout(r, 300));
+        const fechada = { corpo: !zhd.parentElement.querySelector('.zbody'),
+                          resumo: zhd.querySelector('.resumo')?.textContent || '' };
+        zhd.click();
+        return { antes, durante, depois: vis(document.getElementById('searchwrap')), fechada };
+      })()`);
+
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();
@@ -557,6 +593,7 @@ async function selftest() {
 // ── § 4 — BOOT ──
 app.whenReady().then(async () => {
   fixUserAgent();
+  Menu.setApplicationMenu(null);   // Arquivo/Editar/Ver não pertencem a um instrumento
   require('./media').register(() => controller);
   await serve();
   makeController();

@@ -24,7 +24,7 @@ export default function Scenes() {
   };
 
   return (
-    <div className="card">
+    <>
       <div className="row">
         <span className="tag">cenas</span>
         <button className="mk" onClick={() => guardar()}>+ guardar mistura</button>
@@ -66,6 +66,6 @@ export default function Scenes() {
           </span>
         ))}
       </div>
-    </div>
+    </>
   );
 }

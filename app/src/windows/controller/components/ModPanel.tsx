@@ -44,7 +44,7 @@ export default function ModPanel() {
   const barra = (v: number) => ({ width: Math.min(100, v * 140) + '%' });
 
   return (
-    <div className="card">
+    <>
       <div className="row">
         <span className="tag">som</span>
         <select value={s.audioFonte} onChange={e => trocarFonte(e.target.value)}
@@ -130,6 +130,6 @@ export default function ModPanel() {
           }}>×</button>
         </div>
       ))}
-    </div>
+    </>
   );
 }

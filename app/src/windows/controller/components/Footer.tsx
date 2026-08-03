@@ -9,7 +9,7 @@ import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { L } from '../../../players';
-import { applyAudio, dropInto, nextBed, panic, toggle } from '../../../actions';
+import { applyAudio, dropInto, nextBed, toggle } from '../../../actions';
 import Library from './Library';
 
 const MODES = [
@@ -58,7 +58,7 @@ export default function Footer() {
       </div>
 
       <div style={{ flex: 1 }} />
-      <button onClick={panic}>panic (P)</button>
+      {/* panic mora na barra superior, junto do blackout: emergência tem um lugar só */}
       <span className="tag">fx: {s.bus === 'M' ? 'master' : 'deck ' + s.bus}</span>
 
       {listOpen && (

@@ -7,6 +7,8 @@
 import { useCallback, useRef } from 'react';
 import { useSession } from '../../../store';
 import { out } from '../../../out';
+import { checklist, pushAll, setPattern } from '../../../actions';
+import { exportSession, importSession } from '../../../session';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { GLFX0 } from '../../../gl/renderer';
 import type { Deck } from '../../../types';
@@ -74,8 +76,37 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           </div>
         ))}
 
+        {/* saiu da barra superior: se muda uma vez antes de começar, mora aqui */}
+        <div className="secao">
+          <div className="tag">quadro e calibração</div>
+          <div className="row">
+            <span className="tag w80">formato</span>
+            {['16/9', '4/3'].map(a => (
+              <button key={a} className={'tgl' + (s.ar === a ? ' on' : '')}
+                onClick={() => { s.set('ar', a); s.save(); out.frame(a); }}>{a.replace('/', ':')}</button>
+            ))}
+          </div>
+          <div className="row">
+            <span className="tag w80">padrão</span>
+            {[['grid', 'grade'], ['bars', 'barras'], ['focus', 'foco']].map(([k, t]) => (
+              <button key={k} className={'tgl' + (s.pattern === k ? ' on' : '')}
+                onClick={() => setPattern(k)}>{t}</button>
+            ))}
+            <span className="nota">para acertar foco e enquadramento do projetor</span>
+          </div>
+        </div>
+
         <div className="secao">
           <div className="tag">reprodução</div>
+          <div className="row">
+            <span className="tag w80">ao terminar</span>
+            <button className={'tgl' + (s.loop ? ' on' : '')}
+              onClick={() => { const on = !s.loop; s.set('loop', on); s.save(); out.loop(on); }}>
+              repetir (L)</button>
+            <button className={'tgl' + (s.cc ? ' on' : '')}
+              onClick={() => { const on = !s.cc; s.set('cc', on); s.save(); out.cc(on); }}>
+              legendas (K)</button>
+          </div>
           <div className="row">
             <span className="tag w80">qualidade dos monitores</span>
             <select value={s.monQuality} onChange={e => { s.set('monQuality', e.target.value); s.save(); }}>
@@ -90,6 +121,19 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               onChange={e => { s.set('poolSize', Math.max(1, Math.min(8, +e.target.value || 4))); s.save(); }} />
             <span className="nota">mais slots prontos custam banda e memória</span>
           </div>
+        </div>
+
+        <div className="secao">
+          <div className="tag">sessão e véspera</div>
+          <div className="row">
+            <button onClick={exportSession} title="salvar sessão em arquivo">salvar sessão</button>
+            <button onClick={() => importSession(pushAll)}>abrir sessão</button>
+            <button onClick={checklist} title="o que costuma faltar cinco minutos antes">
+              checar tudo</button>
+          </div>
+          <p className="nota">
+            A sessão leva biblioteca, slots, mistura, cenas e rotas — nunca a chave de API.
+          </p>
         </div>
 
         <div className="secao">

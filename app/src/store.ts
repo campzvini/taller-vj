@@ -57,7 +57,7 @@ export type Session = {
   monQuality: string; poolSize: number;
 
   // ui
-  searchOpen: boolean; mirror: boolean; outLive: boolean;
+  searchOpen: boolean; mirror: boolean; outLive: boolean; palco: boolean;
 
   set: <K extends keyof Session>(k: K, v: Session[K]) => void;
   addTo: (lane: Lane, it: Item) => boolean;
@@ -104,6 +104,7 @@ export const useSession = create<Session>((set, get) => ({
   poolSize: LS('vj.poolSize', 4),
 
   searchOpen: LS('vj.search', true), mirror: false, outLive: false,
+  palco: LS('vj.palco', false),
 
   set: (k, v) => set({ [k]: v } as any),
 
@@ -143,5 +144,6 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.recDir', s.recDir);
     localStorage.setItem('vj.recAlvoCtrl', s.recAlvoCtrl);
     localStorage.setItem('vj.recModo', s.recModo);
+    localStorage.setItem('vj.palco', JSON.stringify(s.palco));
   }
 }));

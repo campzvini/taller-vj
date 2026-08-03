@@ -238,7 +238,49 @@ export function applyAudio() {
   try { L.bed?.setVolume(Math.round(s.vol.C)); } catch { /* ignore */ }
 }
 
-/* ── § 7 — Drag payloads ── */
+/* ── § 7 — Reenvio e checklist ──────────────────────────────────────
+   A saída pode nascer depois do controlador; quando ela se anuncia, o estado
+   inteiro é reenviado. Mora aqui, e não no componente, porque a configuração
+   também precisa chamar isto ao carregar uma sessão.                          */
+export function pushAll() {
+  const v = S();
+  out.frame(v.ar); out.loop(v.loop); out.cc(v.cc);
+  out.smooth(v.smooth); out.blend(v.blend);
+  (['A', 'B'] as Deck[]).forEach(d => {
+    out.opacity(d, v.op[d] / 100);
+    out.zoomCh(d, +(v.zoom[d] / 100).toFixed(3));
+    out.present(d, !!v.now[d]);
+    if (v.now[d]) out.load(d, v.now[d]!.id);
+  });
+  out.xf(v.xf);
+  (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
+  out.engine(v.engine);
+  (['A', 'B'] as Deck[]).forEach(d => out.glfx(d, v.glfx[d] as unknown as Record<string, number>));
+  out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
+  out.sampZoom(+(v.sampZoom / 100).toFixed(3));
+  out.sampVol(v.sampAudio ? v.sampVol : 0);
+  v.pool.forEach((n, i) => { if (n != null && v.slots[n]) out.sampLoad(i, v.slots[n]!.id, v.slots[n]!.in ?? 0); });
+}
+
+/** O que costuma faltar cinco minutos antes de começar. */
+export async function checklist() {
+  const v = S();
+  const info = (await window.vj?.checklist?.()) as Record<string, unknown> | undefined;
+  const itens: [boolean, string][] = [
+    [!!info?.saida, 'saída aberta'],
+    [!!info?.fullscreen || (info?.telas as number) === 1, 'saída em tela cheia'],
+    [(info?.telas as number) > 1, 'segunda tela conectada'],
+    [!!localStorage.getItem('vj.key'), 'chave de API salva'],
+    [navigator.onLine, 'internet'],
+    [!!v.now.A || !!v.now.B, 'ao menos um deck carregado'],
+    [!v.blackout, 'blackout desligado'],
+    [!v.pattern, 'padrão de calibração desligado']
+  ];
+  const faltando = itens.filter(([ok]) => !ok).map(([, t]) => t);
+  flashMsg(faltando.length ? '⚠ ' + faltando.join(' · ') : '✓ tudo pronto');
+}
+
+/* ── § 8 — Drag payloads ── */
 export function dropInto(lane: Lane, e: React.DragEvent) {
   let it: Item;
   try { it = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }

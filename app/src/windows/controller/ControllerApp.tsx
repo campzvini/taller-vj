@@ -1,15 +1,13 @@
 // ────────────────────────────────────────────
-// TALLER VJ APP 0.3 — ControllerApp.tsx
-// § - Three columns: deck A, cue and mixer, deck B · TSX
+// TALLER VJ APP 1.1 — ControllerApp.tsx
+// § - Three columns, a bar of seconds-decisions and stage mode · TSX
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from '../../store';
-import { out, onBus } from '../../out';
-import { setFlash, setPattern, toggleBlackout } from '../../actions';
-import { getKey } from '../../search';
-import { exportSession, importSession } from '../../session';
+import { onBus } from '../../out';
+import { panic, pushAll, setFlash, toggleBlackout } from '../../actions';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useSync } from '../../hooks/useSync';
 import Deck from './components/Deck';
@@ -22,19 +20,21 @@ import ModPanel from './components/ModPanel';
 import Scenes from './components/Scenes';
 import RecPanel from './components/RecPanel';
 import Settings from './components/Settings';
+import Zona from './components/Zona';
 import { startModulation, stopModulation } from '../../modulation';
 import './controller.css';
 
+/**
+ * A barra superior guarda só decisões de SEGUNDOS: o que está no ar, o que apaga
+ * tudo, o que grava. Formato, calibração e reprodução mudam uma vez antes de
+ * começar — moram na configuração. Quem separa não é a importância, é a frequência.
+ */
 export default function ControllerApp() {
   const s = useSession();
   const [msg, setMsg] = useState<string | null>(null);
   const [cfg, setCfg] = useState(false);
   useKeyboard();
   useSync();
-
-  const flash = (m: string) => setFlashNow(m);
-  const setFlashNow = (m: string) => { setMsg(m); clearTimeout(flashT.current); flashT.current = setTimeout(() => setMsg(null), 2600); };
-  const flashT = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
@@ -45,43 +45,14 @@ export default function ControllerApp() {
     return () => { off(); stopModulation(); };
   }, []);
 
-  // checklist pré-show: o que costuma faltar cinco minutos antes de começar
-  const runChecklist = async () => {
-    const v = useSession.getState();
-    const info = (await window.vj?.checklist?.()) as Record<string, unknown> | undefined;
-    const itens = [
-      [!!info?.saida, 'saída aberta'],
-      [!!info?.fullscreen || (info?.telas as number) === 1, 'saída em tela cheia'],
-      [(info?.telas as number) > 1, 'segunda tela conectada'],
-      [!!getKey(), 'chave de API salva'],
-      [navigator.onLine, 'internet'],
-      [!!v.now.A || !!v.now.B, 'ao menos um deck carregado'],
-      [!v.blackout, 'blackout desligado'],
-      [!v.pattern, 'padrão de calibração desligado']
-    ] as [boolean, string][];
-    const faltando = itens.filter(([ok]) => !ok).map(([, t]) => t);
-    flash(faltando.length ? '⚠ ' + faltando.join(' · ') : '✓ tudo pronto');
-  };
+  // o modo palco é uma classe no body: alcança a busca e o rodapé, fora do #main
+  useEffect(() => { document.body.classList.toggle('palco', s.palco); }, [s.palco]);
 
-  const pushAll = () => {
-    const v = useSession.getState();
-    out.frame(v.ar); out.loop(v.loop); out.cc(v.cc);
-    out.smooth(v.smooth); out.blend(v.blend);
-    (['A', 'B'] as const).forEach(d => {
-      out.opacity(d, v.op[d] / 100);
-      out.zoomCh(d, +(v.zoom[d] / 100).toFixed(3));
-      out.present(d, !!v.now[d]);
-      if (v.now[d]) out.load(d, v.now[d]!.id);
-    });
-    out.xf(v.xf);
-    (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
-    out.engine(v.engine);
-    (['A', 'B'] as const).forEach(d => out.glfx(d, v.glfx[d] as unknown as Record<string, number>));
-    out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
-    out.sampZoom(+(v.sampZoom / 100).toFixed(3));
-    out.sampVol(v.sampAudio ? v.sampVol : 0);
-    v.pool.forEach((n, i) => { if (n != null && v.slots[n]) out.sampLoad(i, v.slots[n]!.id, v.slots[n]!.in ?? 0); });
-  };
+  const rotas = s.mods.filter(m => m.on).length;
+  const resumoMod = [
+    rotas ? rotas + (rotas > 1 ? ' rotas' : ' rota') : '',
+    s.audioOn ? 'ouvindo' : ''
+  ].filter(Boolean).join(' · ');
 
   return (
     <>
@@ -90,42 +61,39 @@ export default function ControllerApp() {
         <button className={s.outLive ? 'live' : ''} onClick={() => window.vj?.openOutput()}>
           {s.outLive ? 'SAÍDA NO AR' : 'ABRIR SAÍDA (O)'}
         </button>
-        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>busca (/)</button>
         <div className="fsep" />
-        <span className="tag">formato</span>
-        {['16/9', '4/3'].map(a => (
-          <button key={a} className={'tgl' + (s.ar === a ? ' on' : '')}
-            onClick={() => { s.set('ar', a); s.save(); out.frame(a); }}>{a.replace('/', ':')}</button>
-        ))}
-        <button className={'tgl' + (s.loop ? ' on' : '')}
-          onClick={() => { const on = !s.loop; s.set('loop', on); s.save(); out.loop(on); }}>loop (L)</button>
-        <button className={'tgl' + (s.cc ? ' on' : '')}
-          onClick={() => { const on = !s.cc; s.set('cc', on); s.save(); out.cc(on); }}>CC (K)</button>
-        <div className="fsep" />
-        <button className={'tgl' + (s.blackout ? ' on' : '')}
-          onClick={toggleBlackout} title="apaga a saída (B)">blackout</button>
-        <span className="tag">calibrar</span>
-        {[['grid', 'grade'], ['bars', 'barras'], ['focus', 'foco']].map(([k, t]) => (
-          <button key={k} className={'tgl' + (s.pattern === k ? ' on' : '')}
-            onClick={() => setPattern(k)}>{t}</button>
-        ))}
+        {/* emergência: maiores que o resto, para acertar no escuro sem olhar */}
+        <button className={'tgl urg' + (s.blackout ? ' on' : '')}
+          onClick={toggleBlackout} title="apaga a saída (B)">BLACKOUT</button>
+        <button className="urg" onClick={panic} title="zera todos os efeitos (P)">PANIC</button>
         <div className="fsep" />
         <RecPanel />
         <div className="fsep" />
-        {/* o painel de gravação é fixo na tela; a barra recorta o que fica dentro dela */}
+        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>busca (/)</button>
+        <button className={'palcob tgl' + (s.palco ? ' on' : '')}
+          title="esconde tudo que é preparação e aumenta o que a mão toca (F9)"
+          onClick={() => { s.set('palco', !s.palco); s.save(); }}>palco</button>
         <button onClick={() => setCfg(true)}>config</button>
-        <button onClick={exportSession} title="salvar sessão em arquivo">salvar sessão</button>
-        <button onClick={() => importSession(pushAll)}>abrir sessão</button>
         <div style={{ flex: 1 }} />
         {!s.outLive && <span className="tag treino">modo treino — sem saída</span>}
-        <button onClick={runChecklist}>checar</button>
       </div>
 
       <SearchStrip />
 
       <div id="main">
         <Deck side="A" />
-        <div className="col midcol"><Cue /><Slots /><Mixer /><Scenes /><ModPanel /></div>
+        <div className="col midcol">
+          <Cue />
+          <Slots />
+          <Mixer />
+          <Zona id="cenas" titulo="cenas" some
+            resumo={s.cenas.length ? s.cenas.length + ' guardadas' : ''}>
+            <Scenes />
+          </Zona>
+          <Zona id="mod" titulo="tempo e modulação" resumo={resumoMod}>
+            <ModPanel />
+          </Zona>
+        </div>
         <Deck side="B" />
       </div>
 

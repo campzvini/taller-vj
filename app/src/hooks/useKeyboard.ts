@@ -33,6 +33,7 @@ export function useKeyboard() {
         e.shiftKey ? assignSlot(+k) : holdOn(+k);
         return;
       }
+      if (k === 'F9') { e.preventDefault(); s.set('palco', !s.palco); s.save(); return; }
       // F1..F8 chamam cena; com Shift, regravam a cena por cima da mistura atual
       const f = /^F([1-8])$/.exec(k);
       if (f) {

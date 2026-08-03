@@ -26,9 +26,21 @@ input[type=range]{-webkit-appearance:none;background:#22222b;height:5px;border-r
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:18px;
   background:var(--txt);border-radius:2px;cursor:pointer}
 
+/* ── § 0.1 — Barras de rolagem: parte da interface, não do navegador ── */
+*::-webkit-scrollbar{width:7px;height:7px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#2e2e3a;border-radius:4px}
+*::-webkit-scrollbar-thumb:hover{background:#3d3d4d}
+*::-webkit-scrollbar-corner{background:transparent}
+
 /* ── § 1 — Bars ── */
+/* a barra do app É a barra de título da janela: arrasta a janela, menos nos controles */
 #bar{display:flex;gap:6px;align-items:center;padding:4px 8px;background:var(--panel);
-  border-bottom:1px solid var(--line);height:32px;overflow:hidden}
+  border-bottom:1px solid var(--line);overflow:hidden;
+  height:env(titlebar-area-height,32px);
+  width:env(titlebar-area-width,100%);
+  -webkit-app-region:drag}
+#bar button,#bar input,#bar select,#bar .poswrap{-webkit-app-region:no-drag}
 #bar button,#bar input{padding:3px 6px;font-size:10px}
 #bar .name{font-weight:700;letter-spacing:.16em;color:var(--dim);font-size:10px}
 #bar button.live{background:var(--ok);border-color:var(--ok);color:#04240f;font-weight:700}
@@ -190,6 +202,34 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .opt input{width:12px;height:12px;accent-color:var(--accb)}
 .caminho{word-break:break-all;color:var(--txt);background:#0d0d13;border:1px solid var(--line);
   border-radius:3px;padding:3px 5px;width:100%}
+
+/* ── § 10 — Emergência e modo palco ── */
+/* blackout e panic se acertam no escuro, sem olhar: são maiores que o resto */
+#bar .urg{padding:5px 12px;font-size:11px;font-weight:700;letter-spacing:.04em}
+#bar .urg.tgl.on{box-shadow:0 0 0 1px var(--acc),0 0 10px #ff3b3b66}
+#bar .palcob.on{background:var(--accb);border-color:var(--accb);color:#fff}
+
+/* palco: só o que a mão toca a cada poucos segundos, em corpo maior */
+.palco #searchwrap,.palco .libbar,.palco .lib,.palco .zona.some{display:none!important}
+.palco #main{grid-template-columns:1fr 1.15fr 1fr}
+.palco .mon{flex:0 0 auto}
+.palco input[type=range]{height:9px}
+.palco input[type=range]::-webkit-slider-thumb{width:16px;height:24px}
+.palco .fx,.palco .mk{padding:5px 8px;font-size:11px}
+.palco #xf{height:14px}
+.palco #xf::-webkit-slider-thumb{width:22px;height:34px}
+.palco .slot{height:52px}
+
+/* ── § 11 — Zonas colapsáveis ── */
+/* fechada, a zona continua dizendo o que está ativo: esconder não é sumir */
+.zona{background:var(--card);border:1px solid var(--line);border-radius:4px}
+.zona>.zhd{display:flex;align-items:center;gap:6px;padding:4px 6px;cursor:pointer;
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.zona>.zhd:hover{background:#1b1b23}
+.zona>.zhd .seta{color:var(--accb);font-size:9px;width:9px}
+.zona>.zhd .resumo{margin-left:auto;text-transform:none;letter-spacing:0;color:var(--ok);font-size:10px}
+.zona>.zbody{padding:0 5px 5px;display:flex;flex-direction:column;gap:4px}
+.zona.on>.zhd{color:var(--txt)}
 
 .res.more{display:flex;align-items:center;justify-content:center;background:#14141b;
   border:1px dashed var(--accb);cursor:pointer;flex:0 0 84px}
