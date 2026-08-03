@@ -1,6 +1,6 @@
 // ────────────────────────────────────────────
-// TALLER VJ APP 1.2 — Footer.tsx
-// § - Audio routing, bed deck with timeline · TSX
+// TALLER VJ APP 1.5 — Footer.tsx
+// § - Audio plane: routing, deck levels and the bed player · TSX
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
@@ -18,6 +18,11 @@ const MODES = [
   ['both', 'A+B open'], ['bed', 'bed only']
 ];
 
+/**
+ * A imagem mora nas colunas, o som mora aqui. Tudo que decide áudio numa linha
+ * só — roteamento, níveis dos decks e o bed, que é um player como os outros e
+ * por isso ganha miniatura, transporte e linha de tempo.
+ */
 export default function Footer() {
   const s = useSession();
   const [over, setOver] = useState(false);
@@ -28,23 +33,18 @@ export default function Footer() {
   const btn = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const p = usePlayer('ytCout', { quality: 'small', onState: st => { if (st === 0) nextBed(); } });
-  // arquivo no bed também precisa avançar sozinho ao terminar
-  useEffect(() => {
-    const v = () => document.getElementById('vidCout') as HTMLVideoElement | null;
-    const fim = () => nextBed();
-    v()?.addEventListener('ended', fim);
-    return () => v()?.removeEventListener('ended', fim);
-  }, []);
 
   const closeList = useCallback(() => setListOpen(false), []);
   useClickOutside(listOpen, closeList, [list, btn]);
 
   useEffect(() => {
     const t0 = setInterval(() => { if (p.current) { L.bed = p.current; applyAudio(); clearInterval(t0); } }, 200);
-    return () => clearInterval(t0);
+    const v = () => document.getElementById('vidCout') as HTMLVideoElement | null;
+    const fim = () => nextBed();
+    v()?.addEventListener('ended', fim);
+    return () => { clearInterval(t0); v()?.removeEventListener('ended', fim); };
   }, []);
 
-  // a linha de tempo do bed lê o transporte: ele serve YouTube, arquivo e Archive
   useEffect(() => {
     const i = setInterval(() => {
       if (arrastando) return;
@@ -54,13 +54,23 @@ export default function Footer() {
   }, [arrastando]);
 
   const rect = btn.current?.getBoundingClientRect();
+  const nivel = (d: 'A' | 'B') => (
+    <>
+      <span className="tag">{d}</span>
+      <input type="range" min={0} max={100} value={s.vol[d]} style={{ width: 64 }}
+        onChange={e => { s.set('vol', { ...s.vol, [d]: +e.target.value } as never); applyAudio(); }} />
+    </>
+  );
 
   return (
     <div id="foot">
       <span className="tag">audio</span>
-      <select value={s.amode} onChange={e => { s.set('amode', e.target.value); applyAudio(); }}>
+      <select value={s.amode} style={{ width: 108 }}
+        onChange={e => { s.set('amode', e.target.value); applyAudio(); }}>
         {MODES.map(([v, t2]) => <option key={v} value={v}>{t2}</option>)}
       </select>
+      {nivel('A')}
+      {nivel('B')}
 
       <div className="fsep" />
 
@@ -69,17 +79,22 @@ export default function Footer() {
         onDragLeave={() => setOver(false)}
         onDrop={e => { e.preventDefault(); setOver(false); dropInto('C', e); }}>
         <span className="tag">bed C</span>
+        {/* o bed é ÁUDIO: mostramos a capa do item, não o pôster do player */}
         <div id="bedmon">
           <div className="srcwrap" id="ytwrapC"><div id="ytCout" /></div>
           <video className="srcvid" id="vidCout" playsInline
             style={{ display: 'none' }} ref={el => setVid('C', el)} />
-          <div className="capa" />
+          {s.now.C?.thumb
+            ? <img className="bedthumb" src={s.now.C.thumb} alt="" />
+            : <div className="bedthumb vazio">♪</div>}
         </div>
-        <span className="now bedtitle">{s.now.C?.title ?? ''}</span>
+
+        <button className="tplay" onClick={() => toggle('C')}
+          title="play / pause the bed (V)">{M.state('C') === 1 ? '❚❚' : '▶'}</button>
 
         <input type="range" id="bedtime" min={0} max={Math.max(1, Math.floor(dur))}
           value={Math.min(Math.floor(t), Math.max(1, Math.floor(dur)))}
-          title="position" style={{ width: 150 }}
+          title="position" style={{ flex: 1, minWidth: 120 }}
           onMouseDown={() => setArrastando(true)}
           onChange={e => setT(+e.target.value)}
           onMouseUp={e => {
@@ -87,24 +102,23 @@ export default function Footer() {
             setArrastando(false);
             M.seek('C', v);
           }} />
-        <span className="val">{fmt(t)}{dur ? ' / ' + fmt(dur) : ''}</span>
-        <button onClick={() => toggle('C')}>▶❚❚ (V)</button>
+        <span className="ttime">{fmt(t)}{dur ? ' / ' + fmt(dur) : ''}</span>
+
+        <span className="now bedtitle">{s.now.C?.title ?? 'nothing loaded'}</span>
 
         <span className="tag">vol</span>
-        <input type="range" min={0} max={100} value={s.vol.C} style={{ width: 64 }}
+        <input type="range" min={0} max={100} value={s.vol.C} style={{ width: 72 }}
           onChange={e => { s.set('vol', { ...s.vol, C: +e.target.value }); applyAudio(); }} />
-        <button ref={btn} onClick={() => setListOpen(o => !o)}>list ▾</button>
+        <button ref={btn} className="mk" onClick={() => setListOpen(o => !o)}>
+          list ({s.lib.C.length})</button>
       </div>
 
-      <div style={{ flex: 1 }} />
-      <span className="tag">fx: {s.bus === 'M' ? 'master' : 'deck ' + s.bus}</span>
-
       {listOpen && (
-        // ancorada no botão, não no canto da tela
         <div id="bedlist" ref={list} style={{
-          left: Math.max(6, Math.min(rect?.left ?? 6, Math.max(6, innerWidth - 286))),
-          bottom: Math.max(6, innerHeight - (rect?.top ?? innerHeight) + 6)
+          left: Math.max(6, Math.min(rect?.left ?? 6, Math.max(6, innerWidth - 326))),
+          bottom: Math.max(6, innerHeight - (rect?.top ?? innerHeight) + 8)
         }}>
+          <div className="bhd"><span>bed playlist</span></div>
           <Library lane="C" className="lib" />
         </div>
       )}

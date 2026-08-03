@@ -94,8 +94,8 @@ export default function ControllerApp() {
         <div className="col midcol">
           <Cue />
           <div className="midscroll">
-            <Slots />
             <Mixer />
+            <Slots />
             <Zona id="cenas" titulo="scenes" some
               resumo={s.cenas.length ? s.cenas.length + ' saved' : ''}>
               <Scenes />

@@ -69,7 +69,7 @@ export default function Browser() {
         <button className="mk" onClick={() => { s.set('browserOpen', false); s.save(); }}>×</button>
       </div>
 
-      <div className="card">
+      <div className="bloco">
         <div className="row">
           <select value={fonte} style={{ maxWidth: 88 }}
             onChange={e => { setFonte(e.target.value as Fonte); setItens([]); setMais(false); }}>

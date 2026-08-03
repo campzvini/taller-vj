@@ -254,6 +254,19 @@ async function diagnostico() {
   })()`;
   const r = {};
   try {
+    // sem conteúdo a tela mente: semeamos biblioteca e slots antes de olhar
+    const it = (id, t) => ({ id, title: t, thumb: 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg' });
+    const semente = JSON.stringify([
+      it('aqz-KE-bpKQ', 'Big Buck Bunny 60fps 4K'), it('jNQXAC9IVRw', 'Me at the zoo'),
+      it('dQw4w9WgXcQ', 'Never Gonna Give You Up'), it('9bZkp7q19f0', 'GANGNAM STYLE')
+    ]);
+    await controller.webContents.executeJavaScript(`
+      localStorage.setItem('vj.libA', ${'`'}${'$'}{${JSON.stringify(semente)}}${'`'});
+      localStorage.setItem('vj.libB', ${'`'}${'$'}{${JSON.stringify(semente)}}${'`'});
+      localStorage.setItem('vj.libC', ${'`'}${'$'}{${JSON.stringify(semente)}}${'`'});
+      localStorage.setItem('vj.palco', 'false');
+      location.reload();`);
+    await wait(3500);
     await controller.webContents.executeJavaScript(
       `window.__erros = []; addEventListener('error', e => window.__erros.push(String(e.message)));
        addEventListener('unhandledrejection', e => window.__erros.push('rej: ' + String(e.reason)));`);

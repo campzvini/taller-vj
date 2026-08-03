@@ -1,6 +1,6 @@
 // ────────────────────────────────────────────
-// TALLER VJ APP 0.3 — Cue.tsx
-// § - Preview that never reaches the output · TSX
+// TALLER VJ APP 1.5 — Cue.tsx
+// § - Preview module: image, transport, trim and destinations · TSX
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
@@ -8,10 +8,9 @@ import { useEffect, useState } from 'react';
 import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
 import { L, M, setVid } from '../../../players';
-import Transport from './Transport';
 import { clearMark, cue, sendCue, setMark } from '../../../actions';
 import { fmt, type Item } from '../../../types';
-import Zona from './Zona';
+import Transport from './Transport';
 
 export default function Cue() {
   const s = useSession();
@@ -29,63 +28,62 @@ export default function Cue() {
 
   return (
     <>
-      <div className="hd">
-        <span><b>Cue</b></span>
-        <span className="now">{s.now.P?.title ?? ''}</span>
-      </div>
-
-      <div id="cue" className={over ? 'over' : ''}
-        onDragOver={e => { e.preventDefault(); setOver(true); }}
-        onDragLeave={() => setOver(false)}
-        onDrop={e => {
-          e.preventDefault(); e.stopPropagation(); setOver(false);
-          try { cue(JSON.parse(e.dataTransfer.getData('text/plain')) as Item); } catch { /* ignore */ }
-        }}>
-        <div className="srcwrap" id="ytwrapP"><div id="ytPrev" /></div>
-        <video className="srcvid" id="vidPrev" playsInline
-          style={{ display: 'none' }} ref={el => setVid('P', el)} />
-        <div className="capa" />
-      </div>
-
-      <Transport canal="P" />
-
-      {/* o transporte cola no player; o resto é guia colapsável */}
-      <div className="card sob">
-        <div className="row">
-          <button onClick={() => sendCue('A')}>◄ A [</button>
-          <button onClick={() => sendCue('B')}>B ► ]</button>
-          <button className={'tgl' + (s.mirror ? ' on' : '')}
-            onClick={() => s.set('mirror', !s.mirror)}>mirror output</button>
+      {/* imagem, transporte e marcas são UM gesto: uma caixa só */}
+      <div className="modulo cuemod">
+        <div className="hd">
+          <span>Cue</span>
+          <span className="now">{s.now.P?.title ?? ''}</span>
         </div>
-      </div>
 
-      <Zona id="cue" titulo="trim &amp; send" resumo={has ? 'range set' : ''}>
-        <div className="row">
+        <div id="cue" className={over ? 'over' : ''}
+          onDragOver={e => { e.preventDefault(); setOver(true); }}
+          onDragLeave={() => setOver(false)}
+          onDrop={e => {
+            e.preventDefault(); e.stopPropagation(); setOver(false);
+            try { cue(JSON.parse(e.dataTransfer.getData('text/plain')) as Item); } catch { /* ignore */ }
+          }}>
+          <div className="srcwrap" id="ytwrapP"><div id="ytPrev" /></div>
+          <video className="srcvid" id="vidPrev" playsInline
+            style={{ display: 'none' }} ref={el => setVid('P', el)} />
+          <div className="capa" />
+        </div>
+
+        <Transport canal="P" />
+
+        <div className="row marcas">
           <button className="mk" onClick={() => setMark('P', 'in')}>IN</button>
           <button className="mk" onClick={() => setMark('P', 'out')}>OUT</button>
-          <button className="mk" onClick={() => clearMark('P')}>×</button>
+          <button className="mk" onClick={() => clearMark('P')} title="clear range">×</button>
           <span className={'rng' + (has ? ' set' : '')}>{has ? `${fmt(mk.in)} → ${fmt(mk.out)}` : '—'}</span>
-          <span className="grabh" draggable
+          <span className="grabh" draggable title="drag this clip anywhere"
             onDragStart={e => {
               if (!s.now.P) { e.preventDefault(); return; }
               e.dataTransfer.setData('text/plain',
                 JSON.stringify({ ...s.now.P, in: mk.in ?? null, out: mk.out ?? null }));
               e.dataTransfer.effectAllowed = 'copy';
-            }}>⇢ drag</span>
+            }}>⇢</span>
           <span className="tag">phones</span>
-          <input type="range" min={0} max={100} value={s.vol.P} style={{ maxWidth: 56 }}
+          <input type="range" min={0} max={100} value={s.vol.P} style={{ maxWidth: 64 }}
             onChange={e => {
               const v = +e.target.value;
               s.set('vol', { ...s.vol, P: v });
               M.vol('P', v);
             }} />
         </div>
-        <div className="row">
-          <button onClick={() => addTo('A')}>+ list A</button>
-          <button onClick={() => addTo('B')}>+ list B</button>
-          <button onClick={() => addTo('C')}>+ bed C</button>
+
+        {/* destino do que acabou de ser marcado: colado no módulo, não numa aba */}
+        <div className="row envio">
+          <button className="env" onClick={() => sendCue('A')}>◄ A</button>
+          <button className="env" onClick={() => sendCue('B')}>B ►</button>
+          <span className="fsep" />
+          <button className="mk" onClick={() => addTo('A')}>+ A</button>
+          <button className="mk" onClick={() => addTo('B')}>+ B</button>
+          <button className="mk" onClick={() => addTo('C')}>+ bed</button>
+          <span className="fsep" />
+          <button className={'tgl' + (s.mirror ? ' on' : '')}
+            onClick={() => s.set('mirror', !s.mirror)}>mirror</button>
         </div>
-      </Zona>
+      </div>
     </>
   );
 }
