@@ -16,6 +16,7 @@ import {
 import { FX_NAMES, fmt, kindOf, type Deck as D, type FxName } from '../../../types';
 import Library from './Library';
 import PosPanel from './PosPanel';
+import Zona from './Zona';
 import { importFiles, importFolder, salvarTrecho } from '../../../catalog';
 
 const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL', hue: 'HUE', strobe: 'STR' };
@@ -70,7 +71,26 @@ export default function Deck({ side }: { side: D }) {
           ref={el => { if (side === 'A') L.vidA = el; else L.vidB = el; }} />
       </div>
 
-      <div className="card">
+      {/* transporte cola no player: é o que a mão procura sem pensar */}
+      <div className="card sob">
+        <div className="row">
+          <button onClick={() => toggle(side)}>▶❚❚</button>
+          <button className={'mk' + (s.armed === side ? ' on' : '')}
+            onClick={() => s.set('armed', side)}>armar</button>
+          <button className="mk" onClick={() => setMark(side, 'in')}>IN</button>
+          <button className="mk" onClick={() => setMark(side, 'out')}>OUT</button>
+          <button className={'mk' + (s.tloop[side] ? ' on' : '')} onClick={() => toggleTloop(side)}>⟲</button>
+          <button className="mk" onClick={() => clearMark(side)}>×</button>
+          <span className={'rng' + (has ? ' set' : '')}>
+            {has ? `${fmt(mk.in)} → ${fmt(mk.out)}` : '—'}</span>
+        </div>
+      </div>
+
+      <Zona id={'mix' + side} titulo="mistura e enquadramento"
+        resumo={[s.op[side] < 100 ? 'opac ' + s.op[side] : '',
+          s.zoom[side] > 100 ? 'zoom' : '',
+          (s.pos[side].pan[0] || s.pos[side].pan[1] || s.pos[side].rot) ? 'enquadrado' : ''
+        ].filter(Boolean).join(' · ')}>
         <div className="row"><span className="tag w34">opac</span>
           <input type="range" min={0} max={100}
             className={liveOp != null ? 'modulado' : ''}
@@ -91,12 +111,6 @@ export default function Deck({ side }: { side: D }) {
           <span className="val">{s.vol[side]}</span></div>
 
         <div className="row">
-          <button onClick={() => toggle(side)}>▶❚❚</button>
-          <button onClick={() => s.set('armed', side)}>armar</button>
-          <button className="mk" onClick={() => setMark(side, 'in')}>IN</button>
-          <button className="mk" onClick={() => setMark(side, 'out')}>OUT</button>
-          <button className={'mk' + (s.tloop[side] ? ' on' : '')} onClick={() => toggleTloop(side)}>⟲</button>
-          <button className="mk" onClick={() => clearMark(side)}>×</button>
           <PosPanel side={side} />
           <span className="grabh" draggable
             onDragStart={e => {
@@ -108,13 +122,16 @@ export default function Deck({ side }: { side: D }) {
             }}>⇢</span>
         </div>
 
-        <div className="row"><span className={'rng' + (has ? ' set' : '')}>
-          {has ? `${fmt(mk.in)} → ${fmt(mk.out)}` : '—'}</span>
-          {kindOf(s.now[side]) === 'file' && mk.out != null && (
+        {kindOf(s.now[side]) === 'file' && mk.out != null && (
+          <div className="row">
             <button className="mk" title="salvar o trecho marcado como arquivo novo"
               onClick={() => salvarTrecho(s.now[side], mk.in, mk.out)}>✂ salvar trecho</button>
-          )}</div>
+          </div>
+        )}
+      </Zona>
 
+      <Zona id={'fx' + side} titulo={'efeitos ' + side}
+        resumo={s.fx[side].size ? [...s.fx[side]].map(f => SHORT[f]).join(' ') : ''}>
         <div className={'row fxrow' + (s.bus === side ? ' focus' : '')}>
           {FX_NAMES.map(f => (
             <button key={f} className={'fx' + (s.fx[side].has(f) ? ' on' : '')}
@@ -123,7 +140,7 @@ export default function Deck({ side }: { side: D }) {
           <input type="range" min={0} max={100} value={Math.round(s.amt[side] * 100)}
             onChange={e => setAmt(side, +e.target.value / 100)} />
         </div>
-      </div>
+      </Zona>
 
       <div className="row libbar">
         <span className="tag">acervo</span>

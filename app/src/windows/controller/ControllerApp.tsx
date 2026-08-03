@@ -45,6 +45,9 @@ export default function ControllerApp() {
     return () => { off(); stopModulation(); };
   }, []);
 
+  // os três monitores seguem a proporção escolhida para a saída, e entre si
+  useEffect(() => { document.documentElement.style.setProperty('--ar', s.ar); }, [s.ar]);
+
   // o modo palco é uma classe no body: alcança a busca e o rodapé, fora do #main
   useEffect(() => { document.body.classList.toggle('palco', s.palco); }, [s.palco]);
 

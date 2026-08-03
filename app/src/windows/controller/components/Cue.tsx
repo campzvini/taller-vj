@@ -10,6 +10,7 @@ import { usePlayer } from '../../../hooks/usePlayer';
 import { L } from '../../../players';
 import { clearMark, cue, sendCue, setMark } from '../../../actions';
 import { fmt, type Item } from '../../../types';
+import Zona from './Zona';
 
 export default function Cue() {
   const s = useSession();
@@ -28,7 +29,7 @@ export default function Cue() {
   return (
     <>
       <div className="hd">
-        <span>Cue <b>não vai ao ar</b></span>
+        <span><b>Cue</b></span>
         <span className="now">{s.now.P?.title ?? ''}</span>
       </div>
 
@@ -42,7 +43,17 @@ export default function Cue() {
         <div id="ytPrev" />
       </div>
 
-      <div className="card">
+      {/* o transporte cola no player; o resto é guia colapsável */}
+      <div className="card sob">
+        <div className="row">
+          <button onClick={() => sendCue('A')}>◄ A [</button>
+          <button onClick={() => sendCue('B')}>B ► ]</button>
+          <button className={'tgl' + (s.mirror ? ' on' : '')}
+            onClick={() => s.set('mirror', !s.mirror)}>espelhar saída</button>
+        </div>
+      </div>
+
+      <Zona id="cue" titulo="trecho e destino" resumo={has ? 'trecho marcado' : ''}>
         <div className="row">
           <button className="mk" onClick={() => setMark('P', 'in')}>IN</button>
           <button className="mk" onClick={() => setMark('P', 'out')}>OUT</button>
@@ -64,15 +75,11 @@ export default function Cue() {
             }} />
         </div>
         <div className="row">
-          <button onClick={() => sendCue('A')}>◄ A [</button>
-          <button onClick={() => sendCue('B')}>B ► ]</button>
           <button onClick={() => addTo('A')}>+lista A</button>
           <button onClick={() => addTo('B')}>+lista B</button>
           <button onClick={() => addTo('C')}>+ bed C</button>
-          <button className={'tgl' + (s.mirror ? ' on' : '')}
-            onClick={() => s.set('mirror', !s.mirror)}>espelhar saída</button>
         </div>
-      </div>
+      </Zona>
     </>
   );
 }
