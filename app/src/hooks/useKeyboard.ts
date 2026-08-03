@@ -65,7 +65,8 @@ export function useKeyboard() {
       if (k === '[') { sendCue('A'); return; }
       if (k === ']') { sendCue('B'); return; }
       if (k === 'Tab') { e.preventDefault(); s.set('armed', s.armed === 'A' ? 'B' : 'A'); return; }
-      if (k === ' ') { e.preventDefault(); toggle(s.armed); return; }
+      // espaço toca o deck armado; SHIFT+espaço toca o bed. Par que se aprende junto.
+      if (k === ' ') { e.preventDefault(); toggle(e.shiftKey ? 'C' : s.armed); return; }
       if (k === 'ArrowRight' || k === 'ArrowLeft') {
         e.preventDefault();
         applyXf(Math.max(0, Math.min(100, s.xf + (k === 'ArrowRight' ? 6 : -6))));

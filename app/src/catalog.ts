@@ -5,7 +5,8 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import { useSession } from './store';
-import { flashMsg } from './actions';
+import { cue, flashMsg, play, poolAssign } from './actions';
+import { M } from './players';
 import { localUrl, type Item, type Lane } from './types';
 import { ehArchive, resolverArchive } from './archive';
 
@@ -40,13 +41,16 @@ async function importar(paths: string[], lane: Lane) {
   flashMsg(`${n} video(s) added`);
 }
 
+/** Os diálogos abrem na pasta-fonte do acervo, não em "Documentos". */
+const pastaFonte = () => useSession.getState().libDir || undefined;
+
 export async function importFiles(lane: Lane = 'V') {
-  const paths = (await window.vj?.pickFiles?.()) || [];
+  const paths = (await window.vj?.pickFiles?.(pastaFonte())) || [];
   await importar(paths, lane);
 }
 
 export async function importFolder(lane: Lane = 'V') {
-  const r = await window.vj?.pickFolder?.();
+  const r = await window.vj?.pickFolder?.(pastaFonte());
   if (!r) return;
   await importar(r.files.slice(0, 200), lane);   // teto para não travar em pasta gigante
 }
@@ -65,26 +69,49 @@ export async function salvarTrecho(it: Item | null, inn?: number | null, out?: n
 
 /** Traz o item remoto para o disco e troca a fonte em TODO lugar que a referencia:
  *  a partir daí é arquivo local, com seek instantâneo e sem rede no meio da festa. */
-export async function baixar(it: Item | null): Promise<string | null> {
+export async function baixar(
+  it: Item | null,
+  aoAndar?: (pct: number, mb: number) => void
+): Promise<string | null> {
   if (!it?.src) { flashMsg('nothing to download'); return null; }
   const s = useSession.getState();
   const url = ehArchive(it.src) ? await resolverArchive(it.src) : it.src;
   if (!url || !/^https?:/i.test(url)) { flashMsg('only remote sources can be downloaded'); return null; }
 
   flashMsg('downloading…');
-  const r = await window.vj?.baixar?.(url, it.title);
-  if (!r?.path) { flashMsg('download failed: ' + (r?.error || '')); return null; }
+  // sem progresso o operador não sabe se travou ou se é só um arquivo grande
+  const solta = window.vj?.onBaixando?.(d => {
+    if (d.url !== url) return;
+    const mb = d.lido / 1048576;
+    const pct = d.total ? Math.round(d.lido / d.total * 100) : 0;
+    aoAndar?.(pct, mb);
+    if (d.fim) flashMsg(`downloaded ${mb.toFixed(1)} MB`);
+    else flashMsg(d.total ? `downloading ${pct}% · ${mb.toFixed(1)} MB` : `downloading ${mb.toFixed(1)} MB`);
+  });
+  const r = await window.vj?.baixar?.(url, it.title, pastaFonte()).finally(() => solta?.());
+  if (!r?.path) { flashMsg('download failed: ' + (r?.error || 'unknown')); return null; }
 
   const dur = ((await window.vj?.probe?.(r.path).catch(() => null))?.dur as number) || it.dur;
   const local: Item = { ...it, kind: 'file', src: r.path, dur };
   const troca = (l: Item[]) => l.map(x => x.id === it.id ? { ...local, in: x.in, out: x.out } : x);
   s.set('lib', { V: troca(s.lib.V), C: troca(s.lib.C) });
   s.set('slots', s.slots.map(x => x && x.id === it.id ? { ...local, in: x.in, out: x.out } : x));
-  const agora = { ...s.now };
-  (['A', 'B', 'C', 'P'] as const).forEach(k => { if (agora[k]?.id === it.id) agora[k] = local; });
-  s.set('now', agora);
+
+  // O que já está no ar troca de fonte SOZINHO, no ponto em que estava: de fora
+  // parece que a rede simplesmente deixou de importar. Sem isto, o download só
+  // valeria para a próxima vez que o item fosse carregado.
+  const onde = (['A', 'B', 'C', 'P'] as const).filter(k => s.now[k]?.id === it.id);
+  for (const k of onde) {
+    const t = M.time(k === 'P' ? 'P' : k);
+    if (k === 'P') await cue({ ...local, in: it.in, out: it.out });
+    else await play(k, local, t);
+  }
+  if (onde.length) {
+    const poolN = s.slots.findIndex(x => x?.id === it.id);
+    if (poolN >= 0) poolAssign(poolN);
+  }
   s.save();
-  flashMsg(r.jaTinha ? 'already local' : 'downloaded');
+  flashMsg(r.jaTinha ? 'already in the library' : `local now — ${onde.length ? 'swapped live' : 'ready'}`);
   return r.path;
 }
 

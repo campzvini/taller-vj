@@ -844,6 +844,26 @@ async function selftest() {
                  bedLoop: !![...document.querySelectorAll('#foot button')].find(b => b.textContent === '⟲') };
       })()`);
 
+    // 7q) baixar com progresso, e FECHAR a janela no meio sem derrubar o main
+    result.download = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const url = 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4';
+        // um item do acervo já no ar: baixar tem de trocar a fonte sem parar a imagem
+        let ultimo = null, avisos = 0;
+        const solta = window.vj.onBaixando(d => { ultimo = d; avisos++; });
+        const r = await window.vj.baixar(url, 'selftest-download');
+        solta();
+        return { ok: !!r.path, erro: r.error || null, avisos,
+                 pct: ultimo && ultimo.total ? Math.round(ultimo.lido / ultimo.total * 100) : null,
+                 mb: ultimo ? +(ultimo.lido / 1048576).toFixed(1) : 0, fim: !!ultimo?.fim };
+      })()`);
+    if (result.download?.ok) {
+      const alvo = path.join(app.getPath('videos'), 'taller-vj', 'library');
+      const achou = fs.existsSync(alvo) && fs.readdirSync(alvo).filter(f => f.startsWith('selftest-download'));
+      result.download.arquivos = achou || [];
+      (achou || []).forEach(f => { try { fs.unlinkSync(path.join(alvo, f)); } catch { /* ignore */ } });
+    }
+
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();

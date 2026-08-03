@@ -28,6 +28,7 @@ export default function Cue() {
   const has = mk.in != null || mk.out != null;
   const addTo = (lane: 'V' | 'C') => { if (s.now.P) s.addTo(lane, s.now.P); };
   const [baixando, setBaixando] = useEstado(false);
+  const [pct, setPct] = useEstado(0);
   // só faz sentido para fonte remota: YouTube não entrega os bytes, local já está aqui
   const src = s.now.P?.src || '';
   const remoto = kindOf(s.now.P) === 'file' && (src.startsWith('archive:') || /^https?:/i.test(src));
@@ -87,11 +88,11 @@ export default function Cue() {
             <button className="mk" title="bring this file to the local library"
               disabled={baixando}
               onClick={async () => {
-                setBaixando(true);
-                const p = await baixar(s.now.P);
+                setBaixando(true); setPct(0);
+                const p = await baixar(s.now.P, n => setPct(n));
                 setBaixando(false);
                 if (p) cue({ ...s.now.P!, kind: 'file', src: p });
-              }}>{baixando ? '⤓ …' : '⤓ download'}</button>
+              }}>{baixando ? `⤓ ${pct || '…'}${pct ? '%' : ''}` : '⤓ download'}</button>
           )}
           <button className="mk" onClick={() => addTo('C')}>+ bed</button>
           <span className="fsep" />

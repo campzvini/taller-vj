@@ -31,8 +31,9 @@ declare global {
       openSession?(): Promise<{ path: string; data?: unknown; error?: string } | null>;
       ffmpeg?(args: string[]): Promise<{ ok: boolean; out?: string; err?: string }>;
       probe?(file: string): Promise<Record<string, unknown> | null>;
-      pickFiles?(): Promise<string[]>;
-      pickFolder?(): Promise<{ dir: string; files: string[] } | null>;
+      pickFiles?(dir?: string): Promise<string[]>;
+      pickFolder?(dir?: string): Promise<{ dir: string; files: string[] } | null>;
+      libDir?(): Promise<string>;
       thumb?(file: string, at?: number): Promise<string | null>;
       clip?(o: { file: string; start: number; end: number }): Promise<string | null>;
       toMp4?(src: string): Promise<string | null>;
@@ -41,7 +42,7 @@ declare global {
       recDir?(): Promise<string>;
       pickDir?(atual?: string): Promise<string | null>;
       reveal?(p: string): Promise<boolean>;
-      baixar?(url: string, nome?: string): Promise<{ path?: string; error?: string; jaTinha?: boolean }>;
+      baixar?(url: string, nome?: string, dir?: string): Promise<{ path?: string; error?: string; jaTinha?: boolean }>;
       onBaixando?(fn: (d: { url: string; lido: number; total: number; fim?: boolean }) => void): () => void;
     };
   }

@@ -311,6 +311,9 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .cor{width:20px;height:20px;padding:0;border-radius:3px;border:1px solid var(--line2)}
 .cor.on{box-shadow:0 0 0 2px var(--accb)}
 .libhd .dica{font-size:9px;color:var(--dim)}
+/* atalho impresso ao lado do controle: quem lê uma vez não pergunta de novo */
+.atalho{font-size:9px;color:var(--dim);border:1px solid var(--line2);border-radius:3px;
+  padding:1px 4px;text-transform:none;letter-spacing:0}
 
 /* ── § 15 — Modo palco ──
    Esconder sem redistribuir deixa buracos: aqui o monitor ocupa o que sobrou. */

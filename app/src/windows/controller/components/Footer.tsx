@@ -91,7 +91,9 @@ export default function Footer() {
         </div>
 
         <button className="tplay" onClick={() => toggle('C')}
-          title="play / pause the bed (V)">{M.state('C') === 1 ? '❚❚' : '▶'}</button>
+          title="play / pause the bed — shift+space (or V)">
+          {M.state('C') === 1 ? '❚❚' : '▶'}</button>
+        <span className="tag atalho">⇧space</span>
 
         <input type="range" id="bedtime" min={0} max={Math.max(1, Math.floor(dur))}
           value={Math.min(Math.floor(t), Math.max(1, Math.floor(dur)))}

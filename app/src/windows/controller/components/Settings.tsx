@@ -4,7 +4,7 @@
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../store';
 import { out } from '../../../out';
 import { checklist, pushAll, setPattern } from '../../../actions';
@@ -20,6 +20,8 @@ const GLFX_LABEL: Record<keyof typeof GLFX0, string> = {
 
 export default function Settings({ onClose }: { onClose: () => void }) {
   const s = useSession();
+  const [padrao, setPadrao] = useState('');
+  useEffect(() => { window.vj?.libDir?.().then(setPadrao).catch(() => { }); }, []);
   const box = useRef<HTMLDivElement>(null);
   const fechar = useCallback(() => onClose(), [onClose]);
   useClickOutside(true, fechar, [box]);
@@ -115,6 +117,22 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             <input type="number" min={1} max={8} value={s.poolSize} style={{ width: 48 }}
               onChange={e => { s.set('poolSize', Math.max(1, Math.min(8, +e.target.value || 4))); s.save(); }} />
           </div>
+        </div>
+
+        <div className="secao">
+          <div className="tag">library folder</div>
+          <span className="nota caminho" title={s.libDir || padrao}>{s.libDir || padrao || '…'}</span>
+          <div className="row">
+            <button onClick={async () => {
+              const d = await window.vj?.pickDir?.(s.libDir || padrao);
+              if (d) { s.set('libDir', d); s.save(); }
+            }}>choose folder</button>
+            <button onClick={() => window.vj?.reveal?.(s.libDir || padrao)}>open folder</button>
+            {!!s.libDir && (
+              <button className="mk" onClick={() => { s.set('libDir', ''); s.save(); }}>default</button>
+            )}
+          </div>
+          <p className="nota">Downloads land here, and the import dialogs open here.</p>
         </div>
 
         <div className="secao">

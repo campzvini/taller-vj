@@ -16,6 +16,8 @@ const ffprobe = require('ffprobe-static').path;
 
 const VIDEO_EXT = ['.mp4', '.webm', '.mkv', '.mov', '.avi', '.m4v', '.ogv'];
 const cacheDir = path.join(app.getPath('userData'), 'thumbs');
+// pasta-fonte do acervo: é para onde o download vai e onde os diálogos abrem
+const libPadrao = () => path.join(app.getPath('videos'), 'taller-vj', 'library');
 
 const run = (bin, args) => new Promise(resolve => {
   execFile(bin, args, { windowsHide: true, maxBuffer: 1 << 24 }, (err, stdout, stderr) => {
@@ -55,20 +57,28 @@ function register(getWindow) {
     return r.ok && fs.existsSync(dest) ? dest : null;
   });
 
-  ipcMain.handle('vj:pickFiles', async () => {
+  ipcMain.handle('vj:libDir', () => libPadrao());
+
+  ipcMain.handle('vj:pickFiles', async (_e, dir) => {
+    const inicio = dir || libPadrao();
+    fs.mkdirSync(inicio, { recursive: true });
     const { canceled, filePaths } = await dialog.showOpenDialog(getWindow(), {
-      title: 'Escolher vídeos', properties: ['openFile', 'multiSelections'],
+      title: 'Escolher vídeos', defaultPath: inicio,
+      properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Vídeo', extensions: VIDEO_EXT.map(e => e.slice(1)) }]
     });
     return canceled ? [] : filePaths;
   });
 
-  ipcMain.handle('vj:pickFolder', async () => {
+  ipcMain.handle('vj:pickFolder', async (_e, dir) => {
+    const inicio = dir || libPadrao();
+    fs.mkdirSync(inicio, { recursive: true });
     const { canceled, filePaths } = await dialog.showOpenDialog(getWindow(), {
-      title: 'Escolher pasta de catálogo', properties: ['openDirectory']
+      title: 'Escolher pasta de catálogo', defaultPath: inicio,
+      properties: ['openDirectory']
     });
     if (canceled || !filePaths?.length) return null;
-    const dir = filePaths[0];
+    const escolhida = filePaths[0];
     const files = [];
     const walk = d => {
       for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -77,8 +87,8 @@ function register(getWindow) {
         else if (VIDEO_EXT.includes(path.extname(e.name).toLowerCase())) files.push(p);
       }
     };
-    try { walk(dir); } catch { /* pasta ilegível */ }
-    return { dir, files };
+    try { walk(escolhida); } catch { /* pasta ilegível */ }
+    return { dir: escolhida, files };
   });
 
   // corta o trecho marcado e salva como clipe novo: garimpo vira acervo
@@ -106,8 +116,8 @@ function register(getWindow) {
   // ── § 2 — BAIXAR — streaming continua sendo o padrão; isto é o acervo ──
   // O Archive serve de um datacenter só e engasga ao vivo. Baixado, o item vira
   // arquivo local: seek instantâneo, shader, e nada de rede no meio da festa.
-  ipcMain.handle('vj:baixar', async (e, url, nome) => {
-    const dir = path.join(app.getPath('videos'), 'taller-vj', 'library');
+  ipcMain.handle('vj:baixar', async (e, url, nome, dir0) => {
+    const dir = dir0 || libPadrao();
     await fs.promises.mkdir(dir, { recursive: true });
     const limpo = String(nome || 'video').replace(/[^\w\-. ]/g, '_').slice(0, 80);
     const ext = (url.match(/\.(mp4|m4v|webm|ogv|mkv)(\?|$)/i) || [, 'mp4'])[1];
@@ -115,10 +125,19 @@ function register(getWindow) {
     if (fs.existsSync(destino)) return { path: destino, jaTinha: true };
 
     const parcial = destino + '.part';
+    // a janela pode morrer no meio do download: avisar um WebContents destruído
+    // derruba o processo principal inteiro, com caixa de erro na cara do operador
+    const avisa = d => { try { if (!e.sender.isDestroyed()) e.sender.send('vj:baixando', d); } catch { /* janela foi embora */ } };
+
+    let req = null;
+    const desistir = () => { try { req?.destroy(); } catch { /* ignore */ } };
+    e.sender.once('destroyed', desistir);
+
     return new Promise(resolve => {
+
       const puxa = (endereco, saltos = 0) => {
         if (saltos > 5) return resolve({ error: 'too many redirects' });
-        https.get(endereco, { headers: { 'user-agent': app.userAgentFallback } }, res => {
+        req = https.get(endereco, { headers: { 'user-agent': app.userAgentFallback } }, res => {
           if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
             res.resume();
             return puxa(new URL(res.headers.location, endereco).href, saltos + 1);
@@ -130,21 +149,30 @@ function register(getWindow) {
           res.on('data', c => {
             lido += c.length;
             const agora = Date.now();
-            if (agora - ultimo > 400) {          // progresso sem inundar o bus
-              ultimo = agora;
-              e.sender.send('vj:baixando', { url, lido, total });
-            }
+            if (agora - ultimo > 300) { ultimo = agora; avisa({ url, lido, total }); }
           });
+          res.on('error', err => resolve({ error: String(err.message || err) }));
           res.pipe(arquivo);
-          arquivo.on('finish', () => arquivo.close(() => {
-            fs.renameSync(parcial, destino);
-            e.sender.send('vj:baixando', { url, lido, total, fim: true });
-            resolve({ path: destino });
-          }));
-          arquivo.on('error', err => resolve({ error: String(err) }));
-        }).on('error', err => resolve({ error: String(err) }));
+          // No Windows o handle às vezes demora um instante para soltar depois do
+          // close, e o rename falha. Silenciar isso deixava um .part no disco e
+          // devolvia um caminho que não existe.
+          const encerra = (tentativa = 0) => {
+            try {
+              fs.renameSync(parcial, destino);
+              avisa({ url, lido, total, fim: true });
+              resolve({ path: destino, bytes: lido });
+            } catch (err) {
+              if (tentativa < 5) return setTimeout(() => encerra(tentativa + 1), 250);
+              resolve({ error: 'could not finish the file: ' + (err.message || err) });
+            }
+          };
+          arquivo.on('finish', () => arquivo.close(() => encerra()));
+          arquivo.on('error', err => resolve({ error: String(err.message || err) }));
+        }).on('error', err => resolve({ error: String(err.message || err) }));
       };
       puxa(url);
+    }).finally(() => {
+      try { e.sender.off('destroyed', desistir); } catch { /* janela já foi */ }
     });
   });
 }

@@ -64,7 +64,7 @@ export type Session = {
 
   // configurações
   engine: 'dom' | 'gl'; glfx: Record<Deck, GlFx>;
-  monQuality: string; poolSize: number;
+  monQuality: string; poolSize: number; libDir: string;
 
   // texto na projeção
   txt: string; txtOn: boolean; txtSize: number; txtCor: string;
@@ -118,6 +118,7 @@ export const useSession = create<Session>((set, get) => ({
   glfx: LS('vj.glfx', { A: { ...GLFX0 }, B: { ...GLFX0 } }),
   monQuality: localStorage.getItem('vj.monq') || 'small',
   poolSize: LS('vj.poolSize', 4),
+  libDir: localStorage.getItem('vj.libDir') || '',   // vazio = Vídeos/taller-vj/library
 
   txt: localStorage.getItem('vj.txt') || '', txtOn: false,
   txtSize: LS('vj.txtSize', 8), txtCor: localStorage.getItem('vj.txtCor') || '#ffffff',
@@ -158,6 +159,7 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.glfx', JSON.stringify(s.glfx));
     localStorage.setItem('vj.monq', s.monQuality);
     localStorage.setItem('vj.poolSize', JSON.stringify(s.poolSize));
+    localStorage.setItem('vj.libDir', s.libDir);
     localStorage.setItem('vj.cenas', JSON.stringify(s.cenas));
     localStorage.setItem('vj.cenaFade', JSON.stringify(s.cenaFade));
     localStorage.setItem('vj.recAlvo', s.recAlvo);
