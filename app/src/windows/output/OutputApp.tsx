@@ -71,6 +71,11 @@ export default function OutputApp() {
         const c = el('gl' + d) as HTMLCanvasElement;
         const layer = new GlLayer(c);
         layer.attach(vid(d));
+        // fonte que o shader não pode ler devolve a camada ao DOM sem apagar a imagem
+        layer.onFalha = motivo => {
+          console.warn('[vj] deck', d, 'sem shader:', motivo);
+          pintaEngine(d);
+        };
         layer.start();
         gl[d] = layer;
         return layer;

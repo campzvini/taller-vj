@@ -106,6 +106,8 @@ export class GlLayer {
   private src: HTMLVideoElement | null = null;
   fx: GlFx = { ...GLFX0 };
   ok = false;
+  erro: string | null = null;
+  onFalha: ((motivo: string) => void) | null = null;
   frames = 0;          // diagnóstico: quantos quadros já foram desenhados
   brilho = 0;          // média do quadro, amostrada do FBO (que persiste)
 
@@ -182,7 +184,15 @@ export class GlLayer {
 
       gl.bindTexture(gl.TEXTURE_2D, this.texVideo);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v);
+      // fonte remota sem CORS (Archive é assim) contamina a tela: o shader não a
+      // alcança. Em vez de piscar preto, a camada se declara incapaz e volta ao DOM.
+      try {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v);
+      } catch (e) {
+        this.ok = false; this.erro = String((e as Error)?.name || e);
+        this.stop(); this.onFalha?.(this.erro);
+        return;
+      }
 
       gl.useProgram(this.prog);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.texVideo);

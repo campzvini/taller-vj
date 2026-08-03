@@ -670,6 +670,22 @@ async function selftest() {
     result.bedTimeline = await controller.webContents.executeJavaScript(
       `!!document.getElementById('bedtime')`);
 
+    // as duas fontes na saída AO MESMO TEMPO: YouTube num deck, Archive no outro
+    if (result.archive?.url) {
+      result.mistura = await output.webContents.executeJavaScript(`
+        (async () => {
+          VJ.load('A', 'jNQXAC9IVRw');
+          VJ.loadFile('B', ${JSON.stringify(result.archive.url)});
+          await new Promise(r => setTimeout(r, 9000));
+          return {
+            kindA: VJ.kind('A'), kindB: VJ.kind('B'),
+            estadoA: VJ.state('A'), estadoB: VJ.state('B'),
+            tA: +VJ.time('A').toFixed(1), tB: +VJ.time('B').toFixed(1),
+            erroB: document.getElementById('vidBout').error?.code || null
+          };
+        })()`);
+    }
+
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();

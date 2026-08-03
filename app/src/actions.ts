@@ -31,6 +31,15 @@ async function resolvido(it: Item): Promise<Item | null> {
   return pronto;
 }
 
+/** ÚNICO lugar que decide como um item vira comando de carga para a saída.
+ *  Existir duas vezes foi o que fez o Archive cair no player do YouTube. */
+function mandaFonte(d: Deck, it: Item) {
+  if (kindOf(it) === 'file' && it.src) {
+    send({ c: 'load', deck: d, id: it.id, kind: 'file', src: srcUrl(it.src) });
+  } else if (it.plist) out.loadList(d, it.plist);
+  else out.load(d, it.id);
+}
+
 export async function play(lane: Lane, item: Item | null, at = 0) {
   if (!item) return;
   const it = await resolvido(item);
@@ -47,12 +56,10 @@ export async function play(lane: Lane, item: Item | null, at = 0) {
     return;
   }
   const d = lane as Deck;
-  const arquivo = kindOf(it) === 'file' && it.src;
+  const arquivo = arquivoLocal;
 
   if (outLive()) {
-    if (arquivo) send({ c: 'load', deck: d, id: it.id, kind: 'file', src: srcUrl(it.src!) });
-    else if (it.plist) out.loadList(d, it.plist);
-    else out.load(d, it.id);
+    mandaFonte(d, it);
     out.present(d, true);
     if (at > 1) setTimeout(() => out.seek(d, at), arquivo ? 300 : 900);
   }
@@ -272,16 +279,21 @@ export function applyAudio() {
    A saída pode nascer depois do controlador; quando ela se anuncia, o estado
    inteiro é reenviado. Mora aqui, e não no componente, porque a configuração
    também precisa chamar isto ao carregar uma sessão.                          */
-export function pushAll() {
+export async function pushAll() {
   const v = S();
   out.frame(v.ar); out.loop(v.loop); out.cc(v.cc);
   out.smooth(v.smooth); out.blend(v.blend);
-  (['A', 'B'] as Deck[]).forEach(d => {
+  for (const d of ['A', 'B'] as Deck[]) {
     out.opacity(d, v.op[d] / 100);
     out.zoomCh(d, +(v.zoom[d] / 100).toFixed(3));
     out.present(d, !!v.now[d]);
-    if (v.now[d]) out.load(d, v.now[d]!.id);
-  });
+    // a saída quase sempre nasce DEPOIS dos decks: este é o caminho normal de
+    // carga, e ele precisa saber a fonte tanto quanto o play() sabe
+    if (v.now[d]) {
+      const it = await resolvido(v.now[d]!);
+      if (it) { S().set('now', { ...S().now, [d]: it } as never); mandaFonte(d, it); }
+    }
+  }
   out.xf(v.xf);
   (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
   out.engine(v.engine);
