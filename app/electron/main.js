@@ -334,6 +334,44 @@ async function diagnostico() {
       `[...document.querySelectorAll('#bar button')].find(b => b.textContent === 'browse')?.click()`);
     await wait(1500);
     r.pngBrowse = await tira('browse');
+
+    // o cartão do garimpo precisa carregar de verdade: cue e deck
+    r.garimpo = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const b = document.querySelector('.browser');
+        if (!b) return { erro: 'coluna fechada' };
+        const põe = (el, v) => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const sel = b.querySelectorAll('select')[0];
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(sel, 'ia');
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 400));
+        // sem título: só a coleção
+        const col = b.querySelectorAll('select')[1];
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(col, 'prelinger');
+        col.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 300));
+        [...b.querySelectorAll('button')].find(x => x.textContent === 'Search').click();
+        await new Promise(r => setTimeout(r, 6000));
+        const cartoes = b.querySelectorAll('.cartao').length;
+        const alturas = [...b.querySelectorAll('.cartao')].slice(0, 3)
+          .map(e => Math.round(e.getBoundingClientRect().height));
+        if (!cartoes) return { cartoes, alturas, erro: 'sem resultado' };
+        const primeiro = b.querySelector('.cartao .tit')?.textContent?.slice(0, 24);
+        [...b.querySelectorAll('.cartao')][0].querySelector('button').click();   // cue
+        await new Promise(r => setTimeout(r, 6000));
+        const noCue = document.querySelector('.cuemod .now')?.textContent?.slice(0, 24) || '';
+        [...b.querySelectorAll('.cartao')][0].querySelectorAll('button')[1].click(); // -> A
+        await new Promise(r => setTimeout(r, 6000));
+        const noDeckA = document.querySelectorAll('.hd .now')[0]?.textContent?.slice(0, 24) || '';
+        const vidA = document.getElementById('vidAmon');
+        return { cartoes, alturas, primeiro, noCue, noDeckA,
+                 deckTocando: vidA ? !vidA.paused : null,
+                 deckSrc: (vidA?.currentSrc || '').slice(0, 40) };
+      })()`);
+    r.pngGarimpo = await tira('garimpo');
   } catch (e) { r.error = String(e); }
   console.log('DIAG ' + JSON.stringify(r));
   app.exit(0);

@@ -44,14 +44,22 @@ export const ORDENS: [string, string][] = [
 
 export type ArchiveOpts = {
   colecao?: string; ordem?: string; anoDe?: string; anoAte?: string;
+  criador?: string; assunto?: string;
   soMp4?: boolean; pagina?: number; linhas?: number;
 };
 
 export async function buscaArchive(q: string, o: ArchiveOpts = {}): Promise<ArchiveOut> {
   const termo = q.trim();
-  if (!termo) return { items: [] };
   const linhas = o.linhas || 30;
-  const partes = [`(${termo})`, 'mediatype:(movies)'];
+  // sem título também é busca: no Archive os campos de catalogação (coleção, ano,
+  // criador) filtram sozinhos, e é assim que se garimpa um acervo desse tamanho
+  const partes = ['mediatype:(movies)'];
+  if (termo) partes.unshift(`(${termo})`);
+  if (o.criador) partes.push(`creator:(${o.criador})`);
+  if (o.assunto) partes.push(`subject:(${o.assunto})`);
+  if (!termo && !o.colecao && !o.criador && !o.assunto && !o.anoDe && !o.anoAte) {
+    return { items: [], error: 'set a term or at least one filter' };
+  }
   if (o.colecao) partes.push(`collection:(${o.colecao})`);
   if (o.anoDe || o.anoAte) partes.push(`year:[${o.anoDe || '1800'} TO ${o.anoAte || '2100'}]`);
   // sem derivado MP4 o item só se revela intocável DEPOIS de ir para o deck

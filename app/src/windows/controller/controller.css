@@ -286,21 +286,27 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .browser{background:#0c0c11;border:1px solid var(--line);border-radius:var(--r);
   padding:var(--pad);min-width:0;overflow:hidden;gap:var(--gap)}
 .browser .hd{background:none;border:0;padding:0 0 4px}
-.grade{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:7px;
+.grade{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;
   padding-right:2px}
+/* flex-shrink é o inimigo aqui: sem isto os cartões viram fatias de 15px */
+.grade>*{flex:0 0 auto}
 .cartao{background:var(--card);border:1px solid var(--line);border-radius:4px;
   overflow:hidden;cursor:grab}
 .cartao:hover{border-color:var(--accb)}
-.capa2{position:relative;aspect-ratio:16/9;background:#000}
+.cartao .linha{display:flex;gap:7px;padding:5px}
+.capa2{position:relative;width:108px;height:61px;flex:0 0 auto;background:#000;border-radius:3px;
+  overflow:hidden}
 .capa2 img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-.dursel{position:absolute;right:4px;bottom:4px;background:#000c;color:#fff;font-size:10px;
-  padding:1px 4px;border-radius:3px;font-variant-numeric:tabular-nums}
-.fontesel{position:absolute;left:4px;top:4px;background:var(--ok);color:#04240f;
+.dursel{position:absolute;right:3px;bottom:3px;background:#000d;color:#fff;font-size:10px;
+  padding:0 4px;border-radius:3px;font-variant-numeric:tabular-nums}
+.fontesel{position:absolute;left:3px;top:3px;background:var(--ok);color:#04240f;
   font-size:9px;font-weight:700;padding:0 4px;border-radius:3px}
-.meta{padding:4px 6px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.meta .tit{font-size:11px;line-height:1.3;max-height:29px;overflow:hidden}
+.meta{display:flex;flex-direction:column;gap:3px;min-width:0;justify-content:center;flex:1}
+.meta .tit{font-size:11px;line-height:1.3;max-height:43px;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .meta .sub{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.acoes{padding:0 5px 5px;gap:4px}
+.acoes{padding:0 5px 5px;gap:3px;flex-wrap:nowrap}
+.acoes .mk{padding:2px 6px;font-size:10px}
 .maisbtn{margin:4px auto 12px;padding:5px 14px}
 
 /* ── § 15 — Modo palco ──

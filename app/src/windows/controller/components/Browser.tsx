@@ -118,14 +118,21 @@ export default function Browser() {
             </div>
             <div className="row">
               <span className="tag">years</span>
-              <input value={ia.anoDe || ''} placeholder="from" style={{ width: 52 }}
+              <input value={ia.anoDe || ''} placeholder="from" style={{ width: 54 }}
                 onChange={e => setIa({ ...ia, anoDe: e.target.value })} />
-              <input value={ia.anoAte || ''} placeholder="to" style={{ width: 52 }}
+              <input value={ia.anoAte || ''} placeholder="to" style={{ width: 54 }}
                 onChange={e => setIa({ ...ia, anoAte: e.target.value })} />
               <button className={'tgl' + (ia.soMp4 !== false ? ' on' : '')}
                 title="only items that have an MP4 derivative"
-                onClick={() => setIa({ ...ia, soMp4: ia.soMp4 === false })}>MP4 only</button>
+                onClick={() => setIa({ ...ia, soMp4: ia.soMp4 === false })}>MP4</button>
             </div>
+            <div className="row">
+              <input value={ia.criador || ''} placeholder="creator" style={{ flex: 1, minWidth: 80 }}
+                onChange={e => setIa({ ...ia, criador: e.target.value })} />
+              <input value={ia.assunto || ''} placeholder="subject" style={{ flex: 1, minWidth: 80 }}
+                onChange={e => setIa({ ...ia, assunto: e.target.value })} />
+            </div>
+            <p className="nota">Filters alone are enough — no title needed.</p>
           </>
         )}
         {!!aviso && <p className="nota alerta">{aviso}</p>}
@@ -134,27 +141,33 @@ export default function Browser() {
       <div className="grade">
         {!itens.length && <div className="empty">search to fill this column</div>}
         {itens.map((it, i) => (
-          <div className="cartao" key={it.id + i} draggable onDragStart={e => arrastar(e, it)}>
-            <div className="capa2">
-              {it.thumb ? <img src={it.thumb} alt="" loading="lazy" /> : <div className="noimg" />}
-              {!!it.dur && <span className="dursel">{fmt(it.dur)}</span>}
-              {it.kind === 'file' && <span className="fontesel">IA</span>}
-            </div>
-            <div className="meta">
-              <span className="tit" title={it.title}>{it.title}</span>
-              <span className="sub">
-                {[it.canal, it.ano, it.views ? curto(it.views) + (it.kind === 'file' ? ' dl' : ' views') : '']
-                  .filter(Boolean).join(' · ')}
-              </span>
+          <div className="cartao" key={it.id + i} draggable onDragStart={e => arrastar(e, it)}
+            onDoubleClick={() => cue(it)} title={it.title}>
+            <div className="linha">
+              <div className="capa2">
+                {it.thumb ? <img src={it.thumb} alt="" loading="lazy" /> : <div className="noimg" />}
+                {!!it.dur && <span className="dursel">{fmt(it.dur)}</span>}
+                {it.kind === 'file' && <span className="fontesel">IA</span>}
+              </div>
+              <div className="meta">
+                <span className="tit">{it.title}</span>
+                <span className="sub">
+                  {[it.canal, it.ano, it.views ? curto(it.views) + (it.kind === 'file' ? ' dl' : ' views') : '']
+                    .filter(Boolean).join(' · ')}
+                </span>
+              </div>
             </div>
             <div className="row acoes">
               <button className="mk" onClick={() => cue(it)}>cue</button>
               <button className="mk" onClick={() => play('A', it)}>→ A</button>
               <button className="mk" onClick={() => play('B', it)}>→ B</button>
+              <div style={{ flex: 1 }} />
               <button className="mk" title="add to library A"
-                onClick={() => { s.addTo('A', it) && flashMsg('→ A'); }}>+A</button>
+                onClick={() => { if (s.addTo('A', it)) flashMsg('→ A'); }}>+A</button>
               <button className="mk" title="add to library B"
-                onClick={() => { s.addTo('B', it) && flashMsg('→ B'); }}>+B</button>
+                onClick={() => { if (s.addTo('B', it)) flashMsg('→ B'); }}>+B</button>
+              <button className="mk" title="add to bed C"
+                onClick={() => { if (s.addTo('C', it)) flashMsg('→ bed'); }}>+C</button>
             </div>
           </div>
         ))}
