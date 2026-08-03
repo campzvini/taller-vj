@@ -18,8 +18,11 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);
   font:12px/1.4 "Segoe UI",system-ui,sans-serif;height:100vh;overflow:hidden;user-select:none}
-/* minmax(0,…): sem isto o conteúdo alto empurra o rodapé para fora da janela */
-#root{height:100vh;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto}
+/* Coluna flex, não grid: com faixas de grade o miolo já foi parar na faixa errada
+   e sobrou meia tela preta embaixo. Aqui só o miolo cresce, e ele nunca empurra
+   o rodapé para fora porque min-height:0 permite que ele encolha. */
+#root{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#bar,#searchwrap,#foot{flex:0 0 auto}
 
 button,select,input{background:#1e1e26;color:var(--txt);border:1px solid var(--line2);
   font:inherit;border-radius:4px;padding:4px 8px}
@@ -85,8 +88,8 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .moretxt{color:var(--accb);font-size:10px;text-align:center}
 
 /* ── § 3 — Colunas ── */
-#main{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px;
-  min-height:0;overflow:hidden}
+#main{flex:1 1 auto;min-height:0;overflow:hidden;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px}
 #main.combrowser{grid-template-columns:300px 1fr 1fr 1fr}
 .col{display:flex;flex-direction:column;gap:var(--gap);min-height:0;min-width:0}
 .col.drop{outline:2px dashed var(--accb);outline-offset:3px;border-radius:var(--r)}

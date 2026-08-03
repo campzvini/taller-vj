@@ -94,16 +94,32 @@ function fixUserAgent() {
 }
 
 function makeController() {
+  // Nasce JÁ do tamanho da área de trabalho. maximize() antes de mostrar é
+  // instável em janela com barra de título própria no Windows: às vezes ela
+  // "maximiza" para o tamanho restaurado anterior e sobra desktop embaixo.
+  const wa = screen.getPrimaryDisplay().workArea;
   controller = new BrowserWindow({
-    width: 1440, height: 900, backgroundColor: '#0a0a0c', title: 'Taller VJ',
-    show: false,   // evita o piscar de janela pequena antes de maximizar
+    x: wa.x, y: wa.y, width: wa.width, height: wa.height,
+    minWidth: 1100, minHeight: 700,
+    backgroundColor: '#0a0a0c', title: 'Taller VJ',
+    show: false,   // evita o piscar de janela pequena antes de assentar
     // a barra do app É a barra de título: o chrome do sistema vira parte da interface
     titleBarStyle: 'hidden',
     titleBarOverlay: { color: '#131318', symbolColor: '#d8d8e0', height: 32 },
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
   });
-  controller.maximize();
-  controller.show();
+  controller.once('ready-to-show', () => {
+    controller.show();
+    controller.maximize();
+    // maximize é assíncrono no Windows: confere depois e força se não colou
+    const confere = () => {
+      const b = controller.getBounds();
+      if (b.height < wa.height - 8 || b.width < wa.width - 8) controller.setBounds(wa);
+    };
+    confere();
+    setTimeout(confere, 150);
+    setTimeout(confere, 600);
+  });
   controller.loadURL(`${origin}/controller.html`);
   // o controlador é a janela mestra: fechar ele encerra tudo que estiver aberto
   controller.on('closed', () => {
@@ -249,11 +265,21 @@ async function diagnostico() {
       root: info('#root'), bar: info('#bar'), main: info('#main'),
       colA: info('#main > .col'), cards: document.querySelectorAll('.card').length,
       zonas: document.querySelectorAll('.zona').length,
-      transport: info('.transport'), foot: info('#foot'), lib: info('.lib')
+      transport: info('.transport'), foot: info('#foot'), lib: info('.lib'),
+      rows: getComputedStyle(document.getElementById('root')).gridTemplateRows,
+      filhos: [...document.getElementById('root').children].map(e => {
+        const r = e.getBoundingClientRect(); const c = getComputedStyle(e);
+        return (e.id || e.className) + ' top:' + Math.round(r.top) + ' h:' + Math.round(r.height) +
+          ' row:' + c.gridRowStart + ' pos:' + c.position;
+      }),
+      vh: innerHeight, bodyH: Math.round(document.body.getBoundingClientRect().height)
     };
   })()`;
   const r = {};
   try {
+    const wa = screen.getPrimaryDisplay().workArea;
+    r.janela = { bounds: controller.getBounds(), areaTrabalho: wa,
+                 maximizada: controller.isMaximized() };
     // sem conteúdo a tela mente: semeamos biblioteca e slots antes de olhar
     const it = (id, t) => ({ id, title: t, thumb: 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg' });
     const semente = JSON.stringify([
