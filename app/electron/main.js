@@ -12,6 +12,7 @@ const os = require('os');
 
 const ROOT = path.join(__dirname, '..', 'dist');
 const SELFTEST = process.argv.includes('--selftest');
+const DIAG = process.argv.includes('--diag');   // abre só o controlador e conta a tela
 const DEV = process.argv.includes('--dev');
 const DEV_URL = 'http://localhost:5273';
 // partição sem 'persist:' vive em memória: o autoteste começa sempre do zero,
@@ -225,6 +226,53 @@ ipcMain.handle('vj:checklist', () => ({
 
 // ── § 3 — SELF TEST — proves the three unknowns without a human watching ──
 const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// Censo da tela em dois momentos: o que existe, o que tem tamanho, e o que
+// estourou. Serve para bug que aparece SEM interação nenhuma.
+async function diagnostico() {
+  const censo = `(() => {
+    const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const info = sel => {
+      const el = document.querySelector(sel);
+      if (!el) return 'ausente';
+      const c = getComputedStyle(el), r = el.getBoundingClientRect();
+      return Math.round(r.width) + 'x' + Math.round(r.height) +
+        ' ' + c.display + '/' + c.visibility + ' op' + c.opacity;
+    };
+    return {
+      erros: window.__erros || [],
+      html: document.body.innerHTML.length,
+      nos: document.querySelectorAll('*').length,
+      visiveis: [...document.querySelectorAll('button')].filter(vis).length,
+      botoes: document.querySelectorAll('button').length,
+      body: document.body.className,
+      root: info('#root'), bar: info('#bar'), main: info('#main'),
+      colA: info('#main > .col'), cards: document.querySelectorAll('.card').length,
+      zonas: document.querySelectorAll('.zona').length,
+      transport: info('.transport'), foot: info('#foot'), lib: info('.lib')
+    };
+  })()`;
+  const r = {};
+  try {
+    await controller.webContents.executeJavaScript(
+      `window.__erros = []; addEventListener('error', e => window.__erros.push(String(e.message)));
+       addEventListener('unhandledrejection', e => window.__erros.push('rej: ' + String(e.reason)));`);
+    const tira = async nome => {
+      const img = await controller.capturePage();
+      const p = path.join(os.tmpdir(), 'vj-diag-' + nome + '.png');
+      await fs.promises.writeFile(p, img.toPNG());
+      return p;
+    };
+    await wait(4000);
+    r.aos4s = await controller.webContents.executeJavaScript(censo);
+    r.png4s = await tira('4s');
+    await wait(11000);
+    r.aos15s = await controller.webContents.executeJavaScript(censo);
+    r.png15s = await tira('15s');
+  } catch (e) { r.error = String(e); }
+  console.log('DIAG ' + JSON.stringify(r));
+  app.exit(0);
+}
 
 async function selftest() {
   const result = { origin, displays: screen.getAllDisplays().length };
@@ -583,7 +631,12 @@ async function selftest() {
       bedTemVideo: !!document.getElementById('vidCout'),
       semControlesNativos: [...document.querySelectorAll('#monA iframe, #ytwrapP iframe')]
         .every(f => /controls=0/.test(f.src)),
-      videoSemControles: ![...document.querySelectorAll('video')].some(v => v.controls)
+      videoSemControles: ![...document.querySelectorAll('video')].some(v => v.controls),
+      // guarda de regressão: filho absoluto sem ancestral posicionado escapa para o
+      // viewport e cobre a janela inteira — foi o que apagou a interface uma vez
+      escapou: [...document.querySelectorAll('.srcwrap, .capa, .srcvid')]
+        .filter(e => e.getBoundingClientRect().width > innerWidth * 0.9)
+        .map(e => e.className + '@' + (e.parentElement?.id || e.parentElement?.className))
     })`);
 
     // sample com ARQUIVO: o pool deixa de ser exclusivo do YouTube
@@ -640,8 +693,9 @@ app.whenReady().then(async () => {
   require('./media').register(() => controller);
   await serve();
   makeController();
-  makeOutput();
-  if (SELFTEST) selftest();
+  // a saída é um ato do operador: abrir projeção sozinha rouba o foco e assusta
+  if (SELFTEST) { makeOutput(); selftest(); }
+  if (DIAG) diagnostico();
 });
 // no selftest quem decide a hora de sair é a própria rotina, depois de imprimir
 app.on('window-all-closed', () => { if (!SELFTEST) app.quit(); });

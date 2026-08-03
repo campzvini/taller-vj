@@ -124,9 +124,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .noimg{width:46px;height:26px;background:#1b1b24;border-radius:2px;flex:0 0 auto}
 
 /* ── § 5 — Centre ── */
-/* mesma proporção dos decks: o cue é um player irmão, não um acessório */
+/* mesma proporção dos decks: o cue é um player irmão, não um acessório.
+   position:relative é OBRIGATÓRIO: sem ele o .srcwrap de dentro se ancora no
+   viewport e o iframe cobre a janela inteira de preto. */
 #cue{background:#000;border:1px solid var(--accb);aspect-ratio:var(--ar,16/9);
-  overflow:hidden;flex:0 0 auto}
+  overflow:hidden;flex:0 0 auto;position:relative}
 #cue.over{border-color:var(--ok)}
 #cue iframe{width:100%;height:100%;border:0}
 #xfbox{background:#191922;border:1px solid var(--accb);border-radius:4px;padding:6px;
