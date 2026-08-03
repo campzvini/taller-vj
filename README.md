@@ -165,9 +165,10 @@ cd app && npm install && npm start
 downloads, saves a scene and reports what it found. It also writes
 `%TEMP%/taller-vj-selftest.json`, which is how a packaged build gets checked.
 
-Stack: Electron, React, TypeScript, Vite, Zustand. Architecture notes for anyone (or any
-agent) working on the code live in [AGENTS.md](AGENTS.md); the visual identity, palette and
-symbol set are documented in [brand/README.md](brand/README.md).
+Stack: Electron, React, TypeScript, Vite, Zustand. Every source file opens with a header
+and is divided into numbered `§` chapters, so `grep "§"` on a file returns its table of
+contents before you read a line of it. The visual identity, palette and symbol set are
+documented in [brand/README.md](brand/README.md).
 
 ## Legacy
 
