@@ -85,17 +85,20 @@ export default function ControllerApp() {
 
       <div id="main">
         <Deck side="A" />
+        {/* o cue fica parado como os decks; a rolagem começa nos samples */}
         <div className="col midcol">
           <Cue />
-          <Slots />
-          <Mixer />
-          <Zona id="cenas" titulo="scenes" some
-            resumo={s.cenas.length ? s.cenas.length + ' saved' : ''}>
-            <Scenes />
-          </Zona>
-          <Zona id="mod" titulo="tempo &amp; modulation" resumo={resumoMod}>
-            <ModPanel />
-          </Zona>
+          <div className="midscroll">
+            <Slots />
+            <Mixer />
+            <Zona id="cenas" titulo="scenes" some
+              resumo={s.cenas.length ? s.cenas.length + ' saved' : ''}>
+              <Scenes />
+            </Zona>
+            <Zona id="mod" titulo="tempo &amp; modulation" resumo={resumoMod}>
+              <ModPanel />
+            </Zona>
+          </div>
         </div>
         <Deck side="B" />
       </div>

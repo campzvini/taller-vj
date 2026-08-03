@@ -19,11 +19,21 @@ const BUSKEY: Record<string, FxBus> = { z: 'A', x: 'B', c: 'M' };
 export function useKeyboard() {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
-        if (e.key === 'Escape') (e.target as HTMLElement).blur();
+      // Só campo de TEXTO engole as teclas. Antes qualquer input engolia — e como
+      // o foco fica no slider depois de um arraste, a mesa inteira parava de
+      // responder às teclas sem nenhum sinal na tela.
+      const alvo = e.target as HTMLElement;
+      const tag = alvo?.tagName;
+      const tipo = (alvo as HTMLInputElement)?.type;
+      const texto = tag === 'TEXTAREA' || alvo?.isContentEditable ||
+        (tag === 'INPUT' && ['text', 'password', 'search', 'email', 'url', 'number'].includes(tipo));
+      if (texto) {
+        if (e.key === 'Escape') alvo.blur();
         return;
       }
+      // slider com foco moveria sozinho junto com o comando: solta o foco.
+      // select continua navegável por teclado, que é comportamento legítimo.
+      if (tag === 'INPUT' && tipo === 'range') alvo.blur();
       const s = useSession.getState();
       const k = e.key, kl = k.toLowerCase();
 
@@ -53,11 +63,12 @@ export function useKeyboard() {
       if (k === 'Tab') { e.preventDefault(); s.set('armed', s.armed === 'A' ? 'B' : 'A'); return; }
       if (k === ' ') { e.preventDefault(); toggle(s.armed); return; }
       if (k === 'ArrowRight' || k === 'ArrowLeft') {
+        e.preventDefault();
         applyXf(Math.max(0, Math.min(100, s.xf + (k === 'ArrowRight' ? 6 : -6))));
         return;
       }
-      if (k === 'Home') { applyXf(0); return; }
-      if (k === 'End') { applyXf(100); return; }
+      if (k === 'Home') { e.preventDefault(); applyXf(0); return; }
+      if (k === 'End') { e.preventDefault(); applyXf(100); return; }
       if (BUSKEY[kl]) { s.set('bus', BUSKEY[kl]); return; }
       if (FXKEY[kl]) { toggleFx(s.bus, FXKEY[kl]); return; }
       if (kl === 'o') { window.vj?.openOutput(); return; }

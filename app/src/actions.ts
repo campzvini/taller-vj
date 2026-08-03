@@ -178,7 +178,10 @@ export function assignSlot(n: number) {
 }
 export function holdOn(n: number) {
   const s = S();
-  if (!outLive() || !s.slots[n] || s.held[n]) return;
+  if (s.held[n]) return;
+  if (!s.slots[n]) return;
+  // silêncio aqui custou caro: o sample vive na SAÍDA, sem ela não há o que disparar
+  if (!outLive()) { flashMsg('samples need the output window — press O'); return; }
   const i = s.poolOf[n];
   if (i == null) { poolAssign(n); flashMsg('slot ' + n + ' loading — press again'); return; }
   s.set('held', { ...s.held, [n]: true });

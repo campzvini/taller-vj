@@ -511,6 +511,25 @@ async function selftest() {
     result.modDepois = await output.webContents.executeJavaScript(
       `document.getElementById('pgB').style.opacity`);
 
+    // 7n) teclas de performance continuam vivas com o foco num slider — foi o que
+    //     matou o disparo dos samples: qualquer input engolia as teclas
+    result.teclas = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const põe = (el, v) => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const xf = document.getElementById('xf');
+        põe(xf, 50);
+        await new Promise(r => setTimeout(r, 200));
+        xf.focus();
+        const focado = document.activeElement === xf;
+        // a tecla nasce NO slider, como acontece depois de qualquer arraste
+        xf.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        await new Promise(r => setTimeout(r, 300));
+        return { focado, antes: 50, depois: +xf.value, soltouFoco: document.activeElement !== xf };
+      })()`);
+
     // 7i) fase 6: a cena guarda a mistura e a devolve inteira quando chamada
     result.cena = await controller.webContents.executeJavaScript(`
       (async () => {
