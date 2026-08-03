@@ -18,26 +18,66 @@ export const ehArchive = (src?: string) => !!src?.startsWith('archive:');
 
 export type ArchiveOut = { items: Item[]; error?: string; temMais?: boolean };
 
-export async function buscaArchive(q: string, pagina = 1, linhas = 24): Promise<ArchiveOut> {
+/** Coleção no Archive equivale a curadoria: é o filtro que mais muda o resultado. */
+export const COLECOES: [string, string][] = [
+  ['', 'any collection'],
+  ['prelinger', 'Prelinger (ephemeral film)'],
+  ['feature_films', 'feature films'],
+  ['animationandcartoons', 'animation & cartoons'],
+  ['classic_tv', 'classic TV'],
+  ['artsandmusicvideos', 'arts & music'],
+  ['newsandpublicaffairs', 'news & public affairs'],
+  ['home_movies', 'home movies'],
+  ['avgeeks', 'AV Geeks'],
+  ['sciencefiction', 'science fiction'],
+  ['moviesandfilms', 'all movies']
+];
+
+export const ORDENS: [string, string][] = [
+  ['downloads desc', 'most downloaded'],
+  ['', 'relevance'],
+  ['addeddate desc', 'recently added'],
+  ['date desc', 'newest'],
+  ['date asc', 'oldest'],
+  ['week desc', 'popular this week']
+];
+
+export type ArchiveOpts = {
+  colecao?: string; ordem?: string; anoDe?: string; anoAte?: string;
+  soMp4?: boolean; pagina?: number; linhas?: number;
+};
+
+export async function buscaArchive(q: string, o: ArchiveOpts = {}): Promise<ArchiveOut> {
   const termo = q.trim();
   if (!termo) return { items: [] };
+  const linhas = o.linhas || 30;
+  const partes = [`(${termo})`, 'mediatype:(movies)'];
+  if (o.colecao) partes.push(`collection:(${o.colecao})`);
+  if (o.anoDe || o.anoAte) partes.push(`year:[${o.anoDe || '1800'} TO ${o.anoAte || '2100'}]`);
+  // sem derivado MP4 o item só se revela intocável DEPOIS de ir para o deck
+  if (o.soMp4 !== false) partes.push('format:(MPEG4)');
+
   const p = new URLSearchParams({
-    q: `${termo} AND mediatype:(movies)`,
-    rows: String(linhas), page: String(pagina), output: 'json'
+    q: partes.join(' AND '),
+    rows: String(linhas), page: String(o.pagina || 1), output: 'json'
   });
-  p.append('fl[]', 'identifier');
-  p.append('fl[]', 'title');
-  p.append('fl[]', 'year');
+  ['identifier', 'title', 'year', 'downloads', 'creator'].forEach(f => p.append('fl[]', f));
+  if (o.ordem) p.append('sort[]', o.ordem);
+
   try {
     const r = await fetch(`${BUSCA}?${p}`);
     const j = await r.json();
     const docs = j?.response?.docs || [];
-    const items: Item[] = docs.map((d: { identifier: string; title?: string; year?: string }) => ({
+    type Doc = { identifier: string; title?: string; year?: string; downloads?: number; creator?: string };
+    const items: Item[] = docs.map((d: Doc) => ({
       id: 'ia:' + d.identifier,
-      title: (d.title || d.identifier) + (d.year ? ` (${d.year})` : ''),
+      title: d.title || d.identifier,
       thumb: `https://archive.org/services/img/${d.identifier}`,
       kind: 'file' as const,
-      src: 'archive:' + d.identifier
+      src: 'archive:' + d.identifier,
+      canal: Array.isArray(d.creator) ? d.creator[0] : d.creator,
+      views: d.downloads,
+      ano: d.year
     }));
     return { items, temMais: docs.length >= linhas };
   } catch {

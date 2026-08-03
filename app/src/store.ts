@@ -58,6 +58,7 @@ export type Session = {
 
   // ui
   searchOpen: boolean; mirror: boolean; outLive: boolean; palco: boolean;
+  browserOpen: boolean; slotsDock: 'mid' | 'A' | 'B' | 'window';
 
   set: <K extends keyof Session>(k: K, v: Session[K]) => void;
   addTo: (lane: Lane, it: Item) => boolean;
@@ -105,6 +106,8 @@ export const useSession = create<Session>((set, get) => ({
 
   searchOpen: LS('vj.search', true), mirror: false, outLive: false,
   palco: LS('vj.palco', false),
+  browserOpen: LS('vj.browser', false),
+  slotsDock: (localStorage.getItem('vj.slotsDock') as 'mid' | 'A' | 'B' | 'window') || 'mid',
 
   set: (k, v) => set({ [k]: v } as any),
 
@@ -145,5 +148,7 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.recAlvoCtrl', s.recAlvoCtrl);
     localStorage.setItem('vj.recModo', s.recModo);
     localStorage.setItem('vj.palco', JSON.stringify(s.palco));
+    localStorage.setItem('vj.browser', JSON.stringify(s.browserOpen));
+    localStorage.setItem('vj.slotsDock', s.slotsDock);
   }
 }));

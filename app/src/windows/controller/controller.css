@@ -224,6 +224,31 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .caminho{word-break:break-all;color:var(--txt);background:#0d0d13;border:1px solid var(--line);
   border-radius:3px;padding:3px 5px;width:100%}
 
+/* ── § 9.1 — Coluna de garimpo ── */
+#main.combrowser{grid-template-columns:300px 1fr 1fr 1fr}
+.browser{background:#0d0d12;border-right:1px solid var(--line);padding-right:6px;
+  min-width:0;overflow:hidden}
+.grade{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.cartao{background:var(--card);border:1px solid var(--line);border-radius:4px;
+  overflow:hidden;cursor:grab}
+.cartao:hover{border-color:var(--accb)}
+.capa2{position:relative;aspect-ratio:16/9;background:#000}
+.capa2 img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+/* duração carimbada na miniatura: é o dado que decide se o trecho serve */
+.dursel{position:absolute;right:3px;bottom:3px;background:#000c;color:#fff;font-size:9px;
+  padding:0 3px;border-radius:2px}
+.fontesel{position:absolute;left:3px;top:3px;background:var(--ok);color:#04240f;
+  font-size:8px;font-weight:700;padding:0 3px;border-radius:2px}
+.meta{padding:3px 5px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.meta .tit{font-size:10px;line-height:1.25;max-height:26px;overflow:hidden}
+.meta .sub{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acoes{padding:0 4px 4px;gap:3px}
+.acoes .mk{padding:2px 5px;font-size:9px}
+.maisbtn{margin:4px auto 10px;padding:4px 12px}
+.dockrow{padding:2px 0;flex:0 0 auto}
+.dockrow .mk{padding:2px 6px;font-size:9px}
+.dockrow .mk.on{background:var(--accb);border-color:var(--accb);color:#fff}
+
 /* ── § 10 — Emergência e modo palco ── */
 /* blackout e panic se acertam no escuro, sem olhar: são maiores que o resto */
 #bar .urg{padding:5px 12px;font-size:11px;font-weight:700;letter-spacing:.04em}

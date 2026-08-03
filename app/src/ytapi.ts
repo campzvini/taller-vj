@@ -25,6 +25,8 @@ declare global {
     vj?: {
       displays(): Promise<unknown>;
       openOutput(): Promise<boolean>;
+      openSlots?(): Promise<boolean>;
+      closeSlots?(): Promise<boolean>;
       setAspect?(ar: string): Promise<boolean>;
       checklist?(): Promise<Record<string, unknown>>;
       saveSession?(data: unknown): Promise<string | null>;

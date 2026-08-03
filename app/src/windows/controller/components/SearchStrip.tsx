@@ -29,7 +29,7 @@ export default function SearchStrip() {
     setBusy(true);
     if (fonte === 'ia') {
       const pag = more ? pagIA + 1 : 1;
-      const r = await buscaArchive(q, pag);
+      const r = await buscaArchive(q, { pagina: pag, linhas: 24 });
       setBusy(false);
       if (r.error) { flashMsg(r.error); return; }
       setPagIA(pag);

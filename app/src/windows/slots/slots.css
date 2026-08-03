@@ -1,0 +1,36 @@
+/* ────────────────────────────────────────────
+   TALLER VJ APP 1.4 — slots.css
+   § - Slots window: big targets, readable in the dark · CSS
+   Taller Dev 2026
+   VAI CORINTHIANS!
+   ──────────────────────────────────────────── */
+:root{
+  --bg:#0a0a0c; --panel:#131318; --card:#16161d; --line:#26262e; --txt:#d8d8e0;
+  --dim:#7a7a88; --acc:#ff3b3b; --accb:#3b8cff; --ok:#3bd17a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:11px/1.35 "Segoe UI",system-ui,sans-serif;
+  height:100vh;overflow:hidden;user-select:none}
+#sroot{height:100vh;display:flex;flex-direction:column}
+
+.sbar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--panel);
+  border-bottom:1px solid var(--line);-webkit-app-region:drag}
+.sbar .name{font-weight:700;letter-spacing:.16em;color:var(--dim);font-size:10px}
+.tag{font-size:9px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.lampada{width:8px;height:8px;border-radius:50%;background:#2a2a34}
+.lampada.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+
+/* alvo grande: no escuro a mão acerta a área, não o rótulo */
+.sgrid{flex:1;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:1fr 1fr;
+  gap:6px;padding:6px;min-height:0}
+.sslot{position:relative;background:var(--card);border:1px solid var(--line);border-radius:5px;
+  overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sslot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
+.sslot .num{position:relative;font-size:26px;font-weight:700;text-shadow:0 0 6px #000}
+.sslot .tit{position:absolute;left:0;right:0;bottom:0;padding:2px 4px;background:#000a;
+  font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sslot .tr{position:absolute;top:2px;right:4px;font-size:9px;color:var(--ok);text-shadow:0 0 3px #000}
+.sslot.armed{border-color:var(--ok)}
+.sslot.hot{background:var(--ok)}
+.sslot.hot .num{color:#04240f;text-shadow:none}
+.sslot:active{border-color:var(--accb)}

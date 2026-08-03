@@ -22,8 +22,17 @@ export type Item = {
   plist?: string;        // se for playlist
   in?: number | null;    // trecho
   out?: number | null;
+  // metadados de vitrine: vêm da mesma chamada que já filtra embutível e vertical
+  canal?: string;
+  views?: number;
+  ano?: string;
   _from?: Lane | 'res';  // origem do arraste, nunca persistido
 };
+
+/** 1.2M, 340k, 87 — número curto o suficiente para caber numa miniatura. */
+export const curto = (n?: number) =>
+  n == null ? '' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M'
+    : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n);
 export const kindOf = (i?: Item | null): Kind => i?.kind ?? 'yt';
 // caminho local vira URL servida pelo http interno (file:// é bloqueado numa página http)
 export const localUrl = (p: string) => `${location.origin}/local?p=${encodeURIComponent(p)}`;

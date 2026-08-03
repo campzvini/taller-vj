@@ -5,6 +5,7 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import type { Item } from './types';
+export type { Item };
 
 export const getKey = () => localStorage.getItem('vj.key') || '';
 export const setKey = (k: string) => localStorage.setItem('vj.key', k.trim());
@@ -20,7 +21,7 @@ export type Order = 'relevance' | 'date' | 'viewCount' | 'rating';
 export type Dur = 'any' | 'short' | 'medium' | 'long';
 export type Opts = {
   order?: Order; duration?: Dur; channelId?: string;
-  page?: string; hideVertical?: boolean;
+  page?: string; hideVertical?: boolean; maxResults?: number;
 };
 export type SearchOut = {
   items: Item[]; error?: string; direct?: boolean;
@@ -34,13 +35,21 @@ const API = 'https://www.googleapis.com/youtube/v3';
  * pode ser embutido nem qual a proporção. videos.list custa 1 e diz os dois —
  * então filtrar o lixo sai praticamente de graça.
  */
+/** PT1H2M3S -> segundos. */
+export function isoSegundos(s?: string): number {
+  const m = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(s || '');
+  if (!m) return 0;
+  return (+(m[1] || 0)) * 86400 + (+(m[2] || 0)) * 3600 + (+(m[3] || 0)) * 60 + (+(m[4] || 0));
+}
+
 async function enrich(ids: string[], hideVertical: boolean) {
   const key = getKey();
-  const r = await fetch(`${API}/videos?part=status,contentDetails,player&maxWidth=480`
-    + `&id=${ids.join(',')}&key=${key}`);
+  const r = await fetch(`${API}/videos?part=status,contentDetails,player,snippet,statistics`
+    + `&maxWidth=480&id=${ids.join(',')}&key=${key}`);
   const j = await r.json();
   const ok = new Set<string>();
   const vertical = new Set<string>();
+  const meta = new Map<string, Partial<Item>>();
   for (const v of j.items || []) {
     if (v.status?.embeddable === false) continue;
     // o HTML de embed carrega width/height na proporção real do vídeo:
@@ -50,8 +59,15 @@ async function enrich(ids: string[], hideVertical: boolean) {
     const h = +(html.match(/height="(\d+)"/)?.[1] || 0);
     if (w && h && h > w) { vertical.add(v.id); if (hideVertical) continue; }
     ok.add(v.id);
+    // a mesma unidade de cota já pagou por isto: duração, canal, views, ano
+    meta.set(v.id, {
+      dur: isoSegundos(v.contentDetails?.duration),
+      canal: v.snippet?.channelTitle,
+      views: +(v.statistics?.viewCount || 0) || undefined,
+      ano: (v.snippet?.publishedAt || '').slice(0, 4)
+    });
   }
-  return { ok, vertical };
+  return { ok, vertical, meta };
 }
 
 export async function search(q: string, opts: Opts = {}): Promise<SearchOut> {
@@ -76,7 +92,8 @@ export async function search(q: string, opts: Opts = {}): Promise<SearchOut> {
 
   try {
     const p = new URLSearchParams({
-      part: 'snippet', type: 'video', maxResults: '24', videoEmbeddable: 'true',
+      part: 'snippet', type: 'video', maxResults: String(opts.maxResults || 24),
+      videoEmbeddable: 'true',
       order: opts.order || 'relevance', q: term, key
     });
     if (opts.duration && opts.duration !== 'any') p.set('videoDuration', opts.duration);
@@ -93,8 +110,8 @@ export async function search(q: string, opts: Opts = {}): Promise<SearchOut> {
 
     let items = raw, descartados = 0;
     try {
-      const { ok } = await enrich(raw.map(i => i.id), opts.hideVertical !== false);
-      items = raw.filter(i => ok.has(i.id));
+      const { ok, meta } = await enrich(raw.map(i => i.id), opts.hideVertical !== false);
+      items = raw.filter(i => ok.has(i.id)).map(i => ({ ...i, ...meta.get(i.id) }));
       descartados = raw.length - items.length;
     } catch { /* enriquecimento é melhoria, não requisito */ }
 

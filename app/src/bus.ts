@@ -53,7 +53,21 @@ export type Tele = {
   samp: number[];              // tempo corrente de cada player do pool
 };
 
-export type Msg = Cmd | Tele | { t: 'up' };   // 'up' = saída anunciando que nasceu
+// ── § 2.1 — SLOTS WINDOW — controle remoto, não uma segunda cópia do estado ──
+// A janela dos slots não guarda nada: ela pinta o que o controlador publica e
+// devolve apertos de tecla. O dono do estado continua sendo um só.
+export type SlotInfo = {
+  n: number; titulo: string; thumb: string;
+  armado: boolean;      // carregado no pool da saída, pronto para disparar
+  aceso: boolean;       // no ar neste instante
+  trecho: string;       // "0:12–0:20" ou vazio
+};
+export type SlotsTele = { t: 'slots'; itens: SlotInfo[]; live: boolean };
+
+export type Msg = Cmd | Tele | SlotsTele
+  | { t: 'up' }                                   // saída anunciando que nasceu
+  | { t: 'slotKey'; n: number; down: boolean }     // janela de slots -> controlador
+  | { t: 'slotAsk' };                              // janela de slots pedindo estado
 
 // ── § 3 — CHANNEL ──
 const CH = 'vj';
