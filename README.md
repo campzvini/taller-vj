@@ -1,124 +1,187 @@
-# Taller VJ
+# Babel VJ
 
-A live audiovisual sampler that turns YouTube into a VJ instrument. Search, drag, cue,
-trigger, crossfade, and process video in real time — from a single HTML file, in your browser.
+**A video performance desk. The internet is the library.**
 
-Built for playing, not for broadcasting. See [Scope and limits](#scope-and-limits).
+Search YouTube and the Internet Archive, cue anything without it reaching the screen,
+throw it to a deck, crossfade, loop the good part, fire samples off the number row, and
+record the whole thing. A desktop app — no browser, no server to start.
 
-![status](https://img.shields.io/badge/status-toy-informational)
-![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
+*A Taller software.* Made at Taller Laboratório Fotoquímico, where the day job is
+preserving film. This is the same instinct pointed at moving images that already live
+online: a hundred thousand hours of public-domain footage nobody is watching.
 
-![Taller VJ in use](demo.gif)
+![Babel VJ controller](brand/shots/controller.png)
 
-*Two decks mixed in `difference` blend, deck monitors on both sides, hot slots below the
-Program, audio bed bottom right.*
-
-## What it does
-
-The program lives in its own window (`output.html`), meant to be dragged onto a projector or
-second screen and put fullscreen. The controller window keeps the library, the deck monitors,
-the mixer, and a **cue player that never reaches the output** — you can watch, scrub and
-audition anything mid-performance without it going on air, then send it to a deck from the
-exact point you were watching.
-
-Two video decks (A and B) play simultaneously into the composited output, with independent
-muted monitors for each deck in the controller. A third deck is audio-only — drop a long set
-or a playlist there and it plays underneath everything, advancing on its own.
-
-Effects run on three independent buses: deck A, deck B, and the master (the already-mixed
-composition). Each bus has its own intensity control. The crossfader has adjustable inertia
-and an automatic timed fade. Output can be framed as 16:9 or 4:3, cropping to fill rather
-than distorting, with an extra zoom on top.
-
-Everything is keyboard-driven, because a mouse is not an instrument.
-
-## Requirements
-
-A Chromium-based browser, Python (only to serve the file), and optionally a YouTube Data
-API key for in-app search.
-
-## Running
-
-The page **must be served over HTTP** — YouTube embeds refuse to play from `file://`.
-
-On Windows, double-click `start-vj.bat`. It serves the folder and opens the browser.
-
-Anywhere else:
-
-```bash
-python -m http.server 8787
-```
-
-Then open <http://localhost:8787/youtube-vj.html> and press `O` to raise the output window.
-Nothing reaches the screen until that window is open — the decks live in it.
-
-## Loading video
-
-Paste a YouTube URL or an 11-character video ID into the search box and press Enter — this
-works with no API key and no quota. Paste a URL containing `list=` to load a whole playlist.
-
-For search inside the app, create a free API key: go to the
-[Google Cloud Console](https://console.cloud.google.com), create a project, enable
-**YouTube Data API v3**, then create an API key under Credentials. Paste it into the field
-and click *Salvar key*; it is stored in your browser's `localStorage` and never leaves it.
-Restrict the key to `http://localhost:8787/*` and to the YouTube Data API.
-
-The key is stored in this browser's `localStorage` and is never written to disk by the
-project, never sent anywhere except Google's API, and never committed — the field is masked
-and only reveals on demand, for a few seconds.
-
-Note the quota: 10,000 units per day, and each search costs 100 — about a hundred searches
-daily. Pasting URLs costs nothing.
-
-## Controls
-
-| Key | Action |
-| --- | --- |
-| `O` | open the output window (drag to the projector, then F11) |
-| click | load a search result into the cue player (never on air) |
-| `[` `]` | send the cue to deck A / deck B, from where you were watching |
-| `/` | collapse or open the search strip |
-| drag | drop a search result onto column A/B, a numbered slot, or the Audio Bed |
-| `0`–`9` | fire hot slot into the armed deck |
-| `Shift`+`0`–`9` | store the selected result in a slot |
-| `Tab` | switch armed deck |
-| `Space` | play/pause armed deck |
-| `←` `→` | crossfade · `Home`/`End` hard cut |
-| `G` | automatic timed fade |
-| `Z` `X` `C` | select effect bus: deck A, deck B, master |
-| `Q` `W` `E` `R` `T` | glitch, invert, melt, hue, strobe (on the selected bus) |
-| `P` | panic — drop every effect on every bus |
-| `L` | loop toggle (on by default) · `K` captions toggle (off by default) |
-| `V` | play/pause the Audio Bed |
-| `F` | fullscreen Program · `Esc` exit |
-
-Right-clicking a slot also stores the selected result. Deck libraries, slots, loop state,
-frame format, and the API key persist in `localStorage`.
-
-## Scope and limits
-
-This is a local toy, and the design follows from one hard constraint: the YouTube player
-runs in a **cross-origin iframe**, so its pixels cannot be read.
-
-That means effects are CSS filters and blend modes applied over the layer, not real frame
-processing — no shaders, no feedback, no true pixelation, no chroma key. It also means a
-player cannot be mirrored in two places, so each deck's side monitor is a *second copy* of
-the same video, muted, at low quality, kept aligned by periodic seeking. Expect a few tenths
-of a second of drift, and expect five simultaneous players to cost bandwidth and CPU.
-
-Many videos, especially music channels, disable embedding. In-app search filters those out;
-pasted URLs do not, so a silent deck is usually a blocked embed.
-
-**Do not stream or record this.** The tool modifies and overlays the YouTube player, which
-the YouTube API Developer Policies do not allow in published products, and broadcasting
-other people's video is a copyright matter independent of any platform's terms. Run it
-locally, play with it, project it in a room. That is what it is for.
-
-## License
-
-MIT — see [LICENSE](LICENSE). The license covers this software only, not any content played
-through it.
+*Three columns: deck A, cue and mixer, deck B. Browse column open on the left, audio
+plane along the bottom.*
 
 ---
 
-Taller Dev 2026 · Taller Laboratório Fotoquímico
+## Install
+
+Download the latest release and run it. Windows x64:
+
+- **`BabelVJ-1.0.0-setup.exe`** — installs, creates a shortcut, lets you pick the folder.
+- **`BabelVJ-1.0.0-portable.exe`** — no install, runs from anywhere, including a stick.
+
+The installer is not code-signed, so Windows SmartScreen will warn about an unknown
+publisher: *More info → Run anyway*. Signing needs a paid certificate.
+
+macOS and Linux are not built yet. The code has nothing Windows-specific except the
+system-audio capture, so a build there is plausible — it has simply never been tried.
+
+## First five minutes
+
+1. Open the app. **The screen stays black until you ask for it** — press `O` or click
+   **OPEN OUTPUT**. A second window appears; on a two-screen setup it goes fullscreen on
+   the projector by itself.
+2. Press `/` and paste a YouTube URL, or an 11-character video ID, into the search box.
+   Pasting costs nothing and needs no key.
+3. Click the result. It lands in the **cue** — the middle player, which never reaches the
+   output. Watch it, scrub it, find the good part.
+4. Press `[` to send it to deck A **from where you were watching**.
+5. Press `Space` to play, `→` to crossfade towards it.
+
+That is the whole loop of the instrument: *find, audition in private, send, mix*.
+
+There is a longer, hands-on walkthrough in **[TUTORIAL.md](TUTORIAL.md)**.
+
+## What is in the box
+
+**Two video decks and a cue.** Decks A and B play at once into the composed output. The
+cue is a third player wired to nothing — the only place where you can look before the room
+does.
+
+**A single library.** Everything you add lands in one pool, shown beside both decks. A
+folder of clips is a folder of clips; which deck it goes to is decided at the moment you
+throw it, not at import.
+
+**Two sources, plus your disk.** YouTube for what everyone has, the Internet Archive for
+what nobody watches. Archive items can be **downloaded** with one button and swap to local
+playback *while still on air* — the picture never stops, the network stops mattering.
+Local files (`mp4`, `webm`, `mkv`, `mov`, `avi`, `m4v`, `ogv`) import by file or by folder.
+
+**A mixer that behaves.** Crossfader with adjustable inertia and three curves, blend modes
+between the decks, per-deck opacity, zoom, framing (pan, rotate, mirror, edge crop), and
+an automatic timed fade. `BLACKOUT` and `PANIC` sit in the top bar in a bigger typeface,
+because you reach for them without looking.
+
+**Effects on three buses.** Deck A, deck B, and the master — glitch, invert, melt, hue,
+strobe, each with its own amount. Switch the render engine to WebGL in settings and local
+files gain real shaders: pixelate, RGB split, kaleidoscope, feedback.
+
+**Samples on the number row.** Slots preloaded and paused, fired by holding `0`–`9` and
+gone when you let go. They take YouTube, Archive and local files alike.
+
+**An audio bed.** A separate audio-only player with its own playlist, loop or sequential,
+with a volume crossfade between tracks so it never cuts dry. `Shift+Space` plays it.
+
+**The picture can listen.** Capture the system audio or an input, and route bands or the
+detected beat into any parameter. Tap tempo, BPM, and four LFO shapes are there too. A
+modulated control changes colour and moves on its own, so you can see what is driving it.
+
+**Scenes.** `F1`–`F8` store and recall the *mix* — fader, opacity, zoom, framing, effects,
+samples — and never the content. Calling a scene mid-track does not cut the image.
+`Shift`+the key records over it. Transitions interpolate up to 5 seconds.
+
+**Recording.** Capture the output window, the controller window, or both as two separate
+files, with system sound, adjustable bitrate, and a folder of your choosing. It records the
+*window*, so whatever plays there ends up in the file.
+
+**Text on the projection**, fixed, scrolling or blinking, with an outline.
+
+**Sessions** save and reopen as a JSON file — library, slots, scenes, routes. The API key
+is never written into it.
+
+## The search key
+
+Pasting URLs and using the Internet Archive need no key at all. Searching *inside* YouTube
+does: create one free at the [Google Cloud Console](https://console.cloud.google.com) —
+new project, enable **YouTube Data API v3**, then Credentials → API key. Paste it into the
+field in the search strip and press **save**.
+
+It lives in this machine's `localStorage`, is sent only to Google, is masked in the
+interface, and is never written to a session file or committed. The daily quota is 10,000
+units and a search costs 100 — about a hundred searches a day.
+
+## Keys
+
+| Key | Action |
+| --- | --- |
+| `O` | open the output window |
+| `/` | search strip · `Ctrl+F` browse column |
+| click | send a result to the cue (never on air) |
+| `[` `]` | cue → deck A / deck B, from the point you were watching |
+| `Tab` | switch the armed deck |
+| `Space` | play/pause the armed deck · `Shift+Space` the audio bed |
+| `←` `→` | crossfade · `Home` `End` hard cut to A / B |
+| `G` | automatic timed fade |
+| `0`–`9` | hold to fire a sample · `Shift`+digit to store one |
+| `Z` `X` `C` | effect bus: deck A, deck B, master |
+| `Q` `W` `E` `R` `T` | glitch, invert, melt, hue, strobe on the selected bus |
+| `B` | blackout · `P` panic, drops every effect |
+| `F1`–`F8` | recall a scene · `Shift`+key records over it |
+| `F9` | stage mode: hides preparation, enlarges what you play with |
+| `L` | loop · `K` captions · `V` audio bed |
+
+## Limits worth knowing before the party
+
+**YouTube runs in a cross-origin iframe.** Its pixels cannot be read, so effects on
+YouTube decks are CSS filters and blend modes over the layer — not frame processing. WebGL
+shaders only reach local files. It also means a player cannot be mirrored: each deck
+monitor is a second, muted, low-quality copy kept aligned by seeking, so expect a few
+tenths of a second of drift.
+
+**The Internet Archive streams from one datacentre** and can stutter live. That is what
+the download button is for. Some items advertise an MP4 that has no playable derivative;
+they fail to load and there is nothing to do about it from here.
+
+**archive.org sends no CORS header**, so a remote Archive source cannot enter the WebGL
+pipeline — it falls back to DOM rendering by itself instead of flashing black.
+
+**Many videos disable embedding**, music channels especially. In-app search filters them
+out; a pasted URL does not, so a deck that stays silent is usually a blocked embed.
+
+**Playing is not broadcasting.** This tool overlays and modifies the YouTube player, which
+the platform's developer policies do not allow in a published product, and projecting other
+people's video is a copyright matter of its own. Run it locally, play with it, light up a
+room. That is what it is for.
+
+## Building from source
+
+```bash
+cd app && npm install && npm start
+```
+
+| Command | What it does |
+| --- | --- |
+| `npm start` | build and run |
+| `npm run dev` | Vite with hot reload plus Electron |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run selftest` | drives the real app end to end and prints a JSON report |
+| `npm run dist` | installer and portable build into `app/release` |
+
+`npm run selftest` is the honest gate: it opens both windows, plays real videos, records,
+downloads, saves a scene and reports what it found. It also writes
+`%TEMP%/taller-vj-selftest.json`, which is how a packaged build gets checked.
+
+Stack: Electron, React, TypeScript, Vite, Zustand. Architecture notes for anyone (or any
+agent) working on the code live in [AGENTS.md](AGENTS.md); the visual identity, palette and
+symbol set are documented in [brand/README.md](brand/README.md).
+
+## Legacy
+
+Version 0 was a single HTML file served over `python -m http.server`. It is kept in
+[`legacy/`](legacy/) for the record and receives nothing — no fixes, no features. **The app
+is the project.** Anything the old page did, this does better, and it does a great deal the
+page could not: local files, shaders, recording, scenes, the Archive, an audio bed.
+
+## License
+
+MIT — see [LICENSE](LICENSE). It covers this software only, never the content played
+through it. The Ubuntu typeface ships under the Ubuntu Font Licence 1.0
+(`app/src/assets/fonts/UFL-1.0.txt`).
+
+---
+
+Taller Laboratório Fotoquímico · 2026
