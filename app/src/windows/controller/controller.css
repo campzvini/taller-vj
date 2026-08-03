@@ -308,6 +308,9 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .acoes{padding:0 5px 5px;gap:3px;flex-wrap:nowrap}
 .acoes .mk{padding:2px 6px;font-size:10px}
 .maisbtn{margin:4px auto 12px;padding:5px 14px}
+.cor{width:20px;height:20px;padding:0;border-radius:3px;border:1px solid var(--line2)}
+.cor.on{box-shadow:0 0 0 2px var(--accb)}
+.libhd .dica{font-size:9px;color:var(--dim)}
 
 /* ── § 15 — Modo palco ──
    Esconder sem redistribuir deixa buracos: aqui o monitor ocupa o que sobrou. */

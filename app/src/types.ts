@@ -5,7 +5,9 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 export type Deck = 'A' | 'B';
-export type Lane = 'A' | 'B' | 'C';        // C = audio bed
+/* Um acervo só para imagem (V) e um para o bed (C). O deck se decide na hora de
+   carregar, não na hora de guardar — é como a crate de um DJ funciona. */
+export type Lane = 'V' | 'C';
 export type FxBus = 'A' | 'B' | 'M';
 export type MarkOwner = 'A' | 'B' | 'P';   // P = cue
 

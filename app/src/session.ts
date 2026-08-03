@@ -16,7 +16,7 @@ export type SessionFile = {
   app: 'taller-vj';
   version: number;
   meta: { criadaEm: string; nome?: string; notas?: string };
-  lib: { A: Item[]; B: Item[]; C: Item[] };
+  lib: { V?: Item[]; A?: Item[]; B?: Item[]; C: Item[] };
   slots: (Item | null)[];
   mixer: {
     xf: number; op: Record<string, number>; zoom: Record<string, number>;
@@ -35,7 +35,7 @@ export function snapshot(nome?: string): SessionFile {
   return {
     app: 'taller-vj', version: SESSION_VERSION,
     meta: { criadaEm: new Date().toISOString(), nome },
-    lib: { A: s.lib.A, B: s.lib.B, C: s.lib.C },
+    lib: { V: s.lib.V, C: s.lib.C },
     slots: s.slots,
     mixer: {
       xf: s.xf, op: s.op, zoom: s.zoom, pos: s.pos, curve: s.curve,
@@ -53,7 +53,11 @@ export function snapshot(nome?: string): SessionFile {
 export function restore(f: SessionFile) {
   if (f?.app !== 'taller-vj') { flashMsg('not a Taller VJ session'); return false; }
   const s = useSession.getState();
-  s.set('lib', { A: f.lib?.A ?? [], B: f.lib?.B ?? [], C: f.lib?.C ?? [] });
+  // arquivo antigo trazia A e B separados: junta sem repetir
+  const vistos = new Set<string>();
+  const vid = [...(f.lib?.V ?? []), ...(f.lib?.A ?? []), ...(f.lib?.B ?? [])]
+    .filter(i => !vistos.has(i.id) && vistos.add(i.id));
+  s.set('lib', { V: vid, C: f.lib?.C ?? [] });
   s.set('slots', f.slots ?? Array(10).fill(null));
   const m = f.mixer;
   if (m) {

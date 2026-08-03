@@ -24,5 +24,11 @@ contextBridge.exposeInMainWorld('vj', {
   saveRec: (bytes, ext, dir, rotulo) => ipcRenderer.invoke('vj:saveRec', bytes, ext, dir, rotulo),
   recDir: () => ipcRenderer.invoke('vj:recDir'),
   pickDir: atual => ipcRenderer.invoke('vj:pickDir', atual),
-  reveal: p => ipcRenderer.invoke('vj:reveal', p)
+  reveal: p => ipcRenderer.invoke('vj:reveal', p),
+  baixar: (url, nome) => ipcRenderer.invoke('vj:baixar', url, nome),
+  onBaixando: fn => {
+    const h = (_e, d) => fn(d);
+    ipcRenderer.on('vj:baixando', h);
+    return () => ipcRenderer.removeListener('vj:baixando', h);
+  }
 });

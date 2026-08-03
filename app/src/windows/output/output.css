@@ -34,6 +34,19 @@ html,body,#root{height:100%;background:#000;overflow:hidden;cursor:none}
   transition:opacity 90ms linear;z-index:50}
 #black.on{opacity:1}
 
+/* ── § 1.05 — Texto sobre a projeção: acima da imagem, abaixo do blackout ── */
+#texto{position:absolute;inset:0;pointer-events:none;display:none;overflow:hidden;z-index:45}
+#texto.on{display:block}
+#texto.off{display:none}
+#texto span{position:absolute;left:var(--tx,50%);top:var(--ty,86%);
+  transform:translate(-50%,-50%);white-space:nowrap;
+  font:700 var(--ts,8vh)/1.1 "Segoe UI",system-ui,sans-serif;
+  color:var(--tc,#fff);letter-spacing:.02em}
+#texto.marquee span{left:0;transform:translate(0,-50%);animation:corre 14s linear infinite}
+@keyframes corre{from{left:100%}to{left:-140%}}
+#texto.pisca span{animation:piscat 1s steps(2) infinite}
+@keyframes piscat{50%{opacity:0}}
+
 /* ── § 1.1 — Calibration patterns ── */
 #pattern{position:absolute;inset:0;z-index:40;pointer-events:none;display:none}
 #pattern.on{display:block}

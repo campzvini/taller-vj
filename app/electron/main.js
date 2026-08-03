@@ -819,6 +819,31 @@ async function selftest() {
                  filtros: c ? c.querySelectorAll('select').length : 0 };
       })()`);
 
+    // 7p) texto na projeção, acervo único e bed com cruzamento
+    result.texto = await output.webContents.executeJavaScript(`
+      (async () => {
+        const b = new BroadcastChannel('vj');
+        b.postMessage({ c:'texto', txt:'TALLER', on:true, size:10, cor:'#ff3b3b',
+                        x:50, y:80, modo:'fixo', contorno:true });
+        await new Promise(r => setTimeout(r, 500));
+        const t = document.getElementById('texto');
+        const s = t.firstElementChild;
+        const r = { visivel: getComputedStyle(t).display !== 'none', txt: s.textContent,
+                    cor: getComputedStyle(s).color, tam: getComputedStyle(s).fontSize };
+        b.postMessage({ c:'texto', txt:'TALLER', on:false, size:10, cor:'#fff',
+                        x:50, y:80, modo:'fixo', contorno:true });
+        await new Promise(r2 => setTimeout(r2, 400));
+        r.sumiu = getComputedStyle(t).display === 'none';
+        return r;
+      })()`);
+    result.acervo = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const libs = document.querySelectorAll('.lib').length;
+        const cabecas = [...document.querySelectorAll('.libhd')].map(e => e.textContent.slice(0, 30));
+        return { listas: libs, cabecas,
+                 bedLoop: !![...document.querySelectorAll('#foot button')].find(b => b.textContent === '⟲') };
+      })()`);
+
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();
     result.fullscreen = output.isFullScreen();

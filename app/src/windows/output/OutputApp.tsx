@@ -192,6 +192,18 @@ export default function OutputApp() {
           break;
         }
         case 'blackout': el('black').classList.toggle('on', m.on); break;
+        case 'texto': {
+          const caixa = el('texto'), alvo = caixa.firstElementChild as HTMLElement;
+          caixa.classList.toggle('on', m.on && !!m.txt);
+          caixa.className = 'on ' + m.modo + (m.on && m.txt ? '' : ' off');
+          alvo.textContent = m.txt;
+          const st = caixa.style;
+          st.setProperty('--tx', m.x + '%'); st.setProperty('--ty', m.y + '%');
+          st.setProperty('--ts', m.size + 'vh'); st.setProperty('--tc', m.cor);
+          alvo.style.textShadow = m.contorno
+            ? '0 2px 12px #000, 0 0 3px #000, 0 0 2px #000' : 'none';
+          break;
+        }
         case 'engine':
           engine = m.mode;
           (['A', 'B'] as Deck[]).forEach(d => {
@@ -377,6 +389,7 @@ export default function OutputApp() {
             ))}
           </div>
         </div></div></div>
+        <div id="texto"><span /></div>
         <div id="pattern" />
         <div id="black" />
       </div>

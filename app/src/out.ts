@@ -63,5 +63,6 @@ export const out = {
   sampBlend: (mode: string) => send({ c: 'sampBlend', mode }),
   sampFade: (ms: number) => send({ c: 'sampFade', ms }),
   sampVol: (v: number) => send({ c: 'sampVol', v }),
-  sampZoom: (z: number) => send({ c: 'sampZoom', z })
+  sampZoom: (z: number) => send({ c: 'sampZoom', z }),
+  texto: (t: Omit<Extract<Cmd, { c: 'texto' }>, 'c'>) => send({ c: 'texto', ...t })
 };

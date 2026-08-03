@@ -6,7 +6,8 @@
 // ────────────────────────────────────────────
 import { useSession } from './store';
 import { flashMsg } from './actions';
-import { localUrl, type Item } from './types';
+import { localUrl, type Item, type Lane } from './types';
+import { ehArchive, resolverArchive } from './archive';
 
 const nomeDe = (p: string) => p.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, '');
 
@@ -26,7 +27,7 @@ async function toItem(path: string): Promise<Item> {
   };
 }
 
-async function importar(paths: string[], lane: 'A' | 'B' | 'C') {
+async function importar(paths: string[], lane: Lane) {
   if (!paths.length) return;
   flashMsg(`reading ${paths.length} file(s)…`);
   const s = useSession.getState();
@@ -36,15 +37,15 @@ async function importar(paths: string[], lane: 'A' | 'B' | 'C') {
     const it = await toItem(p);
     if (s.addTo(lane, it)) n++;
   }
-  flashMsg(`${n} video(s) → ${lane}`);
+  flashMsg(`${n} video(s) added`);
 }
 
-export async function importFiles(lane: 'A' | 'B' | 'C' = 'A') {
+export async function importFiles(lane: Lane = 'V') {
   const paths = (await window.vj?.pickFiles?.()) || [];
   await importar(paths, lane);
 }
 
-export async function importFolder(lane: 'A' | 'B' | 'C' = 'A') {
+export async function importFolder(lane: Lane = 'V') {
   const r = await window.vj?.pickFolder?.();
   if (!r) return;
   await importar(r.files.slice(0, 200), lane);   // teto para não travar em pasta gigante
@@ -62,8 +63,33 @@ export async function salvarTrecho(it: Item | null, inn?: number | null, out?: n
   flashMsg(p ? 'clip saved: ' + p.split(/[\\/]/).pop() : 'cancelled');
 }
 
+/** Traz o item remoto para o disco e troca a fonte em TODO lugar que a referencia:
+ *  a partir daí é arquivo local, com seek instantâneo e sem rede no meio da festa. */
+export async function baixar(it: Item | null): Promise<string | null> {
+  if (!it?.src) { flashMsg('nothing to download'); return null; }
+  const s = useSession.getState();
+  const url = ehArchive(it.src) ? await resolverArchive(it.src) : it.src;
+  if (!url || !/^https?:/i.test(url)) { flashMsg('only remote sources can be downloaded'); return null; }
+
+  flashMsg('downloading…');
+  const r = await window.vj?.baixar?.(url, it.title);
+  if (!r?.path) { flashMsg('download failed: ' + (r?.error || '')); return null; }
+
+  const dur = ((await window.vj?.probe?.(r.path).catch(() => null))?.dur as number) || it.dur;
+  const local: Item = { ...it, kind: 'file', src: r.path, dur };
+  const troca = (l: Item[]) => l.map(x => x.id === it.id ? { ...local, in: x.in, out: x.out } : x);
+  s.set('lib', { V: troca(s.lib.V), C: troca(s.lib.C) });
+  s.set('slots', s.slots.map(x => x && x.id === it.id ? { ...local, in: x.in, out: x.out } : x));
+  const agora = { ...s.now };
+  (['A', 'B', 'C', 'P'] as const).forEach(k => { if (agora[k]?.id === it.id) agora[k] = local; });
+  s.set('now', agora);
+  s.save();
+  flashMsg(r.jaTinha ? 'already local' : 'downloaded');
+  return r.path;
+}
+
 /** Arrastar arquivos do explorador direto para a janela. */
-export async function dropFiles(files: FileList, lane: 'A' | 'B' | 'C') {
+export async function dropFiles(files: FileList, lane: Lane = 'V') {
   const paths: string[] = [];
   for (const f of Array.from(files)) {
     const p = (f as File & { path?: string }).path;

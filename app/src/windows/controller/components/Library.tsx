@@ -6,11 +6,16 @@
 // ────────────────────────────────────────────
 import { useSession } from '../../../store';
 import { cue, play } from '../../../actions';
-import type { Lane } from '../../../types';
+import type { Deck, Lane } from '../../../types';
 
-export default function Library({ lane, className = 'lib' }: { lane: Lane; className?: string }) {
+/** O acervo é um só; quem muda é a AÇÃO: cada coluna carrega no seu deck. */
+export default function Library(
+  { lane, deck, className = 'lib' }:
+  { lane: Lane; deck?: Deck | 'C'; className?: string }
+) {
   const items = useSession(s => s.lib[lane]);
-  const now = useSession(s => s.now[lane]);
+  const alvo = deck ?? (lane === 'C' ? 'C' : 'A');
+  const now = useSession(s => s.now[alvo]);
   const removeFrom = useSession(s => s.removeFrom);
 
   if (!items.length) return <div className={className}><div className="empty">drop videos here</div></div>;
@@ -28,7 +33,7 @@ export default function Library({ lane, className = 'lib' }: { lane: Lane; class
           }}
           // clique manda pro cue (nunca direto ao ar); duplo clique toca no deck
           onClick={() => (lane === 'C' ? play('C', it) : cue(it))}
-          onDoubleClick={() => play(lane, it)}
+          onDoubleClick={() => play(alvo, it)}
         >
           {it.thumb ? <img src={it.thumb} alt="" /> : <div className="noimg" />}
           <span>{it.title}</span>

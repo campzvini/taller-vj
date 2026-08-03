@@ -70,7 +70,7 @@ export default function Deck({ side }: { side: D }) {
       className={'col' + (over ? ' drop' : '')}
       onDragOver={e => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
-      onDrop={e => { e.preventDefault(); setOver(false); dropInto(side, e); }}
+      onDrop={e => { e.preventDefault(); setOver(false); dropInto('V', e); }}
     >
       <div className="modulo">
         <div className="hd">
@@ -151,14 +151,16 @@ export default function Deck({ side }: { side: D }) {
         </div>
       </div>
 
+      {/* acervo ÚNICO: a mesma lista dos dois lados, mas o duplo clique carrega AQUI */}
       <div className="libhd">
-        <span className="tag">library {side}</span>
-        <span className="conta">{s.lib[side].length}</span>
+        <span className="tag">library</span>
+        <span className="conta">{s.lib.V.length}</span>
+        <span className="dica">double-click → {side}</span>
         <div style={{ flex: 1 }} />
-        <button className="mk" onClick={() => importFiles(side)}>files</button>
-        <button className="mk" onClick={() => importFolder(side)}>folder</button>
+        <button className="mk" onClick={() => importFiles('V')}>files</button>
+        <button className="mk" onClick={() => importFolder('V')}>folder</button>
       </div>
-      <Library lane={side} />
+      <Library lane="V" deck={side} />
     </div>
   );
 }

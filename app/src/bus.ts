@@ -39,6 +39,8 @@ export type Cmd =
   | { c: 'sampFade'; ms: number }
   | { c: 'sampVol'; v: number }
   | { c: 'sampZoom'; z: number }
+  | { c: 'texto'; txt: string; on: boolean; size: number; cor: string;
+      x: number; y: number; modo: 'fixo' | 'marquee' | 'pisca'; contorno: boolean }
   | { c: 'hello' };            // output acabou de subir e pede o estado inteiro
 
 // ── § 2 — TELEMETRY — output → controller ──

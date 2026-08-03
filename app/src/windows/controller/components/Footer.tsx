@@ -33,6 +33,7 @@ export default function Footer() {
   const btn = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const p = usePlayer('ytCout', { quality: 'small', onState: st => { if (st === 0) nextBed(); } });
+  // o <video> do bed também precisa avisar que acabou
 
   const closeList = useCallback(() => setListOpen(false), []);
   useClickOutside(listOpen, closeList, [list, btn]);
@@ -109,6 +110,14 @@ export default function Footer() {
         <span className="tag">vol</span>
         <input type="range" min={0} max={100} value={s.vol.C} style={{ width: 72 }}
           onChange={e => { s.set('vol', { ...s.vol, C: +e.target.value }); applyAudio(); }} />
+        <button className={'mk' + (s.bedLoop ? ' on' : '')}
+          title={s.bedLoop ? 'repeating this track' : 'playlist: goes to the next track'}
+          onClick={() => { s.set('bedLoop', !s.bedLoop); s.save(); }}>⟲</button>
+        <span className="tag">xfade</span>
+        <input type="range" min={0} max={10} value={s.bedFade} style={{ flex: '0 0 60px' }}
+          title="seconds of cross between tracks"
+          onChange={e => { s.set('bedFade', +e.target.value); s.save(); }} />
+        <span className="val">{s.bedFade ? s.bedFade + 's' : 'cut'}</span>
         <button ref={btn} className="mk" onClick={() => setListOpen(o => !o)}>
           list ({s.lib.C.length})</button>
       </div>

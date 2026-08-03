@@ -9,6 +9,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const https = require('https');
 
 const ffmpeg = require('ffmpeg-static');
 const ffprobe = require('ffprobe-static').path;
@@ -101,6 +102,51 @@ function register(getWindow) {
   });
 
   ipcMain.handle('vj:tmpdir', () => path.join(os.tmpdir(), 'taller-vj'));
+
+  // ── § 2 — BAIXAR — streaming continua sendo o padrão; isto é o acervo ──
+  // O Archive serve de um datacenter só e engasga ao vivo. Baixado, o item vira
+  // arquivo local: seek instantâneo, shader, e nada de rede no meio da festa.
+  ipcMain.handle('vj:baixar', async (e, url, nome) => {
+    const dir = path.join(app.getPath('videos'), 'taller-vj', 'library');
+    await fs.promises.mkdir(dir, { recursive: true });
+    const limpo = String(nome || 'video').replace(/[^\w\-. ]/g, '_').slice(0, 80);
+    const ext = (url.match(/\.(mp4|m4v|webm|ogv|mkv)(\?|$)/i) || [, 'mp4'])[1];
+    const destino = path.join(dir, `${limpo}.${ext}`);
+    if (fs.existsSync(destino)) return { path: destino, jaTinha: true };
+
+    const parcial = destino + '.part';
+    return new Promise(resolve => {
+      const puxa = (endereco, saltos = 0) => {
+        if (saltos > 5) return resolve({ error: 'too many redirects' });
+        https.get(endereco, { headers: { 'user-agent': app.userAgentFallback } }, res => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            res.resume();
+            return puxa(new URL(res.headers.location, endereco).href, saltos + 1);
+          }
+          if (res.statusCode !== 200) { res.resume(); return resolve({ error: 'HTTP ' + res.statusCode }); }
+          const total = +(res.headers['content-length'] || 0);
+          let lido = 0, ultimo = 0;
+          const arquivo = fs.createWriteStream(parcial);
+          res.on('data', c => {
+            lido += c.length;
+            const agora = Date.now();
+            if (agora - ultimo > 400) {          // progresso sem inundar o bus
+              ultimo = agora;
+              e.sender.send('vj:baixando', { url, lido, total });
+            }
+          });
+          res.pipe(arquivo);
+          arquivo.on('finish', () => arquivo.close(() => {
+            fs.renameSync(parcial, destino);
+            e.sender.send('vj:baixando', { url, lido, total, fim: true });
+            resolve({ path: destino });
+          }));
+          arquivo.on('error', err => resolve({ error: String(err) }));
+        }).on('error', err => resolve({ error: String(err) }));
+      };
+      puxa(url);
+    });
+  });
 }
 
 module.exports = { register, ffmpeg, ffprobe, VIDEO_EXT };

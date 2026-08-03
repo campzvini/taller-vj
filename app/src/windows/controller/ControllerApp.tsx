@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '../../store';
 import { onBus } from '../../out';
-import { panic, pushAll, setFlash, toggleBlackout } from '../../actions';
+import { panic, pushAll, setFlash, setNextBed, toggleBlackout } from '../../actions';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useSync } from '../../hooks/useSync';
 import Deck from './components/Deck';
@@ -19,10 +19,12 @@ import Footer from './components/Footer';
 import SearchStrip from './components/SearchStrip';
 import ModPanel from './components/ModPanel';
 import Scenes from './components/Scenes';
+import TextPanel from './components/TextPanel';
 import RecPanel from './components/RecPanel';
 import Settings from './components/Settings';
 import Zona from './components/Zona';
 import { startModulation, stopModulation } from '../../modulation';
+import { proximaFaixa, startBed, stopBed } from '../../bed';
 import './controller.css';
 
 /**
@@ -41,9 +43,11 @@ export default function ControllerApp() {
     let t: ReturnType<typeof setTimeout>;
     setFlash(m => { setMsg(m); clearTimeout(t); t = setTimeout(() => setMsg(null), 1600); });
     startModulation();
+    setNextBed(proximaFaixa);
+    startBed();
     // a saída pode nascer depois do controlador: quando ela anuncia, reenviamos tudo
     const off = onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
-    return () => { off(); stopModulation(); };
+    return () => { off(); stopModulation(); stopBed(); };
   }, []);
 
   // os três monitores seguem a proporção escolhida para a saída, e entre si
@@ -99,6 +103,9 @@ export default function ControllerApp() {
             <Zona id="cenas" titulo="scenes" some
               resumo={s.cenas.length ? s.cenas.length + ' saved' : ''}>
               <Scenes />
+            </Zona>
+            <Zona id="txt" titulo="text" some resumo={s.txtOn && s.txt ? 'on air' : ''}>
+              <TextPanel />
             </Zona>
             <Zona id="mod" titulo="tempo &amp; modulation" resumo={resumoMod}>
               <ModPanel />

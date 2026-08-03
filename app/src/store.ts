@@ -16,10 +16,19 @@ const LS = <T,>(k: string, fb: T): T => {
   try { const v = localStorage.getItem(k); return v ? JSON.parse(v) as T : fb; } catch { return fb; }
 };
 
+/** Sessões antigas guardavam duas listas de vídeo; viram uma só, sem repetidos. */
+function migraAcervo(): Item[] {
+  const v = LS('vj.libV', null as Item[] | null);
+  if (v) return v;
+  const juntos = [...LS('vj.libA', [] as Item[]), ...LS('vj.libB', [] as Item[])];
+  const vistos = new Set<string>();
+  return juntos.filter(i => !vistos.has(i.id) && vistos.add(i.id));
+}
+
 export type Session = {
   // biblioteca
   results: Item[]; sel: number | null;
-  lib: Record<Lane, Item[]>;
+  lib: Record<Lane, Item[]>;   // V = vídeo (comum aos dois decks), C = bed
   now: Record<Deck | 'C' | 'P', Item | null>;
   slots: (Item | null)[];
 
@@ -38,6 +47,7 @@ export type Session = {
 
   // áudio
   amode: string; vol: Record<Deck | 'C' | 'P', number>;
+  bedLoop: boolean; bedFade: number;   // repetir a faixa | segundos de cruzamento
   sampAudio: boolean; sampVol: number; sampBlend: string; sampFade: number; sampZoom: number;
 
   // pool de samples (índice do player que cada slot ocupa)
@@ -56,6 +66,10 @@ export type Session = {
   engine: 'dom' | 'gl'; glfx: Record<Deck, GlFx>;
   monQuality: string; poolSize: number;
 
+  // texto na projeção
+  txt: string; txtOn: boolean; txtSize: number; txtCor: string;
+  txtX: number; txtY: number; txtModo: 'fixo' | 'marquee' | 'pisca'; txtContorno: boolean;
+
   // ui
   searchOpen: boolean; mirror: boolean; outLive: boolean; palco: boolean;
   browserOpen: boolean;
@@ -68,7 +82,7 @@ export type Session = {
 
 export const useSession = create<Session>((set, get) => ({
   results: [], sel: null,
-  lib: { A: LS('vj.libA', [] as Item[]), B: LS('vj.libB', [] as Item[]), C: LS('vj.libC', [] as Item[]) },
+  lib: { V: migraAcervo(), C: LS('vj.libC', [] as Item[]) },
   now: { A: null, B: null, C: null, P: null },
   slots: LS('vj.slots', Array(10).fill(null) as (Item | null)[]),
 
@@ -85,6 +99,7 @@ export const useSession = create<Session>((set, get) => ({
   loop: LS('vj.loop', true), cc: LS('vj.cc', false),
 
   amode: 'follow', vol: { A: 100, B: 100, C: 80, P: 0 },
+  bedLoop: LS('vj.bedLoop', false), bedFade: LS('vj.bedFade', 3),
   sampAudio: false, sampVol: 70, sampBlend: 'screen', sampFade: 90, sampZoom: 100,
 
   pool: Array(8).fill(null), poolOf: {}, poolNext: 0, held: {},
@@ -103,6 +118,12 @@ export const useSession = create<Session>((set, get) => ({
   glfx: LS('vj.glfx', { A: { ...GLFX0 }, B: { ...GLFX0 } }),
   monQuality: localStorage.getItem('vj.monq') || 'small',
   poolSize: LS('vj.poolSize', 4),
+
+  txt: localStorage.getItem('vj.txt') || '', txtOn: false,
+  txtSize: LS('vj.txtSize', 8), txtCor: localStorage.getItem('vj.txtCor') || '#ffffff',
+  txtX: LS('vj.txtX', 50), txtY: LS('vj.txtY', 86),
+  txtModo: (localStorage.getItem('vj.txtModo') as 'fixo') || 'fixo',
+  txtContorno: LS('vj.txtContorno', true),
 
   searchOpen: false, mirror: false, outLive: false,
   palco: LS('vj.palco', false),
@@ -126,7 +147,7 @@ export const useSession = create<Session>((set, get) => ({
   },
   save: () => {
     const s = get();
-    (['A', 'B', 'C'] as Lane[]).forEach(l => localStorage.setItem('vj.lib' + l, JSON.stringify(s.lib[l])));
+    (['V', 'C'] as Lane[]).forEach(l => localStorage.setItem('vj.lib' + l, JSON.stringify(s.lib[l])));
     localStorage.setItem('vj.slots', JSON.stringify(s.slots));
     localStorage.setItem('vj.ar', s.ar);
     localStorage.setItem('vj.loop', JSON.stringify(s.loop));
@@ -147,6 +168,15 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.recAlvoCtrl', s.recAlvoCtrl);
     localStorage.setItem('vj.recModo', s.recModo);
     localStorage.setItem('vj.palco', JSON.stringify(s.palco));
+    localStorage.setItem('vj.bedLoop', JSON.stringify(s.bedLoop));
+    localStorage.setItem('vj.bedFade', JSON.stringify(s.bedFade));
+    localStorage.setItem('vj.txt', s.txt);
+    localStorage.setItem('vj.txtSize', JSON.stringify(s.txtSize));
+    localStorage.setItem('vj.txtCor', s.txtCor);
+    localStorage.setItem('vj.txtX', JSON.stringify(s.txtX));
+    localStorage.setItem('vj.txtY', JSON.stringify(s.txtY));
+    localStorage.setItem('vj.txtModo', s.txtModo);
+    localStorage.setItem('vj.txtContorno', JSON.stringify(s.txtContorno));
 
   }
 }));

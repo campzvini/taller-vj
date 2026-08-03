@@ -26,7 +26,7 @@ async function resolvido(it: Item): Promise<Item | null> {
   const pronto = { ...it, src: url };
   const s = S();
   const troca = (l: Item[]) => l.map(x => x.id === it.id ? pronto : x);
-  s.set('lib', { A: troca(s.lib.A), B: troca(s.lib.B), C: troca(s.lib.C) });
+  s.set('lib', { V: troca(s.lib.V), C: troca(s.lib.C) });
   s.set('slots', s.slots.map(x => x && x.id === it.id ? { ...pronto, in: x.in, out: x.out } : x));
   return pronto;
 }
@@ -40,7 +40,7 @@ function mandaFonte(d: Deck, it: Item) {
   else out.load(d, it.id);
 }
 
-export async function play(lane: Lane, item: Item | null, at = 0) {
+export async function play(lane: Deck | 'C', item: Item | null, at = 0) {
   if (!item) return;
   const it = await resolvido(item);
   if (!it) return;
@@ -73,7 +73,7 @@ export async function play(lane: Lane, item: Item | null, at = 0) {
   applyAudio();
 }
 
-export function toggle(lane: Lane) {
+export function toggle(lane: Deck | 'C') {
   if (lane === 'C') {
     try { L.bed!.getPlayerState() === 1 ? L.bed!.pauseVideo() : L.bed!.playVideo(); } catch { /* ignore */ }
     return;
@@ -83,12 +83,9 @@ export function toggle(lane: Lane) {
   M.toggle(d);
 }
 
-export function nextBed() {
-  const s = S(), l = s.lib.C;
-  if (!l.length) return;
-  const i = s.now.C ? l.findIndex(x => x.id === s.now.C!.id) : -1;
-  play('C', l[(i + 1) % l.length]);
-}
+/** Ponte para o bed: quem decide repetir ou cruzar é bed.ts. */
+export let nextBed: (forcado?: boolean) => void = () => { };
+export const setNextBed = (fn: (f?: boolean) => void) => { nextBed = fn; };
 
 /* ── § 2 — Cue ── */
 export async function cue(item: Item | null) {
@@ -304,6 +301,8 @@ export async function pushAll() {
   out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
   out.sampZoom(+(v.sampZoom / 100).toFixed(3));
   out.sampVol(v.sampAudio ? v.sampVol : 0);
+  out.texto({ txt: v.txt, on: v.txtOn, size: v.txtSize, cor: v.txtCor,
+    x: v.txtX, y: v.txtY, modo: v.txtModo, contorno: v.txtContorno });
   v.pool.forEach(n => { if (n != null && v.slots[n]) poolAssign(n); });
 }
 
@@ -333,5 +332,6 @@ export function dropInto(lane: Lane, e: React.DragEvent) {
   if (from === lane) return;
   const ok = S().addTo(lane, it);
   if (ok) flashMsg('→ ' + lane);
-  if (from && 'ABC'.includes(from) && !e.ctrlKey) S().removeFrom(from as Lane, it.id);
+  // com um acervo só, arrastar entre listas vira mover entre vídeo e bed
+  if (from && from !== 'res' && from !== lane && !e.ctrlKey) S().removeFrom(from as Lane, it.id);
 }

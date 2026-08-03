@@ -162,12 +162,10 @@ export default function Browser() {
               <button className="mk" onClick={() => play('A', it)}>→ A</button>
               <button className="mk" onClick={() => play('B', it)}>→ B</button>
               <div style={{ flex: 1 }} />
-              <button className="mk" title="add to library A"
-                onClick={() => { if (s.addTo('A', it)) flashMsg('→ A'); }}>+A</button>
-              <button className="mk" title="add to library B"
-                onClick={() => { if (s.addTo('B', it)) flashMsg('→ B'); }}>+B</button>
+              <button className="mk" title="add to the library"
+                onClick={() => { if (s.addTo('V', it)) flashMsg('→ library'); }}>+ lib</button>
               <button className="mk" title="add to bed C"
-                onClick={() => { if (s.addTo('C', it)) flashMsg('→ bed'); }}>+C</button>
+                onClick={() => { if (s.addTo('C', it)) flashMsg('→ bed'); }}>+ bed</button>
             </div>
           </div>
         ))}

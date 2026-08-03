@@ -41,6 +41,8 @@ declare global {
       recDir?(): Promise<string>;
       pickDir?(atual?: string): Promise<string | null>;
       reveal?(p: string): Promise<boolean>;
+      baixar?(url: string, nome?: string): Promise<{ path?: string; error?: string; jaTinha?: boolean }>;
+      onBaixando?(fn: (d: { url: string; lido: number; total: number; fim?: boolean }) => void): () => void;
     };
   }
 }

@@ -9,7 +9,9 @@ import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
 import { L, M, setVid } from '../../../players';
 import { clearMark, cue, sendCue, setMark } from '../../../actions';
-import { fmt, type Item } from '../../../types';
+import { fmt, kindOf, type Item } from '../../../types';
+import { baixar } from '../../../catalog';
+import { useState as useEstado } from 'react';
 import Transport from './Transport';
 
 export default function Cue() {
@@ -24,7 +26,11 @@ export default function Cue() {
 
   const mk = s.mark.P;
   const has = mk.in != null || mk.out != null;
-  const addTo = (lane: 'A' | 'B' | 'C') => { if (s.now.P) s.addTo(lane, s.now.P); };
+  const addTo = (lane: 'V' | 'C') => { if (s.now.P) s.addTo(lane, s.now.P); };
+  const [baixando, setBaixando] = useEstado(false);
+  // só faz sentido para fonte remota: YouTube não entrega os bytes, local já está aqui
+  const src = s.now.P?.src || '';
+  const remoto = kindOf(s.now.P) === 'file' && (src.startsWith('archive:') || /^https?:/i.test(src));
 
   return (
     <>
@@ -76,8 +82,17 @@ export default function Cue() {
           <button className="env" onClick={() => sendCue('A')}>◄ A</button>
           <button className="env" onClick={() => sendCue('B')}>B ►</button>
           <span className="fsep" />
-          <button className="mk" onClick={() => addTo('A')}>+ A</button>
-          <button className="mk" onClick={() => addTo('B')}>+ B</button>
+          <button className="mk" onClick={() => addTo('V')}>+ library</button>
+          {remoto && (
+            <button className="mk" title="bring this file to the local library"
+              disabled={baixando}
+              onClick={async () => {
+                setBaixando(true);
+                const p = await baixar(s.now.P);
+                setBaixando(false);
+                if (p) cue({ ...s.now.P!, kind: 'file', src: p });
+              }}>{baixando ? '⤓ …' : '⤓ download'}</button>
+          )}
           <button className="mk" onClick={() => addTo('C')}>+ bed</button>
           <span className="fsep" />
           <button className={'tgl' + (s.mirror ? ' on' : '')}
