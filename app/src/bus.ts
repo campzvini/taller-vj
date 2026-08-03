@@ -31,7 +31,7 @@ export type Cmd =
   | { c: 'glfx'; deck: Deck; fx: Record<string, number> }     // shaders, só onde há pixels
   | { c: 'loop'; on: boolean }
   | { c: 'cc'; on: boolean }
-  | { c: 'sampLoad'; i: number; id: string; tin: number }
+  | { c: 'sampLoad'; i: number; id: string; tin: number; kind?: 'yt' | 'file'; src?: string }
   | { c: 'sampOn'; i: number }
   | { c: 'sampOff'; i: number; tin: number }
   | { c: 'sampSeek'; i: number; t: number }

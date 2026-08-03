@@ -9,7 +9,9 @@ import { useSession } from '../../../store';
 import { useLive } from '../../../live';
 import type { Dest } from '../../../modulation';
 import { usePlayer } from '../../../hooks/usePlayer';
-import { L, M } from '../../../players';
+import { L, M, setVid } from '../../../players';
+import { out, outLive, tele } from '../../../out';
+import Transport from './Transport';
 import {
   applyAudio, applyOpacity, applyZoom, clearMark, dropInto, setAmt, setMark, toggle, toggleFx, toggleTloop
 } from '../../../actions';
@@ -27,8 +29,9 @@ export default function Deck({ side }: { side: D }) {
   const liveZoom = useLive(l => l.val[('zoom' + side) as Dest]);
   const [over, setOver] = useState(false);
   // monitor com controles nativos: serve de scrub e vira fonte quando não há saída
+  // sem controles nativos: quem comanda é a nossa barra, igual para toda fonte
   const p = usePlayer('yt' + side + 'mon', {
-    controls: true, muted: true,
+    muted: true,
     quality: (useSession.getState().monQuality || 'small') as YT.SuggestedVideoQuality,
     // sem saída aberta o monitor é a fonte, então o loop também acontece aqui
     onState: state => {
@@ -47,7 +50,15 @@ export default function Deck({ side }: { side: D }) {
       applyAudio();
       clearInterval(t);
     }, 200);
-    return () => clearInterval(t);
+    // arquivo tem o mesmo direito ao loop que o YouTube tem
+    const v = document.getElementById('vid' + side + 'mon') as HTMLVideoElement | null;
+    const fim = () => {
+      const st = useSession.getState();
+      if (!st.loop || st.outLive || !v) return;
+      v.currentTime = 0; v.play().catch(() => { });
+    };
+    v?.addEventListener('ended', fim);
+    return () => { clearInterval(t); v?.removeEventListener('ended', fim); };
   }, []);
 
   const mk = s.mark[side];
@@ -66,15 +77,21 @@ export default function Deck({ side }: { side: D }) {
       <div className={'mon' + (s.armed === side ? ' armed' : '')} id={'mon' + side}
         style={{ ['--zoom' as any]: (s.zoom[side] / 100).toFixed(3) }}>
         <div className="srcwrap" id={'ytwrap' + side}><div id={'yt' + side + 'mon'} /></div>
-        <video className="srcvid" id={'vid' + side + 'mon'} playsInline controls muted
-          style={{ display: 'none' }}
-          ref={el => { if (side === 'A') L.vidA = el; else L.vidB = el; }} />
+        <video className="srcvid" id={'vid' + side + 'mon'} playsInline muted
+          style={{ display: 'none' }} ref={el => setVid(side, el)} />
+        {/* come o ponteiro: sem hover não há chrome do YouTube nem clique acidental */}
+        <div className="capa" />
       </div>
 
-      {/* transporte cola no player: é o que a mão procura sem pensar */}
+      <Transport canal={side}
+        tempo={() => outLive()
+          ? { t: tele.decks[side].time, dur: tele.decks[side].dur }
+          : { t: M.time(side), dur: M.dur(side) }}
+        seek={t => { M.seek(side, t); if (outLive()) out.seek(side, t); }}
+        toggle={() => toggle(side)} />
+
       <div className="card sob">
         <div className="row">
-          <button onClick={() => toggle(side)}>▶❚❚</button>
           <button className={'mk' + (s.armed === side ? ' on' : '')}
             onClick={() => s.set('armed', side)}>arm</button>
           <button className="mk" onClick={() => setMark(side, 'in')}>IN</button>

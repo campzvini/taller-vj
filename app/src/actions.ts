@@ -18,20 +18,30 @@ export const setFlash = (fn: (s: string) => void) => { flashMsg = fn; };
 /* ── § 1 — Transport ─────────────────────────────────────────────
    Sem a janela de saída aberta o monitor local vira a fonte, com áudio.
    Com ela aberta, o monitor volta a ser espelho mudo.                        */
-export async function play(lane: Lane, it: Item | null, at = 0) {
+/** Archive só conhece o próprio identificador: vira URL uma vez, aqui. */
+async function resolvido(it: Item): Promise<Item | null> {
+  if (!ehArchive(it.src)) return it;
+  const url = await resolverArchive(it.src!);
+  if (!url) { flashMsg('no playable video in this item'); return null; }
+  const pronto = { ...it, src: url };
+  const s = S();
+  const troca = (l: Item[]) => l.map(x => x.id === it.id ? pronto : x);
+  s.set('lib', { A: troca(s.lib.A), B: troca(s.lib.B), C: troca(s.lib.C) });
+  s.set('slots', s.slots.map(x => x && x.id === it.id ? { ...pronto, in: x.in, out: x.out } : x));
+  return pronto;
+}
+
+export async function play(lane: Lane, item: Item | null, at = 0) {
+  if (!item) return;
+  const it = await resolvido(item);
   if (!it) return;
   const s = S();
-  // item do Archive só conhece o próprio identificador: vira URL agora, uma vez
-  if (ehArchive(it.src)) {
-    const url = await resolverArchive(it.src!);
-    if (!url) { flashMsg('no playable video in this item'); return; }
-    it = { ...it, src: url };
-    const troca = (l: Item[]) => l.map(x => x.id === it!.id ? it! : x);
-    s.set('lib', { A: troca(s.lib.A), B: troca(s.lib.B), C: troca(s.lib.C) });
-  }
+  const arquivoLocal = kindOf(it) === 'file' && !!it.src;
+
   if (lane === 'C') {
-    if (it.plist) L.bed?.loadPlaylist({ list: it.plist, listType: 'playlist' });
-    else L.bed?.loadVideoById(it.id);
+    if (arquivoLocal) M.loadFile('C', srcUrl(it.src!), false);
+    else if (it.plist) M.loadList('C', it.plist);
+    else M.loadYt('C', it.id);
     s.set('now', { ...s.now, C: it });
     applyAudio();
     return;
@@ -74,25 +84,25 @@ export function nextBed() {
 }
 
 /* ── § 2 — Cue ── */
-export function cue(it: Item | null) {
+export async function cue(item: Item | null) {
+  if (!item) return;
+  const it = await resolvido(item);
   if (!it) return;
   const s = S();
-  // o cue é um player do YouTube: arquivo e Archive vão direto para um deck
-  if (kindOf(it) === 'file') { flashMsg('file source — drag it to a deck'); return; }
   if (s.mirror) s.set('mirror', false);      // carregar manualmente desliga o espelho
   const c = clean(it);
   s.set('now', { ...s.now, P: c });
   s.set('mark', { ...s.mark, P: { in: c.in ?? null, out: c.out ?? null } });
-  L.cue?.loadVideoById(c.id);
-  try { L.cue?.setVolume(s.vol.P); } catch { /* ignore */ }
+  if (kindOf(c) === 'file' && c.src) M.loadFile('P', srcUrl(c.src), false);
+  else M.loadYt('P', c.id);
+  M.vol('P', s.vol.P);
 }
 
 export function sendCue(d: Deck) {
   const s = S();
   const it = s.now.P;
   if (!it) { flashMsg('cue is empty'); return; }
-  let t = 0;
-  try { t = L.cue?.getCurrentTime() ?? 0; } catch { /* ignore */ }
+  let t = M.time('P');
   const m = s.mark.P;
   if (m.in != null || m.out != null) {
     s.set('mark', { ...s.mark, [d]: { in: m.in, out: m.out } } as any);
@@ -104,7 +114,7 @@ export function sendCue(d: Deck) {
 
 /* ── § 3 — Marks ── */
 export function headAt(o: MarkOwner): number {
-  if (o === 'P') { try { return L.cue?.getCurrentTime() ?? 0; } catch { return 0; } }
+  if (o === 'P') return M.time('P');
   if (outLive()) return tele.decks[o].time;
   return M.time(o);
 }
@@ -124,10 +134,19 @@ export const toggleTloop = (d: Deck) => {
 };
 
 /* ── § 4 — Slots and sample pool ── */
-export function poolAssign(n: number) {
-  const s = S(), it = s.slots[n];
+export async function poolAssign(n: number) {
+  const s = S();
+  let it = s.slots[n];
   if (!it || !outLive()) return;
-  if (s.poolOf[n] != null) { out.sampLoad(s.poolOf[n], it.id, it.in ?? 0); return; }
+  if (ehArchive(it.src)) {
+    const r = await resolvido(it);
+    if (!r) return;
+    it = S().slots[n] ?? r;
+  }
+  // o sample carrega a mesma fonte que o deck carregaria: a saída decide o nó
+  const carga = kindOf(it) === 'file' && it.src
+    ? { kind: 'file' as const, src: srcUrl(it.src) } : {};
+  if (s.poolOf[n] != null) { out.sampLoad(s.poolOf[n], it.id, it.in ?? 0, carga); return; }
   // o tamanho do pool é configurável; a saída tem 8 players, usamos os N primeiros
   const tam = Math.max(1, Math.min(8, s.poolSize || 4));
   const i = s.poolNext % tam;
@@ -137,7 +156,7 @@ export function poolAssign(n: number) {
   poolOf[n] = i;
   const pool = [...s.pool]; pool[i] = n;
   s.set('pool', pool); s.set('poolOf', poolOf); s.set('poolNext', s.poolNext + 1);
-  out.sampLoad(i, it.id, it.in ?? 0);
+  out.sampLoad(i, it.id, it.in ?? 0, carga);
 }
 export function assignSlot(n: number) {
   const s = S();
@@ -270,7 +289,7 @@ export function pushAll() {
   out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
   out.sampZoom(+(v.sampZoom / 100).toFixed(3));
   out.sampVol(v.sampAudio ? v.sampVol : 0);
-  v.pool.forEach((n, i) => { if (n != null && v.slots[n]) out.sampLoad(i, v.slots[n]!.id, v.slots[n]!.in ?? 0); });
+  v.pool.forEach(n => { if (n != null && v.slots[n]) poolAssign(n); });
 }
 
 /** O que costuma faltar cinco minutos antes de começar. */

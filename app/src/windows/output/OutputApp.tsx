@@ -48,6 +48,17 @@ export default function OutputApp() {
     const kind: Record<Deck, 'yt' | 'file'> = { A: 'yt', B: 'yt' };
     const isFile = (d: Deck) => kind[d] === 'file';
 
+    // o pool segue a mesma regra dos decks: dois nós por sample, um ativo por vez
+    const sampKind: ('yt' | 'file')[] = Array(NSAMP).fill('yt');
+    const sVid = (i: number) => el('vidS' + i) as HTMLVideoElement;
+    const setSampKind = (i: number, k: 'yt' | 'file') => {
+      sampKind[i] = k;
+      sVid(i).style.display = k === 'file' ? '' : 'none';
+      el('ytwrapS' + i).style.display = k === 'yt' ? '' : 'none';
+      if (k === 'file') { try { samp[i]?.current?.pauseVideo(); } catch { /* ignore */ } }
+      else { try { sVid(i).pause(); } catch { /* ignore */ } }
+    };
+
     // Motor híbrido: o shader só alcança fontes com pixels. Com o YouTube no deck,
     // aquela camada continua em DOM/CSS — não é escolha, é limite do iframe.
     let engine: 'dom' | 'gl' = 'dom';
@@ -213,6 +224,17 @@ export default function OutputApp() {
           });
           break;
         case 'sampLoad': {
+          if (m.kind === 'file' && m.src) {
+            setSampKind(m.i, 'file');
+            const v = sVid(m.i);
+            v.src = m.src; v.muted = true;
+            // sem tocar não há primeiro quadro: dá play, posiciona no IN e pausa
+            v.play().then(() => {
+              v.currentTime = m.tin; v.pause();
+            }).catch(() => { });
+            break;
+          }
+          setSampKind(m.i, 'yt');
           const q = samp[m.i]?.current; if (!q) break;
           q.loadVideoById({ videoId: m.id, startSeconds: m.tin });
           q.mute();
@@ -221,18 +243,34 @@ export default function OutputApp() {
           break;
         }
         case 'sampOn': {
+          el('s' + m.i).style.opacity = '1';
+          if (sampKind[m.i] === 'file') {
+            const v = sVid(m.i);
+            v.muted = st.current.svol <= 0;
+            v.volume = Math.max(0, Math.min(1, st.current.svol / 100));
+            v.play().catch(() => { });
+            break;
+          }
           const q = samp[m.i]?.current; if (!q) break;
           if (st.current.svol > 0) { q.unMute(); q.setVolume(st.current.svol); } else q.mute();
-          q.playVideo(); el('s' + m.i).style.opacity = '1';
+          q.playVideo();
           break;
         }
         case 'sampOff': {
-          const q = samp[m.i]?.current; if (!q) break;
           el('s' + m.i).style.opacity = '0';
+          if (sampKind[m.i] === 'file') {
+            const v = sVid(m.i);
+            v.pause(); v.muted = true; v.currentTime = m.tin;
+            break;
+          }
+          const q = samp[m.i]?.current; if (!q) break;
           q.mute(); q.pauseVideo(); q.seekTo(m.tin, true);
           break;
         }
-        case 'sampSeek': samp[m.i]?.current?.seekTo(m.t, true); break;
+        case 'sampSeek':
+          if (sampKind[m.i] === 'file') { sVid(m.i).currentTime = m.t; break; }
+          samp[m.i]?.current?.seekTo(m.t, true);
+          break;
         case 'sampBlend': el('pgS').style.mixBlendMode = m.mode; break;
         case 'sampFade':
           root.setProperty('--sfade', m.ms + 'ms');
@@ -242,7 +280,14 @@ export default function OutputApp() {
           break;
         case 'sampVol':
           st.current.svol = m.v;
-          samp.forEach(r => { const q = r.current; if (!q) return; if (m.v > 0) { q.unMute(); q.setVolume(m.v); } else q.mute(); });
+          samp.forEach((r, i) => {
+            if (sampKind[i] === 'file') {
+              const v = sVid(i); v.muted = m.v <= 0; v.volume = Math.max(0, Math.min(1, m.v / 100));
+              return;
+            }
+            const q = r.current; if (!q) return;
+            if (m.v > 0) { q.unMute(); q.setVolume(m.v); } else q.mute();
+          });
           break;
         case 'sampZoom': el('pgS').style.setProperty('--zoom', String(m.z)); break;
         case 'hello': break;
@@ -263,7 +308,10 @@ export default function OutputApp() {
       bus.send({
         t: 'tele', ready: !!pA.current,
         decks: { A: grab('A'), B: grab('B') },
-        samp: samp.map(r => { try { return r.current?.getCurrentTime() ?? 0; } catch { return 0; } })
+        samp: samp.map((r, i) => {
+          try { return sampKind[i] === 'file' ? sVid(i).currentTime : (r.current?.getCurrentTime() ?? 0); }
+          catch { return 0; }
+        })
       });
     }, 200);
 
@@ -281,6 +329,13 @@ export default function OutputApp() {
       time: (d: Deck) => T.time(d),
       seek: (d: Deck, t: number) => T.seek(d, t),
       data: (d: Deck) => { try { return yt(d)?.getVideoData(); } catch { return null; } },
+      sampFile: (i: number, src: string, tin = 0) => run({ c: 'sampLoad', i, id: src, tin, kind: 'file', src }),
+      sampOn: (i: number) => run({ c: 'sampOn', i }),
+      sampInfo: (i: number) => {
+        const v = sVid(i);
+        return { kind: sampKind[i], tocando: !v.paused, t: +v.currentTime.toFixed(1),
+                 visivel: v.style.display !== 'none', opacidade: el('s' + i).style.opacity };
+      },
       xf: (v: number) => { st.current.xf = v; st.current.hasA = true; st.current.hasB = true; paint(); },
       opacity: (d: Deck, v: number) => run({ c: 'opacity', deck: d, v }),
       present: (d: Deck, v: boolean) => run({ c: 'present', deck: d, v })
@@ -310,7 +365,10 @@ export default function OutputApp() {
           </div>
           <div className="layer" id="pgS">
             {Array.from({ length: NSAMP }, (_, i) => (
-              <div className="samp" id={'s' + i} key={i}><div id={'ytS' + i} /></div>
+              <div className="samp" id={'s' + i} key={i}>
+                <div className="srcwrap" id={'ytwrapS' + i}><div id={'ytS' + i} /></div>
+                <video className="srcvid" id={'vidS' + i} playsInline muted style={{ display: 'none' }} />
+              </div>
             ))}
           </div>
         </div></div></div>

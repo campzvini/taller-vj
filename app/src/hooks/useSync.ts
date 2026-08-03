@@ -7,8 +7,8 @@
 import { useEffect, useRef } from 'react';
 import { useSession } from '../store';
 import { out, outLive, tele } from '../out';
-import { L, M } from '../players';
-import type { Deck } from '../types';
+import { M } from '../players';
+import { kindOf, srcUrl, type Deck } from '../types';
 
 const TICK = 400;
 
@@ -30,14 +30,14 @@ export function useSync() {
           const it = s.now[d]!;
           if (mirrorId.current !== it.id) {
             mirrorId.current = it.id;
-            L.cue?.loadVideoById(it.id);
-            try { L.cue?.setVolume(s.vol.P); } catch { /* ignore */ }
+            // o espelho copia a fonte, seja ela qual for
+            if (kindOf(it) === 'file' && it.src) M.loadFile('P', srcUrl(it.src), false);
+            else M.loadYt('P', it.id);
+            M.vol('P', s.vol.P);
           } else if (live) {
-            try {
-              const t = tele.decks[d].time;
-              if (Math.abs((L.cue?.getCurrentTime() ?? 0) - t) > 0.8) L.cue?.seekTo(t, true);
-              if (tele.decks[d].state === 1 && L.cue?.getPlayerState() !== 1) L.cue?.playVideo();
-            } catch { /* ignore */ }
+            const t = tele.decks[d].time;
+            if (Math.abs(M.time('P') - t) > 0.8) M.seek('P', t);
+            if (tele.decks[d].state === 1 && M.state('P') !== 1) M.play('P');
           }
         }
       } else mirrorId.current = null;

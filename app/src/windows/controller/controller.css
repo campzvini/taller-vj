@@ -78,6 +78,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   transform:translate(-50%,-50%) scale(var(--zoom,1))}
 .srcwrap{position:absolute;inset:0}
 .srcvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+/* come o ponteiro sobre o iframe: sem hover o YouTube não desenha chrome nenhum,
+   e um clique perdido não pausa a projeção. O comando vem da nossa barra. */
+.capa{position:absolute;inset:0;z-index:3;cursor:default}
+
+/* ── § 2.1 — Transporte único ── */
+.transport{display:flex;align-items:center;gap:5px;background:var(--card);
+  border:1px solid var(--line);border-top:0;padding:3px 5px;margin-top:-1px}
+.transport .tplay{padding:2px 8px;font-size:11px;min-width:30px}
+.transport .tline{flex:1;height:6px}
+.transport .tline::-webkit-slider-thumb{width:10px;height:16px;background:var(--accb)}
+.transport .ttime{font-size:9px;color:var(--dim);min-width:70px;text-align:right}
+.transport.mini .ttime{min-width:0}
+.palco .transport .tline{height:10px}
+.palco .transport .tline::-webkit-slider-thumb{width:14px;height:22px}
 .item .kind{font-size:8px;color:var(--ok);border:1px solid var(--ok);border-radius:2px;
   padding:0 3px;flex:0 0 auto}
 
@@ -137,8 +151,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   border-radius:4px}
 #colC.drop{border-color:var(--ok);background:#0f2417}
 #bedmon{width:54px;flex:0 0 auto;aspect-ratio:16/9;background:#000;border:1px solid var(--line);
-  overflow:hidden}
+  overflow:hidden;position:relative}
 #bedmon iframe{width:100%;height:100%;border:0;pointer-events:none}
+#bedmon .srcvid{object-fit:cover}
 .bedtitle{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
 #bedlist{position:fixed;width:280px;max-height:220px;overflow-y:auto;background:#0f0f14;
   border:1px solid var(--accb);border-radius:4px;z-index:60;box-shadow:0 6px 18px #000a}

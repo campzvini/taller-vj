@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
 import { useClickOutside } from '../../../hooks/useClickOutside';
-import { L } from '../../../players';
+import { L, M, setVid } from '../../../players';
 import { applyAudio, dropInto, nextBed, toggle } from '../../../actions';
 import { fmt } from '../../../types';
 import Library from './Library';
@@ -28,6 +28,13 @@ export default function Footer() {
   const btn = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const p = usePlayer('ytCout', { quality: 'small', onState: st => { if (st === 0) nextBed(); } });
+  // arquivo no bed também precisa avançar sozinho ao terminar
+  useEffect(() => {
+    const v = () => document.getElementById('vidCout') as HTMLVideoElement | null;
+    const fim = () => nextBed();
+    v()?.addEventListener('ended', fim);
+    return () => v()?.removeEventListener('ended', fim);
+  }, []);
 
   const closeList = useCallback(() => setListOpen(false), []);
   useClickOutside(listOpen, closeList, [list, btn]);
@@ -37,14 +44,11 @@ export default function Footer() {
     return () => clearInterval(t0);
   }, []);
 
-  // a linha de tempo do bed lê o player direto: ele mora nesta janela
+  // a linha de tempo do bed lê o transporte: ele serve YouTube, arquivo e Archive
   useEffect(() => {
     const i = setInterval(() => {
-      if (!L.bed || arrastando) return;
-      try {
-        setT(L.bed.getCurrentTime() || 0);
-        setDur(L.bed.getDuration() || 0);
-      } catch { /* player trocando de vídeo */ }
+      if (arrastando) return;
+      setT(M.time('C')); setDur(M.dur('C'));
     }, 400);
     return () => clearInterval(i);
   }, [arrastando]);
@@ -65,20 +69,26 @@ export default function Footer() {
         onDragLeave={() => setOver(false)}
         onDrop={e => { e.preventDefault(); setOver(false); dropInto('C', e); }}>
         <span className="tag">bed C</span>
-        <div id="bedmon"><div id="ytCout" /></div>
+        <div id="bedmon">
+          <div className="srcwrap" id="ytwrapC"><div id="ytCout" /></div>
+          <video className="srcvid" id="vidCout" playsInline
+            style={{ display: 'none' }} ref={el => setVid('C', el)} />
+          <div className="capa" />
+        </div>
         <span className="now bedtitle">{s.now.C?.title ?? ''}</span>
-        <button onClick={() => toggle('C')}>▶❚❚ (V)</button>
 
-        <input type="range" id="bedtime" min={0} max={Math.max(1, Math.floor(dur))} value={Math.floor(t)}
+        <input type="range" id="bedtime" min={0} max={Math.max(1, Math.floor(dur))}
+          value={Math.min(Math.floor(t), Math.max(1, Math.floor(dur)))}
           title="position" style={{ width: 150 }}
           onMouseDown={() => setArrastando(true)}
           onChange={e => setT(+e.target.value)}
           onMouseUp={e => {
             const v = +(e.target as HTMLInputElement).value;
             setArrastando(false);
-            try { L.bed?.seekTo(v, true); } catch { /* ignore */ }
+            M.seek('C', v);
           }} />
         <span className="val">{fmt(t)}{dur ? ' / ' + fmt(dur) : ''}</span>
+        <button onClick={() => toggle('C')}>▶❚❚ (V)</button>
 
         <span className="tag">vol</span>
         <input type="range" min={0} max={100} value={s.vol.C} style={{ width: 64 }}

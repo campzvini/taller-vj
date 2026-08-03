@@ -574,6 +574,29 @@ async function selftest() {
         return { antes, durante, depois: vis(document.getElementById('searchwrap')), fechada };
       })()`);
 
+    // 7m) transporte único: barra própria em todo player, chrome do YouTube fora,
+    //     e cue/bed com o par de nós que aceita arquivo
+    result.transporte = await controller.webContents.executeJavaScript(`({
+      barras: document.querySelectorAll('.transport').length,
+      capas: document.querySelectorAll('.capa').length,
+      cueTemVideo: !!document.getElementById('vidPrev'),
+      bedTemVideo: !!document.getElementById('vidCout'),
+      semControlesNativos: [...document.querySelectorAll('#monA iframe, #ytwrapP iframe')]
+        .every(f => /controls=0/.test(f.src)),
+      videoSemControles: ![...document.querySelectorAll('video')].some(v => v.controls)
+    })`);
+
+    // sample com ARQUIVO: o pool deixa de ser exclusivo do YouTube
+    result.sampFile = await output.webContents.executeJavaScript(`
+      (async () => {
+        VJ.sampFile(0, location.origin + '/local?p=' + encodeURIComponent(${JSON.stringify(path.join(os.tmpdir(), 'taller-vj-selftest.mp4'))}));
+        await new Promise(r => setTimeout(r, 2500));
+        const parado = VJ.sampInfo(0);
+        VJ.sampOn(0);
+        await new Promise(r => setTimeout(r, 1200));
+        return { parado, tocando: VJ.sampInfo(0) };
+      })()`);
+
     // 7l) Archive: a busca pública responde à nossa origem e o item vira URL tocável
     result.archive = await controller.webContents.executeJavaScript(`
       (async () => {

@@ -55,7 +55,8 @@ export const out = {
   pattern: (name: string | null) => send({ c: 'pattern', name }),
   loop: (on: boolean) => send({ c: 'loop', on }),
   cc: (on: boolean) => send({ c: 'cc', on }),
-  sampLoad: (i: number, id: string, tin: number) => send({ c: 'sampLoad', i, id, tin }),
+  sampLoad: (i: number, id: string, tin: number, fonte: { kind?: 'yt' | 'file'; src?: string } = {}) =>
+    send({ c: 'sampLoad', i, id, tin, ...fonte }),
   sampOn: (i: number) => send({ c: 'sampOn', i }),
   sampOff: (i: number, tin: number) => send({ c: 'sampOff', i, tin }),
   sampSeek: (i: number, t: number) => send({ c: 'sampSeek', i, t }),

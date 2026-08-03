@@ -7,7 +7,8 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '../../../store';
 import { usePlayer } from '../../../hooks/usePlayer';
-import { L } from '../../../players';
+import { L, M, setVid } from '../../../players';
+import Transport from './Transport';
 import { clearMark, cue, sendCue, setMark } from '../../../actions';
 import { fmt, type Item } from '../../../types';
 import Zona from './Zona';
@@ -15,7 +16,7 @@ import Zona from './Zona';
 export default function Cue() {
   const s = useSession();
   const [over, setOver] = useState(false);
-  const p = usePlayer('ytPrev', { controls: true });
+  const p = usePlayer('ytPrev');
 
   useEffect(() => {
     const t = setInterval(() => { if (p.current) { L.cue = p.current; clearInterval(t); } }, 200);
@@ -40,8 +41,13 @@ export default function Cue() {
           e.preventDefault(); e.stopPropagation(); setOver(false);
           try { cue(JSON.parse(e.dataTransfer.getData('text/plain')) as Item); } catch { /* ignore */ }
         }}>
-        <div id="ytPrev" />
+        <div className="srcwrap" id="ytwrapP"><div id="ytPrev" /></div>
+        <video className="srcvid" id="vidPrev" playsInline
+          style={{ display: 'none' }} ref={el => setVid('P', el)} />
+        <div className="capa" />
       </div>
+
+      <Transport canal="P" />
 
       {/* o transporte cola no player; o resto é guia colapsável */}
       <div className="card sob">
@@ -71,7 +77,7 @@ export default function Cue() {
             onChange={e => {
               const v = +e.target.value;
               s.set('vol', { ...s.vol, P: v });
-              try { L.cue?.setVolume(v); } catch { /* ignore */ }
+              M.vol('P', v);
             }} />
         </div>
         <div className="row">
