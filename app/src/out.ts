@@ -46,14 +46,23 @@ export const out = {
   blend: (mode: string) => send({ c: 'blend', mode }),
   fxBus: (b: FxBus, fx: string[], amt: number) => send({ c: 'bus', bus: b, fx, amt }),
   frame: (ar: string) => send({ c: 'frame', ar }),
+  pos: (deck: Deck, p: { pan: [number, number]; rot: number; flipH: boolean; flipV: boolean;
+                         crop: [number, number, number, number] }) =>
+    send({ c: 'pos', deck, ...p }),
+  blackout: (on: boolean) => send({ c: 'blackout', on }),
+  engine: (mode: 'dom' | 'gl') => send({ c: 'engine', mode }),
+  glfx: (deck: Deck, fx: Record<string, number>) => send({ c: 'glfx', deck, fx }),
+  pattern: (name: string | null) => send({ c: 'pattern', name }),
   loop: (on: boolean) => send({ c: 'loop', on }),
   cc: (on: boolean) => send({ c: 'cc', on }),
-  sampLoad: (i: number, id: string, tin: number) => send({ c: 'sampLoad', i, id, tin }),
+  sampLoad: (i: number, id: string, tin: number, fonte: { kind?: 'yt' | 'file'; src?: string } = {}) =>
+    send({ c: 'sampLoad', i, id, tin, ...fonte }),
   sampOn: (i: number) => send({ c: 'sampOn', i }),
   sampOff: (i: number, tin: number) => send({ c: 'sampOff', i, tin }),
   sampSeek: (i: number, t: number) => send({ c: 'sampSeek', i, t }),
   sampBlend: (mode: string) => send({ c: 'sampBlend', mode }),
   sampFade: (ms: number) => send({ c: 'sampFade', ms }),
   sampVol: (v: number) => send({ c: 'sampVol', v }),
-  sampZoom: (z: number) => send({ c: 'sampZoom', z })
+  sampZoom: (z: number) => send({ c: 'sampZoom', z }),
+  texto: (t: Omit<Extract<Cmd, { c: 'texto' }>, 'c'>) => send({ c: 'texto', ...t })
 };

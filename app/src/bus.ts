@@ -10,7 +10,7 @@ export type FxBus = 'A' | 'B' | 'M';
 
 // ── § 1 — COMMANDS — controller → output ──
 export type Cmd =
-  | { c: 'load'; deck: Deck; id: string }
+  | { c: 'load'; deck: Deck; id: string; kind?: 'yt' | 'file'; src?: string }
   | { c: 'loadList'; deck: Deck; list: string }
   | { c: 'play' | 'pause' | 'toggle'; deck: Deck }
   | { c: 'seek'; deck: Deck; t: number }
@@ -23,9 +23,15 @@ export type Cmd =
   | { c: 'blend'; mode: string }
   | { c: 'bus'; bus: FxBus; fx: string[]; amt: number }
   | { c: 'frame'; ar: string }
+  | { c: 'pos'; deck: Deck; pan: [number, number]; rot: number; flipH: boolean; flipV: boolean;
+      crop: [number, number, number, number] }   // top right bottom left, em %
+  | { c: 'blackout'; on: boolean }
+  | { c: 'pattern'; name: string | null }
+  | { c: 'engine'; mode: 'dom' | 'gl' }                       // motor escolhido pelo operador
+  | { c: 'glfx'; deck: Deck; fx: Record<string, number> }     // shaders, só onde há pixels
   | { c: 'loop'; on: boolean }
   | { c: 'cc'; on: boolean }
-  | { c: 'sampLoad'; i: number; id: string; tin: number }
+  | { c: 'sampLoad'; i: number; id: string; tin: number; kind?: 'yt' | 'file'; src?: string }
   | { c: 'sampOn'; i: number }
   | { c: 'sampOff'; i: number; tin: number }
   | { c: 'sampSeek'; i: number; t: number }
@@ -33,6 +39,8 @@ export type Cmd =
   | { c: 'sampFade'; ms: number }
   | { c: 'sampVol'; v: number }
   | { c: 'sampZoom'; z: number }
+  | { c: 'texto'; txt: string; on: boolean; size: number; cor: string;
+      x: number; y: number; modo: 'fixo' | 'marquee' | 'pisca'; contorno: boolean }
   | { c: 'hello' };            // output acabou de subir e pede o estado inteiro
 
 // ── § 2 — TELEMETRY — output → controller ──

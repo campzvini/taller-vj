@@ -5,10 +5,11 @@
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import { useSession } from './store';
-import { out, outLive, tele } from './out';
-import { L, mon } from './players';
-import type { Deck, FxName, Item, Lane, MarkOwner } from './types';
-import { clean } from './types';
+import { out, outLive, send, tele } from './out';
+import { L, M, mon } from './players';
+import type { Deck, FxName, Item, Lane, MarkOwner, Pos } from './types';
+import { clean, curveAt, kindOf, POS0, srcUrl } from './types';
+import { ehArchive, resolverArchive } from './archive';
 
 const S = () => useSession.getState();
 export let flashMsg: (s: string) => void = () => { };
@@ -17,68 +18,95 @@ export const setFlash = (fn: (s: string) => void) => { flashMsg = fn; };
 /* ── § 1 — Transport ─────────────────────────────────────────────
    Sem a janela de saída aberta o monitor local vira a fonte, com áudio.
    Com ela aberta, o monitor volta a ser espelho mudo.                        */
-export function play(lane: Lane, it: Item | null, at = 0) {
+/** Archive só conhece o próprio identificador: vira URL uma vez, aqui. */
+async function resolvido(it: Item): Promise<Item | null> {
+  if (!ehArchive(it.src)) return it;
+  const url = await resolverArchive(it.src!);
+  if (!url) { flashMsg('no playable video in this item'); return null; }
+  const pronto = { ...it, src: url };
+  const s = S();
+  const troca = (l: Item[]) => l.map(x => x.id === it.id ? pronto : x);
+  s.set('lib', { V: troca(s.lib.V), C: troca(s.lib.C) });
+  s.set('slots', s.slots.map(x => x && x.id === it.id ? { ...pronto, in: x.in, out: x.out } : x));
+  return pronto;
+}
+
+/** ÚNICO lugar que decide como um item vira comando de carga para a saída.
+ *  Existir duas vezes foi o que fez o Archive cair no player do YouTube. */
+function mandaFonte(d: Deck, it: Item) {
+  if (kindOf(it) === 'file' && it.src) {
+    send({ c: 'load', deck: d, id: it.id, kind: 'file', src: srcUrl(it.src) });
+  } else if (it.plist) out.loadList(d, it.plist);
+  else out.load(d, it.id);
+}
+
+export async function play(lane: Deck | 'C', item: Item | null, at = 0) {
+  if (!item) return;
+  const it = await resolvido(item);
   if (!it) return;
   const s = S();
+  const arquivoLocal = kindOf(it) === 'file' && !!it.src;
+
   if (lane === 'C') {
-    if (it.plist) L.bed?.loadPlaylist({ list: it.plist, listType: 'playlist' });
-    else L.bed?.loadVideoById(it.id);
+    if (arquivoLocal) M.loadFile('C', srcUrl(it.src!), false);
+    else if (it.plist) M.loadList('C', it.plist);
+    else M.loadYt('C', it.id);
     s.set('now', { ...s.now, C: it });
     applyAudio();
     return;
   }
   const d = lane as Deck;
+  const arquivo = arquivoLocal;
+
   if (outLive()) {
-    if (it.plist) out.loadList(d, it.plist); else out.load(d, it.id);
+    mandaFonte(d, it);
     out.present(d, true);
-    if (at > 1) setTimeout(() => out.seek(d, at), 900);
+    if (at > 1) setTimeout(() => out.seek(d, at), arquivo ? 300 : 900);
   }
-  const m = mon(d);
-  if (m) {
-    if (it.plist && !outLive()) m.loadPlaylist({ list: it.plist, listType: 'playlist' });
-    else m.loadVideoById(it.id);
-    if (at > 1) setTimeout(() => { try { m.seekTo(at, true); } catch { /* ignore */ } }, 900);
-  }
+
+  if (arquivo) M.loadFile(d, srcUrl(it.src!));
+  else if (it.plist && !outLive()) { M.setKind(d, 'yt'); mon(d)?.loadPlaylist({ list: it.plist, listType: 'playlist' }); }
+  else M.loadYt(d, it.id);
+  if (at > 1) setTimeout(() => M.seek(d, at), arquivo ? 300 : 900);
+
   s.set('now', { ...s.now, [d]: it } as any);
   applyAudio();
 }
 
-export function toggle(lane: Lane) {
+export function toggle(lane: Deck | 'C') {
   if (lane === 'C') {
     try { L.bed!.getPlayerState() === 1 ? L.bed!.pauseVideo() : L.bed!.playVideo(); } catch { /* ignore */ }
     return;
   }
   const d = lane as Deck;
   if (outLive()) { out.toggle(d); return; }
-  const m = mon(d); if (!m) return;
-  try { m.getPlayerState() === 1 ? m.pauseVideo() : m.playVideo(); } catch { /* ignore */ }
+  M.toggle(d);
 }
 
-export function nextBed() {
-  const s = S(), l = s.lib.C;
-  if (!l.length) return;
-  const i = s.now.C ? l.findIndex(x => x.id === s.now.C!.id) : -1;
-  play('C', l[(i + 1) % l.length]);
-}
+/** Ponte para o bed: quem decide repetir ou cruzar é bed.ts. */
+export let nextBed: (forcado?: boolean) => void = () => { };
+export const setNextBed = (fn: (f?: boolean) => void) => { nextBed = fn; };
 
 /* ── § 2 — Cue ── */
-export function cue(it: Item | null) {
+export async function cue(item: Item | null) {
+  if (!item) return;
+  const it = await resolvido(item);
   if (!it) return;
   const s = S();
   if (s.mirror) s.set('mirror', false);      // carregar manualmente desliga o espelho
   const c = clean(it);
   s.set('now', { ...s.now, P: c });
   s.set('mark', { ...s.mark, P: { in: c.in ?? null, out: c.out ?? null } });
-  L.cue?.loadVideoById(c.id);
-  try { L.cue?.setVolume(s.vol.P); } catch { /* ignore */ }
+  if (kindOf(c) === 'file' && c.src) M.loadFile('P', srcUrl(c.src), false);
+  else M.loadYt('P', c.id);
+  M.vol('P', s.vol.P);
 }
 
 export function sendCue(d: Deck) {
   const s = S();
   const it = s.now.P;
-  if (!it) { flashMsg('nada no cue'); return; }
-  let t = 0;
-  try { t = L.cue?.getCurrentTime() ?? 0; } catch { /* ignore */ }
+  if (!it) { flashMsg('cue is empty'); return; }
+  let t = M.time('P');
   const m = s.mark.P;
   if (m.in != null || m.out != null) {
     s.set('mark', { ...s.mark, [d]: { in: m.in, out: m.out } } as any);
@@ -90,9 +118,9 @@ export function sendCue(d: Deck) {
 
 /* ── § 3 — Marks ── */
 export function headAt(o: MarkOwner): number {
-  if (o === 'P') { try { return L.cue?.getCurrentTime() ?? 0; } catch { return 0; } }
+  if (o === 'P') return M.time('P');
   if (outLive()) return tele.decks[o].time;
-  try { return mon(o)?.getCurrentTime() ?? 0; } catch { return 0; }
+  return M.time(o);
 }
 export const setMark = (o: MarkOwner, which: 'in' | 'out') => {
   const s = S();
@@ -105,23 +133,34 @@ export const clearMark = (o: MarkOwner) => {
 };
 export const toggleTloop = (d: Deck) => {
   const s = S();
-  if (s.mark[d].out == null) { flashMsg('marque OUT antes'); return; }
+  if (s.mark[d].out == null) { flashMsg('set OUT first'); return; }
   s.set('tloop', { ...s.tloop, [d]: !s.tloop[d] } as any);
 };
 
 /* ── § 4 — Slots and sample pool ── */
-export function poolAssign(n: number) {
-  const s = S(), it = s.slots[n];
+export async function poolAssign(n: number) {
+  const s = S();
+  let it = s.slots[n];
   if (!it || !outLive()) return;
-  if (s.poolOf[n] != null) { out.sampLoad(s.poolOf[n], it.id, it.in ?? 0); return; }
-  const i = s.poolNext % s.pool.length;
+  if (ehArchive(it.src)) {
+    const r = await resolvido(it);
+    if (!r) return;
+    it = S().slots[n] ?? r;
+  }
+  // o sample carrega a mesma fonte que o deck carregaria: a saída decide o nó
+  const carga = kindOf(it) === 'file' && it.src
+    ? { kind: 'file' as const, src: srcUrl(it.src) } : {};
+  if (s.poolOf[n] != null) { out.sampLoad(s.poolOf[n], it.id, it.in ?? 0, carga); return; }
+  // o tamanho do pool é configurável; a saída tem 8 players, usamos os N primeiros
+  const tam = Math.max(1, Math.min(8, s.poolSize || 4));
+  const i = s.poolNext % tam;
   const old = s.pool[i];
   const poolOf = { ...s.poolOf };
   if (old != null) delete poolOf[old];
   poolOf[n] = i;
   const pool = [...s.pool]; pool[i] = n;
   s.set('pool', pool); s.set('poolOf', poolOf); s.set('poolNext', s.poolNext + 1);
-  out.sampLoad(i, it.id, it.in ?? 0);
+  out.sampLoad(i, it.id, it.in ?? 0, carga);
 }
 export function assignSlot(n: number) {
   const s = S();
@@ -136,9 +175,12 @@ export function assignSlot(n: number) {
 }
 export function holdOn(n: number) {
   const s = S();
-  if (!outLive() || !s.slots[n] || s.held[n]) return;
+  if (s.held[n]) return;
+  if (!s.slots[n]) return;
+  // silêncio aqui custou caro: o sample vive na SAÍDA, sem ela não há o que disparar
+  if (!outLive()) { flashMsg('samples need the output window — press O'); return; }
   const i = s.poolOf[n];
-  if (i == null) { poolAssign(n); flashMsg('slot ' + n + ' carregando — aperte de novo'); return; }
+  if (i == null) { poolAssign(n); flashMsg('slot ' + n + ' loading — press again'); return; }
   s.set('held', { ...s.held, [n]: true });
   out.sampOn(i);
 }
@@ -151,7 +193,28 @@ export function holdOff(n: number) {
 }
 
 /* ── § 5 — Mixer ── */
-export function applyXf(v: number) { S().set('xf', v); out.xf(v); applyAudio(); }
+export function applyXf(v: number) {
+  const s = S();
+  s.set('xf', v);
+  out.xf(curveAt(v, s.curve));   // a curva mora aqui: a UI continua linear na mão
+  applyAudio();
+}
+export function applyPos(d: Deck, patch: Partial<Pos>) {
+  const s = S();
+  const next = { ...s.pos[d], ...patch };
+  s.set('pos', { ...s.pos, [d]: next } as any);
+  out.pos(d, next);
+}
+export function resetPos(d: Deck) { applyPos(d, { ...POS0 }); }
+export function toggleBlackout() {
+  const s = S(); const on = !s.blackout;
+  s.set('blackout', on); out.blackout(on);
+}
+export function setPattern(name: string | null) {
+  const s = S();
+  const next = s.pattern === name ? null : name;
+  s.set('pattern', next); out.pattern(next);
+}
 export function applyOpacity(d: Deck, v: number) {
   const s = S(); s.set('op', { ...s.op, [d]: v } as any); out.opacity(d, v / 100);
 }
@@ -190,7 +253,7 @@ export function panic() {
   const s = S();
   s.set('fx', { A: new Set(), B: new Set(), M: new Set() });
   (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [], s.amt[b]));
-  flashMsg('fx zerados');
+  flashMsg('effects cleared');
 }
 
 /* ── § 6 — Audio ── */
@@ -205,17 +268,63 @@ export function applyAudio() {
 
   if (outLive()) {
     out.vol('A', a); out.vol('B', b);
-    [L.monA, L.monB].forEach(p => { try { p?.mute(); } catch { /* ignore */ } });
+    (['A', 'B'] as Deck[]).forEach(d => M.mute(d));      // espelho volta a ser mudo
   } else {
-    ([['A', a], ['B', b]] as [Deck, number][]).forEach(([d, val]) => {
-      const p = mon(d); if (!p) return;
-      try { if (val > 0) { p.unMute(); p.setVolume(Math.round(val)); } else p.mute(); } catch { /* ignore */ }
-    });
+    ([['A', a], ['B', b]] as [Deck, number][]).forEach(([d, val]) => M.vol(d, val));
   }
   try { L.bed?.setVolume(Math.round(s.vol.C)); } catch { /* ignore */ }
 }
 
-/* ── § 7 — Drag payloads ── */
+/* ── § 7 — Reenvio e checklist ──────────────────────────────────────
+   A saída pode nascer depois do controlador; quando ela se anuncia, o estado
+   inteiro é reenviado. Mora aqui, e não no componente, porque a configuração
+   também precisa chamar isto ao carregar uma sessão.                          */
+export async function pushAll() {
+  const v = S();
+  out.frame(v.ar); out.loop(v.loop); out.cc(v.cc);
+  out.smooth(v.smooth); out.blend(v.blend);
+  for (const d of ['A', 'B'] as Deck[]) {
+    out.opacity(d, v.op[d] / 100);
+    out.zoomCh(d, +(v.zoom[d] / 100).toFixed(3));
+    out.present(d, !!v.now[d]);
+    // a saída quase sempre nasce DEPOIS dos decks: este é o caminho normal de
+    // carga, e ele precisa saber a fonte tanto quanto o play() sabe
+    if (v.now[d]) {
+      const it = await resolvido(v.now[d]!);
+      if (it) { S().set('now', { ...S().now, [d]: it } as never); mandaFonte(d, it); }
+    }
+  }
+  out.xf(v.xf);
+  (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
+  out.engine(v.engine);
+  (['A', 'B'] as Deck[]).forEach(d => out.glfx(d, v.glfx[d] as unknown as Record<string, number>));
+  out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
+  out.sampZoom(+(v.sampZoom / 100).toFixed(3));
+  out.sampVol(v.sampAudio ? v.sampVol : 0);
+  out.texto({ txt: v.txt, on: v.txtOn, size: v.txtSize, cor: v.txtCor,
+    x: v.txtX, y: v.txtY, modo: v.txtModo, contorno: v.txtContorno });
+  v.pool.forEach(n => { if (n != null && v.slots[n]) poolAssign(n); });
+}
+
+/** O que costuma faltar cinco minutos antes de começar. */
+export async function checklist() {
+  const v = S();
+  const info = (await window.vj?.checklist?.()) as Record<string, unknown> | undefined;
+  const itens: [boolean, string][] = [
+    [!!info?.saida, 'saída aberta'],
+    [!!info?.fullscreen || (info?.telas as number) === 1, 'saída em tela cheia'],
+    [(info?.telas as number) > 1, 'segunda tela conectada'],
+    [!!localStorage.getItem('vj.key'), 'chave de API salva'],
+    [navigator.onLine, 'internet'],
+    [!!v.now.A || !!v.now.B, 'ao menos um deck carregado'],
+    [!v.blackout, 'blackout desligado'],
+    [!v.pattern, 'padrão de calibração desligado']
+  ];
+  const faltando = itens.filter(([ok]) => !ok).map(([, t]) => t);
+  flashMsg(faltando.length ? '⚠ ' + faltando.join(' · ') : '✓ tudo pronto');
+}
+
+/* ── § 8 — Drag payloads ── */
 export function dropInto(lane: Lane, e: React.DragEvent) {
   let it: Item;
   try { it = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
@@ -223,5 +332,6 @@ export function dropInto(lane: Lane, e: React.DragEvent) {
   if (from === lane) return;
   const ok = S().addTo(lane, it);
   if (ok) flashMsg('→ ' + lane);
-  if (from && 'ABC'.includes(from) && !e.ctrlKey) S().removeFrom(from as Lane, it.id);
+  // com um acervo só, arrastar entre listas vira mover entre vídeo e bed
+  if (from && from !== 'res' && from !== lane && !e.ctrlKey) S().removeFrom(from as Lane, it.id);
 }

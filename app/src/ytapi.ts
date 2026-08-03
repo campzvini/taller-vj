@@ -22,6 +22,28 @@ export function ytReady(): Promise<void> {
 declare global {
   interface Window {
     onYouTubeIframeAPIReady?: () => void;
-    vj?: { displays(): Promise<unknown>; openOutput(): Promise<boolean> };
+    vj?: {
+      displays(): Promise<unknown>;
+      openOutput(): Promise<boolean>;
+      setAspect?(ar: string): Promise<boolean>;
+      checklist?(): Promise<Record<string, unknown>>;
+      saveSession?(data: unknown): Promise<string | null>;
+      openSession?(): Promise<{ path: string; data?: unknown; error?: string } | null>;
+      ffmpeg?(args: string[]): Promise<{ ok: boolean; out?: string; err?: string }>;
+      probe?(file: string): Promise<Record<string, unknown> | null>;
+      pickFiles?(dir?: string): Promise<string[]>;
+      pickFolder?(dir?: string): Promise<{ dir: string; files: string[] } | null>;
+      libDir?(): Promise<string>;
+      thumb?(file: string, at?: number): Promise<string | null>;
+      clip?(o: { file: string; start: number; end: number }): Promise<string | null>;
+      toMp4?(src: string): Promise<string | null>;
+      sources?(): Promise<{ id: string; name: string; tipo: string }[]>;
+      saveRec?(bytes: Uint8Array, ext?: string, dir?: string, rotulo?: string): Promise<string | null>;
+      recDir?(): Promise<string>;
+      pickDir?(atual?: string): Promise<string | null>;
+      reveal?(p: string): Promise<boolean>;
+      baixar?(url: string, nome?: string, dir?: string): Promise<{ path?: string; error?: string; jaTinha?: boolean }>;
+      onBaixando?(fn: (d: { url: string; lido: number; total: number; fim?: boolean }) => void): () => void;
+    };
   }
 }

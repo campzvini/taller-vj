@@ -1,83 +1,122 @@
 // ────────────────────────────────────────────
-// TALLER VJ APP 0.3 — ControllerApp.tsx
-// § - Three columns: deck A, cue and mixer, deck B · TSX
+// TALLER VJ APP 1.1 — ControllerApp.tsx
+// § - Three columns, a bar of seconds-decisions and stage mode · TSX
 // Taller Dev 2026
 // VAI CORINTHIANS!
 // ────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { useSession } from '../../store';
-import { out, onBus } from '../../out';
-import { setFlash } from '../../actions';
+import { onBus } from '../../out';
+import { panic, pushAll, setFlash, setNextBed, toggleBlackout } from '../../actions';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useSync } from '../../hooks/useSync';
 import Deck from './components/Deck';
 import Cue from './components/Cue';
 import Slots from './components/Slots';
+import Browser from './components/Browser';
 import Mixer from './components/Mixer';
 import Footer from './components/Footer';
 import SearchStrip from './components/SearchStrip';
+import ModPanel from './components/ModPanel';
+import Scenes from './components/Scenes';
+import TextPanel from './components/TextPanel';
+import RecPanel from './components/RecPanel';
+import Settings from './components/Settings';
+import Zona from './components/Zona';
+import { startModulation, stopModulation } from '../../modulation';
+import { proximaFaixa, startBed, stopBed } from '../../bed';
 import './controller.css';
 
+/**
+ * A barra superior guarda só decisões de SEGUNDOS: o que está no ar, o que apaga
+ * tudo, o que grava. Formato, calibração e reprodução mudam uma vez antes de
+ * começar — moram na configuração. Quem separa não é a importância, é a frequência.
+ */
 export default function ControllerApp() {
   const s = useSession();
   const [msg, setMsg] = useState<string | null>(null);
+  const [cfg, setCfg] = useState(false);
   useKeyboard();
   useSync();
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
     setFlash(m => { setMsg(m); clearTimeout(t); t = setTimeout(() => setMsg(null), 1600); });
+    startModulation();
+    setNextBed(proximaFaixa);
+    startBed();
     // a saída pode nascer depois do controlador: quando ela anuncia, reenviamos tudo
-    return onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
+    const off = onBus(m => { if ('t' in m && m.t === 'up') pushAll(); });
+    return () => { off(); stopModulation(); stopBed(); };
   }, []);
 
-  const pushAll = () => {
-    const v = useSession.getState();
-    out.frame(v.ar); out.loop(v.loop); out.cc(v.cc);
-    out.smooth(v.smooth); out.blend(v.blend);
-    (['A', 'B'] as const).forEach(d => {
-      out.opacity(d, v.op[d] / 100);
-      out.zoomCh(d, +(v.zoom[d] / 100).toFixed(3));
-      out.present(d, !!v.now[d]);
-      if (v.now[d]) out.load(d, v.now[d]!.id);
-    });
-    out.xf(v.xf);
-    (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [...v.fx[b]], v.amt[b]));
-    out.sampBlend(v.sampBlend); out.sampFade(v.sampFade);
-    out.sampZoom(+(v.sampZoom / 100).toFixed(3));
-    out.sampVol(v.sampAudio ? v.sampVol : 0);
-    v.pool.forEach((n, i) => { if (n != null && v.slots[n]) out.sampLoad(i, v.slots[n]!.id, v.slots[n]!.in ?? 0); });
-  };
+  // os três monitores seguem a proporção escolhida para a saída, e entre si
+  useEffect(() => { document.documentElement.style.setProperty('--ar', s.ar); }, [s.ar]);
+
+  // o modo palco é uma classe no body: alcança a busca e o rodapé, fora do #main
+  useEffect(() => { document.body.classList.toggle('palco', s.palco); }, [s.palco]);
+
+  const rotas = s.mods.filter(m => m.on).length;
+  const resumoMod = [
+    rotas ? rotas + (rotas > 1 ? ' routes' : ' route') : '',
+    s.audioOn ? 'listening' : ''
+  ].filter(Boolean).join(' · ');
 
   return (
     <>
       <div id="bar">
         <span className="name">TALLER VJ</span>
         <button className={s.outLive ? 'live' : ''} onClick={() => window.vj?.openOutput()}>
-          {s.outLive ? 'SAÍDA NO AR' : 'ABRIR SAÍDA (O)'}
+          {s.outLive ? 'OUTPUT LIVE' : 'OPEN OUTPUT (O)'}
         </button>
-        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>busca (/)</button>
         <div className="fsep" />
-        <span className="tag">formato</span>
-        {['16/9', '4/3'].map(a => (
-          <button key={a} className={'tgl' + (s.ar === a ? ' on' : '')}
-            onClick={() => { s.set('ar', a); s.save(); out.frame(a); }}>{a.replace('/', ':')}</button>
-        ))}
-        <button className={'tgl' + (s.loop ? ' on' : '')}
-          onClick={() => { const on = !s.loop; s.set('loop', on); s.save(); out.loop(on); }}>loop (L)</button>
-        <button className={'tgl' + (s.cc ? ' on' : '')}
-          onClick={() => { const on = !s.cc; s.set('cc', on); s.save(); out.cc(on); }}>CC (K)</button>
+        {/* emergência: maiores que o resto, para acertar no escuro sem olhar */}
+        <button className={'tgl urg' + (s.blackout ? ' on' : '')}
+          onClick={toggleBlackout} title="black out the output (B)">BLACKOUT</button>
+        <button className="urg" onClick={panic} title="clear all effects (P)">PANIC</button>
+        <div className="fsep" />
+        <RecPanel />
+        <div className="fsep" />
+        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>search (/)</button>
+        <button className={'tgl' + (s.browserOpen ? ' on' : '')}
+          title="deep search column — Ctrl+F"
+          onClick={() => { s.set('browserOpen', !s.browserOpen); s.save(); }}>browse</button>
+        <button className={'palcob tgl' + (s.palco ? ' on' : '')}
+          title="hide preparation panels, enlarge performance controls (F9)"
+          onClick={() => { s.set('palco', !s.palco); s.save(); }}>stage</button>
+        <button onClick={() => setCfg(true)}>settings</button>
+        <div style={{ flex: 1 }} />
+        {!s.outLive && <span className="tag treino">no output</span>}
       </div>
 
       <SearchStrip />
 
-      <div id="main">
+      <div id="main" className={s.browserOpen ? 'combrowser' : ''}>
+        {s.browserOpen && <Browser />}
         <Deck side="A" />
-        <div className="col"><Cue /><Slots /><Mixer /></div>
+        {/* o cue fica parado como os decks; a rolagem começa nos samples */}
+        <div className="col midcol">
+          <Cue />
+          <div className="midscroll">
+            <Mixer />
+            <Slots />
+            <Zona id="cenas" titulo="scenes" some
+              resumo={s.cenas.length ? s.cenas.length + ' saved' : ''}>
+              <Scenes />
+            </Zona>
+            <Zona id="txt" titulo="text" some resumo={s.txtOn && s.txt ? 'on air' : ''}>
+              <TextPanel />
+            </Zona>
+            <Zona id="mod" titulo="tempo &amp; modulation" resumo={resumoMod}>
+              <ModPanel />
+            </Zona>
+          </div>
+        </div>
         <Deck side="B" />
       </div>
 
       <Footer />
+      {cfg && <Settings onClose={() => setCfg(false)} />}
       {msg && <div id="flash">{msg}</div>}
     </>
   );

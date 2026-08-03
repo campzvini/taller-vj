@@ -7,9 +7,10 @@
 import { useEffect, useRef } from 'react';
 import { makeBus, type Cmd, type Deck, type FxBus, type Msg } from '../../bus';
 import { usePlayer, ccOff, errText } from '../../hooks/usePlayer';
+import { GlLayer } from '../../gl/renderer';
 import './output.css';
 
-const NSAMP = 4;
+const NSAMP = 8;   // teto; o controlador usa os N primeiros conforme a configuração
 const SRC = 16 / 9;
 
 export default function OutputApp() {
@@ -27,15 +28,93 @@ export default function OutputApp() {
   const s1 = usePlayer('ytS1', { muted: true, quality: 'small' });
   const s2 = usePlayer('ytS2', { muted: true, quality: 'small' });
   const s3 = usePlayer('ytS3', { muted: true, quality: 'small' });
+  const s4 = usePlayer('ytS4', { muted: true, quality: 'small' });
+  const s5 = usePlayer('ytS5', { muted: true, quality: 'small' });
+  const s6 = usePlayer('ytS6', { muted: true, quality: 'small' });
+  const s7 = usePlayer('ytS7', { muted: true, quality: 'small' });
 
-  const st = useRef({ xf: 0, opA: 1, opB: 1, hasA: false, hasB: false, svol: 0, loop: true, cc: false });
+  const st = useRef({ xf: 50, opA: 1, opB: 1, hasA: false, hasB: false, svol: 0, loop: true, cc: false });
   const hint = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const samp = [s0, s1, s2, s3];
-    const deck = (d: Deck) => (d === 'A' ? pA : pB).current;
+    const samp = [s0, s1, s2, s3, s4, s5, s6, s7];
+    const yt = (d: Deck) => (d === 'A' ? pA : pB).current;
     const el = (id: string) => document.getElementById(id)!;
+    const vid = (d: Deck) => el('vid' + d + 'out') as HTMLVideoElement;
     const root = document.documentElement.style;
+
+    // Cada deck aceita duas fontes; a ativa manda no transporte. YouTube segue
+    // sendo o padrão — arquivo é opção, e as duas convivem sem se atrapalhar.
+    const kind: Record<Deck, 'yt' | 'file'> = { A: 'yt', B: 'yt' };
+    const isFile = (d: Deck) => kind[d] === 'file';
+
+    // o pool segue a mesma regra dos decks: dois nós por sample, um ativo por vez
+    const sampKind: ('yt' | 'file')[] = Array(NSAMP).fill('yt');
+    const sVid = (i: number) => el('vidS' + i) as HTMLVideoElement;
+    const setSampKind = (i: number, k: 'yt' | 'file') => {
+      sampKind[i] = k;
+      sVid(i).style.display = k === 'file' ? '' : 'none';
+      el('ytwrapS' + i).style.display = k === 'yt' ? '' : 'none';
+      if (k === 'file') { try { samp[i]?.current?.pauseVideo(); } catch { /* ignore */ } }
+      else { try { sVid(i).pause(); } catch { /* ignore */ } }
+    };
+
+    // Motor híbrido: o shader só alcança fontes com pixels. Com o YouTube no deck,
+    // aquela camada continua em DOM/CSS — não é escolha, é limite do iframe.
+    let engine: 'dom' | 'gl' = 'dom';
+    const gl: Partial<Record<Deck, GlLayer>> = {};
+    const glAtivo = (d: Deck) => engine === 'gl' && isFile(d) && !!gl[d]?.ok;
+
+    const montaGl = (d: Deck) => {
+      if (gl[d]) return gl[d]!;
+      try {
+        const c = el('gl' + d) as HTMLCanvasElement;
+        const layer = new GlLayer(c);
+        layer.attach(vid(d));
+        // fonte que o shader não pode ler devolve a camada ao DOM sem apagar a imagem
+        layer.onFalha = motivo => {
+          console.warn('[vj] deck', d, 'sem shader:', motivo);
+          pintaEngine(d);
+        };
+        layer.start();
+        gl[d] = layer;
+        return layer;
+      } catch { return null; }
+    };
+    const pintaEngine = (d: Deck) => {
+      const usaGl = glAtivo(d);
+      el('gl' + d).style.display = usaGl ? '' : 'none';
+      vid(d).style.display = isFile(d) && !usaGl ? '' : 'none';
+      el('ytwrap' + d).style.display = kind[d] === 'yt' ? '' : 'none';
+    };
+
+    const setKind = (d: Deck, k: 'yt' | 'file') => {
+      kind[d] = k;
+      if (k === 'file' && engine === 'gl') montaGl(d);
+      pintaEngine(d);
+      if (k === 'file') { try { yt(d)?.pauseVideo(); } catch { /* ignore */ } }
+      else { try { vid(d).pause(); } catch { /* ignore */ } }
+    };
+    const T = {
+      play: (d: Deck) => isFile(d) ? void vid(d).play().catch(() => { }) : yt(d)?.playVideo(),
+      pause: (d: Deck) => isFile(d) ? vid(d).pause() : yt(d)?.pauseVideo(),
+      toggle: (d: Deck) => {
+        if (isFile(d)) { const v = vid(d); v.paused ? v.play().catch(() => { }) : v.pause(); return; }
+        const p = yt(d); if (p) p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo();
+      },
+      seek: (d: Deck, t: number) => isFile(d) ? (vid(d).currentTime = t) : yt(d)?.seekTo(t, true),
+      vol: (d: Deck, v: number) => isFile(d) ? (vid(d).volume = Math.max(0, Math.min(1, v / 100)))
+                                            : yt(d)?.setVolume(Math.round(v)),
+      time: (d: Deck) => { try { return isFile(d) ? vid(d).currentTime : (yt(d)?.getCurrentTime() ?? 0); } catch { return 0; } },
+      dur: (d: Deck) => { try { return isFile(d) ? (vid(d).duration || 0) : (yt(d)?.getDuration() ?? 0); } catch { return 0; } },
+      state: (d: Deck) => {
+        try {
+          if (!isFile(d)) return yt(d)?.getPlayerState() ?? -1;
+          const v = vid(d);
+          return v.ended ? 0 : v.paused ? 2 : 1;    // espelha os códigos da IFrame API
+        } catch { return -1; }
+      }
+    };
 
     // a saída é o monitor conjunto: o crossfader só arbitra com os dois presentes
     const paint = () => {
@@ -60,23 +139,40 @@ export default function OutputApp() {
       anim.style.animation = a.join(', ');
     };
 
-    const applyFrame = (ar: string) => {
-      const [w, h] = ar.split('/').map(Number), T = w / h;
-      root.setProperty('--ar', ar);
+    // O cover é recalculado a partir do tamanho REAL do quadro, então vale tanto para
+    // a janela com proporção forçada quanto para tela cheia no projetor.
+    const recover = () => {
+      const f = document.querySelector('.frame') as HTMLElement | null;
+      if (!f || !f.clientHeight) return;
+      const T = f.clientWidth / f.clientHeight;
       if (T < SRC) { root.setProperty('--covh', '100%'); root.setProperty('--covw', (SRC / T * 100).toFixed(2) + '%'); }
       else { root.setProperty('--covw', '100%'); root.setProperty('--covh', (T / SRC * 100).toFixed(2) + '%'); }
     };
+    const ro = new ResizeObserver(recover);
+    const frameEl = document.querySelector('.frame');
+    if (frameEl) ro.observe(frameEl);
+
+    const applyFrame = (ar: string) => { window.vj?.setAspect?.(ar); recover(); };
 
     const run = (m: Cmd) => {
-      const p = 'deck' in m ? deck(m.deck) : null;
       switch (m.c) {
-        case 'load': p?.loadVideoById(m.id); break;
-        case 'loadList': p?.loadPlaylist({ list: m.list, listType: 'playlist' }); break;
-        case 'play': p?.playVideo(); break;
-        case 'pause': p?.pauseVideo(); break;
-        case 'toggle': p && (p.getPlayerState() === 1 ? p.pauseVideo() : p.playVideo()); break;
-        case 'seek': p?.seekTo(m.t, true); break;
-        case 'vol': p?.setVolume(Math.round(m.v)); break;
+        case 'load':
+          if (m.kind === 'file' && m.src) {
+            setKind(m.deck, 'file');
+            const v = vid(m.deck);
+            v.src = m.src; v.loop = st.current.loop;
+            v.play().catch(() => { });
+          } else {
+            setKind(m.deck, 'yt');
+            yt(m.deck)?.loadVideoById(m.id);
+          }
+          break;
+        case 'loadList': setKind(m.deck, 'yt'); yt(m.deck)?.loadPlaylist({ list: m.list, listType: 'playlist' }); break;
+        case 'play': T.play(m.deck); break;
+        case 'pause': T.pause(m.deck); break;
+        case 'toggle': T.toggle(m.deck); break;
+        case 'seek': T.seek(m.deck, m.t); break;
+        case 'vol': T.vol(m.deck, m.v); break;
         case 'opacity': st.current[m.deck === 'A' ? 'opA' : 'opB'] = m.v; paint(); break;
         case 'present': st.current[m.deck === 'A' ? 'hasA' : 'hasB'] = m.v; paint(); break;
         case 'zoomCh': el('pg' + m.deck).style.setProperty('--zoom', String(m.z)); break;
@@ -85,15 +181,77 @@ export default function OutputApp() {
         case 'blend': el('pgB').style.mixBlendMode = m.mode; break;
         case 'bus': applyBus(m.bus, m.fx, m.amt); break;
         case 'frame': applyFrame(m.ar); break;
-        case 'loop': st.current.loop = m.on; (['A', 'B'] as Deck[]).forEach(d => deck(d)?.setLoop(m.on)); break;
+        case 'pos': {
+          const l = el('pg' + m.deck).style;
+          l.setProperty('--panx', m.pan[0] + '%'); l.setProperty('--pany', m.pan[1] + '%');
+          l.setProperty('--rot', m.rot + 'deg');
+          l.setProperty('--fx', m.flipH ? '-1' : '1'); l.setProperty('--fy', m.flipV ? '-1' : '1');
+          const [t, r, b, lf] = m.crop;
+          l.setProperty('--ct', t + '%'); l.setProperty('--cr', r + '%');
+          l.setProperty('--cb', b + '%'); l.setProperty('--cl', lf + '%');
+          break;
+        }
+        case 'blackout': el('black').classList.toggle('on', m.on); break;
+        case 'texto': {
+          const caixa = el('texto'), alvo = caixa.firstElementChild as HTMLElement;
+          caixa.classList.toggle('on', m.on && !!m.txt);
+          caixa.className = 'on ' + m.modo + (m.on && m.txt ? '' : ' off');
+          alvo.textContent = m.txt;
+          const st = caixa.style;
+          st.setProperty('--tx', m.x + '%'); st.setProperty('--ty', m.y + '%');
+          st.setProperty('--ts', m.size + 'vh'); st.setProperty('--tc', m.cor);
+          alvo.style.textShadow = m.contorno
+            ? '0 2px 12px #000, 0 0 3px #000, 0 0 2px #000' : 'none';
+          break;
+        }
+        case 'engine':
+          engine = m.mode;
+          (['A', 'B'] as Deck[]).forEach(d => {
+            if (engine === 'gl' && isFile(d)) montaGl(d);
+            else if (engine === 'dom') { gl[d]?.stop(); }
+            if (engine === 'gl' && gl[d]) gl[d]!.start();
+            pintaEngine(d);
+          });
+          break;
+        case 'glfx': {
+          const layer = gl[m.deck];
+          if (layer) Object.assign(layer.fx, m.fx);
+          break;
+        }
+        case 'pattern': {
+          const p = el('pattern');
+          p.classList.toggle('on', !!m.name);
+          p.innerHTML = !m.name ? '' :
+            m.name === 'grid' ? '<div class="pt-grid"></div><div class="pt-cross"></div><div class="pt-edge"></div>' :
+            m.name === 'bars' ? '<div class="pt-bars">' +
+              ['#fff','#ff0','#0ff','#0f0','#f0f','#f00','#00f','#000']
+                .map(c => `<i style="background:${c}"></i>`).join('') + '</div>' :
+            m.name === 'focus' ? '<div class="pt-focus"></div><div class="pt-cross"></div>' : '';
+          break;
+        }
+        case 'loop':
+          st.current.loop = m.on;
+          (['A', 'B'] as Deck[]).forEach(d => { yt(d)?.setLoop(m.on); vid(d).loop = m.on; });
+          break;
         case 'cc':
           st.current.cc = m.on;
           (['A', 'B'] as Deck[]).forEach(d => {
-            const q = deck(d); if (!q) return;
+            const q = yt(d); if (!q) return;
             if (m.on) ['captions', 'cc'].forEach(mod => (q as any).loadModule(mod)); else ccOff(q);
           });
           break;
         case 'sampLoad': {
+          if (m.kind === 'file' && m.src) {
+            setSampKind(m.i, 'file');
+            const v = sVid(m.i);
+            v.src = m.src; v.muted = true;
+            // sem tocar não há primeiro quadro: dá play, posiciona no IN e pausa
+            v.play().then(() => {
+              v.currentTime = m.tin; v.pause();
+            }).catch(() => { });
+            break;
+          }
+          setSampKind(m.i, 'yt');
           const q = samp[m.i]?.current; if (!q) break;
           q.loadVideoById({ videoId: m.id, startSeconds: m.tin });
           q.mute();
@@ -102,18 +260,34 @@ export default function OutputApp() {
           break;
         }
         case 'sampOn': {
+          el('s' + m.i).style.opacity = '1';
+          if (sampKind[m.i] === 'file') {
+            const v = sVid(m.i);
+            v.muted = st.current.svol <= 0;
+            v.volume = Math.max(0, Math.min(1, st.current.svol / 100));
+            v.play().catch(() => { });
+            break;
+          }
           const q = samp[m.i]?.current; if (!q) break;
           if (st.current.svol > 0) { q.unMute(); q.setVolume(st.current.svol); } else q.mute();
-          q.playVideo(); el('s' + m.i).style.opacity = '1';
+          q.playVideo();
           break;
         }
         case 'sampOff': {
-          const q = samp[m.i]?.current; if (!q) break;
           el('s' + m.i).style.opacity = '0';
+          if (sampKind[m.i] === 'file') {
+            const v = sVid(m.i);
+            v.pause(); v.muted = true; v.currentTime = m.tin;
+            break;
+          }
+          const q = samp[m.i]?.current; if (!q) break;
           q.mute(); q.pauseVideo(); q.seekTo(m.tin, true);
           break;
         }
-        case 'sampSeek': samp[m.i]?.current?.seekTo(m.t, true); break;
+        case 'sampSeek':
+          if (sampKind[m.i] === 'file') { sVid(m.i).currentTime = m.t; break; }
+          samp[m.i]?.current?.seekTo(m.t, true);
+          break;
         case 'sampBlend': el('pgS').style.mixBlendMode = m.mode; break;
         case 'sampFade':
           root.setProperty('--sfade', m.ms + 'ms');
@@ -123,7 +297,14 @@ export default function OutputApp() {
           break;
         case 'sampVol':
           st.current.svol = m.v;
-          samp.forEach(r => { const q = r.current; if (!q) return; if (m.v > 0) { q.unMute(); q.setVolume(m.v); } else q.mute(); });
+          samp.forEach((r, i) => {
+            if (sampKind[i] === 'file') {
+              const v = sVid(i); v.muted = m.v <= 0; v.volume = Math.max(0, Math.min(1, m.v / 100));
+              return;
+            }
+            const q = r.current; if (!q) return;
+            if (m.v > 0) { q.unMute(); q.setVolume(m.v); } else q.mute();
+          });
           break;
         case 'sampZoom': el('pgS').style.setProperty('--zoom', String(m.z)); break;
         case 'hello': break;
@@ -132,8 +313,7 @@ export default function OutputApp() {
 
     onEnd.current = (d, state) => {
       if (state !== 0 || !st.current.loop) return;   // 0 = ENDED
-      const p = deck(d);
-      try { p?.seekTo(0, true); p?.playVideo(); } catch { /* ignore */ }
+      try { yt(d)?.seekTo(0, true); yt(d)?.playVideo(); } catch { /* ignore */ }
     };
 
     const bus = makeBus();
@@ -141,15 +321,14 @@ export default function OutputApp() {
     bus.send({ t: 'up' });            // avisa o controlador que a saída nasceu
 
     const tele = setInterval(() => {
-      const grab = (d: Deck) => {
-        const q = deck(d);
-        try { return { time: q?.getCurrentTime() ?? 0, state: q?.getPlayerState() ?? -1, dur: q?.getDuration() ?? 0 }; }
-        catch { return { time: 0, state: -1, dur: 0 }; }
-      };
+      const grab = (d: Deck) => ({ time: T.time(d), state: T.state(d), dur: T.dur(d) });
       bus.send({
         t: 'tele', ready: !!pA.current,
         decks: { A: grab('A'), B: grab('B') },
-        samp: samp.map(r => { try { return r.current?.getCurrentTime() ?? 0; } catch { return 0; } })
+        samp: samp.map((r, i) => {
+          try { return sampKind[i] === 'file' ? sVid(i).currentTime : (r.current?.getCurrentTime() ?? 0); }
+          catch { return 0; }
+        })
       });
     }, 200);
 
@@ -159,17 +338,27 @@ export default function OutputApp() {
     // superfície imperativa só para o selftest do main process
     (window as any).VJ = {
       get ready() { return !!pA.current; },
-      load: (d: Deck, id: string) => deck(d)?.loadVideoById(id),
-      state: (d: Deck) => { try { return deck(d)?.getPlayerState() ?? -1; } catch { return -1; } },
-      time: (d: Deck) => { try { return deck(d)?.getCurrentTime() ?? 0; } catch { return 0; } },
-      seek: (d: Deck, t: number) => { try { deck(d)?.seekTo(t, true); } catch { /* ignore */ } },
-      data: (d: Deck) => { try { return deck(d)?.getVideoData(); } catch { return null; } },
+      load: (d: Deck, id: string) => run({ c: 'load', deck: d, id }),
+      loadFile: (d: Deck, src: string) => run({ c: 'load', deck: d, id: src, kind: 'file', src }),
+      kind: (d: Deck) => kind[d],
+      glInfo: (d: Deck) => gl[d] ? { frames: gl[d]!.frames, brilho: gl[d]!.brilho, ok: gl[d]!.ok } : null,
+      state: (d: Deck) => T.state(d),
+      time: (d: Deck) => T.time(d),
+      seek: (d: Deck, t: number) => T.seek(d, t),
+      data: (d: Deck) => { try { return yt(d)?.getVideoData(); } catch { return null; } },
+      sampFile: (i: number, src: string, tin = 0) => run({ c: 'sampLoad', i, id: src, tin, kind: 'file', src }),
+      sampOn: (i: number) => run({ c: 'sampOn', i }),
+      sampInfo: (i: number) => {
+        const v = sVid(i);
+        return { kind: sampKind[i], tocando: !v.paused, t: +v.currentTime.toFixed(1),
+                 visivel: v.style.display !== 'none', opacidade: el('s' + i).style.opacity };
+      },
       xf: (v: number) => { st.current.xf = v; st.current.hasA = true; st.current.hasB = true; paint(); },
       opacity: (d: Deck, v: number) => run({ c: 'opacity', deck: d, v }),
       present: (d: Deck, v: boolean) => run({ c: 'present', deck: d, v })
     };
 
-    return () => { off(); bus.close(); clearInterval(tele); clearTimeout(t); };
+    return () => { off(); bus.close(); clearInterval(tele); clearTimeout(t); ro.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -179,21 +368,30 @@ export default function OutputApp() {
         <div className="bus" id="hueM"><div className="bus" id="baseM"><div className="bus" id="animM">
           <div className="layer" id="pgA">
             <div className="bus" id="hueA"><div className="bus" id="baseA"><div className="bus" id="animA">
-              <div id="ytAout" />
+              <div className="srcwrap" id="ytwrapA"><div id="ytAout" /></div>
+              <video className="srcvid" id="vidAout" playsInline style={{ display: 'none' }} />
+              <canvas className="srcvid" id="glA" style={{ display: 'none' }} />
             </div></div></div>
           </div>
           <div className="layer" id="pgB">
             <div className="bus" id="hueB"><div className="bus" id="baseB"><div className="bus" id="animB">
-              <div id="ytBout" />
+              <div className="srcwrap" id="ytwrapB"><div id="ytBout" /></div>
+              <video className="srcvid" id="vidBout" playsInline style={{ display: 'none' }} />
+              <canvas className="srcvid" id="glB" style={{ display: 'none' }} />
             </div></div></div>
           </div>
           <div className="layer" id="pgS">
-            <div className="samp" id="s0"><div id="ytS0" /></div>
-            <div className="samp" id="s1"><div id="ytS1" /></div>
-            <div className="samp" id="s2"><div id="ytS2" /></div>
-            <div className="samp" id="s3"><div id="ytS3" /></div>
+            {Array.from({ length: NSAMP }, (_, i) => (
+              <div className="samp" id={'s' + i} key={i}>
+                <div className="srcwrap" id={'ytwrapS' + i}><div id={'ytS' + i} /></div>
+                <video className="srcvid" id={'vidS' + i} playsInline muted style={{ display: 'none' }} />
+              </div>
+            ))}
           </div>
         </div></div></div>
+        <div id="texto"><span /></div>
+        <div id="pattern" />
+        <div id="black" />
       </div>
       <div className="hint" ref={hint}>SAÍDA — o controle fica na outra janela</div>
     </div>

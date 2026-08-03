@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BABEL VJ — app icon. Ziggurat (a torre/biblioteca) cujo topo é um play.
+     Paleta Âmbar de Laboratório · by Taller -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" rx="228" fill="#24211E"/>
+  <g fill="#B66A2C">
+    <rect x="212" y="736" width="600" height="104" rx="22"/>
+    <rect x="262" y="606" width="500" height="104" rx="22"/>
+    <rect x="312" y="476" width="400" height="104" rx="22"/>
+  </g>
+  <rect x="362" y="346" width="300" height="104" rx="22" fill="#D7C2A3"/>
+  <path d="M452 158 L624 240 L452 322 Z" fill="#F7F2EA" stroke="#F7F2EA" stroke-width="26" stroke-linejoin="round"/>
+</svg>

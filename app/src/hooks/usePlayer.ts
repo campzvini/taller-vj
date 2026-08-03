@@ -42,7 +42,9 @@ export function usePlayer(domId: string, opts: PlayerOpts = {}) {
         height: '100%', width: '100%', videoId: '',
         host: 'https://www.youtube.com',
         playerVars: {
-          controls: opts.controls ? 1 : 0, disablekb: 1, modestbranding: 1,
+          // sem barra, sem teclado, sem tela cheia, sem anotações: o chrome do
+          // player não pertence à interface — quem comanda é a nossa barra
+          controls: opts.controls ? 1 : 0, disablekb: 1, modestbranding: 1, fs: 0,
           rel: 0, iv_load_policy: 3, playsinline: 1, cc_load_policy: 0,
           // sem origin explícito o player valida a página por conta própria e,
           // em alguns casos, degrada para o botão "assistir no YouTube"
