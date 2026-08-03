@@ -8,7 +8,8 @@ import { useSession } from './store';
 import { out, outLive, send, tele } from './out';
 import { L, M, mon } from './players';
 import type { Deck, FxName, Item, Lane, MarkOwner, Pos } from './types';
-import { clean, curveAt, kindOf, localUrl, POS0 } from './types';
+import { clean, curveAt, kindOf, POS0, srcUrl } from './types';
+import { ehArchive, resolverArchive } from './archive';
 
 const S = () => useSession.getState();
 export let flashMsg: (s: string) => void = () => { };
@@ -17,9 +18,17 @@ export const setFlash = (fn: (s: string) => void) => { flashMsg = fn; };
 /* ── § 1 — Transport ─────────────────────────────────────────────
    Sem a janela de saída aberta o monitor local vira a fonte, com áudio.
    Com ela aberta, o monitor volta a ser espelho mudo.                        */
-export function play(lane: Lane, it: Item | null, at = 0) {
+export async function play(lane: Lane, it: Item | null, at = 0) {
   if (!it) return;
   const s = S();
+  // item do Archive só conhece o próprio identificador: vira URL agora, uma vez
+  if (ehArchive(it.src)) {
+    const url = await resolverArchive(it.src!);
+    if (!url) { flashMsg('no playable video in this item'); return; }
+    it = { ...it, src: url };
+    const troca = (l: Item[]) => l.map(x => x.id === it!.id ? it! : x);
+    s.set('lib', { A: troca(s.lib.A), B: troca(s.lib.B), C: troca(s.lib.C) });
+  }
   if (lane === 'C') {
     if (it.plist) L.bed?.loadPlaylist({ list: it.plist, listType: 'playlist' });
     else L.bed?.loadVideoById(it.id);
@@ -31,14 +40,14 @@ export function play(lane: Lane, it: Item | null, at = 0) {
   const arquivo = kindOf(it) === 'file' && it.src;
 
   if (outLive()) {
-    if (arquivo) send({ c: 'load', deck: d, id: it.id, kind: 'file', src: localUrl(it.src!) });
+    if (arquivo) send({ c: 'load', deck: d, id: it.id, kind: 'file', src: srcUrl(it.src!) });
     else if (it.plist) out.loadList(d, it.plist);
     else out.load(d, it.id);
     out.present(d, true);
     if (at > 1) setTimeout(() => out.seek(d, at), arquivo ? 300 : 900);
   }
 
-  if (arquivo) M.loadFile(d, localUrl(it.src!));
+  if (arquivo) M.loadFile(d, srcUrl(it.src!));
   else if (it.plist && !outLive()) { M.setKind(d, 'yt'); mon(d)?.loadPlaylist({ list: it.plist, listType: 'playlist' }); }
   else M.loadYt(d, it.id);
   if (at > 1) setTimeout(() => M.seek(d, at), arquivo ? 300 : 900);
@@ -68,6 +77,8 @@ export function nextBed() {
 export function cue(it: Item | null) {
   if (!it) return;
   const s = S();
+  // o cue é um player do YouTube: arquivo e Archive vão direto para um deck
+  if (kindOf(it) === 'file') { flashMsg('file source — drag it to a deck'); return; }
   if (s.mirror) s.set('mirror', false);      // carregar manualmente desliga o espelho
   const c = clean(it);
   s.set('now', { ...s.now, P: c });
@@ -79,7 +90,7 @@ export function cue(it: Item | null) {
 export function sendCue(d: Deck) {
   const s = S();
   const it = s.now.P;
-  if (!it) { flashMsg('nada no cue'); return; }
+  if (!it) { flashMsg('cue is empty'); return; }
   let t = 0;
   try { t = L.cue?.getCurrentTime() ?? 0; } catch { /* ignore */ }
   const m = s.mark.P;
@@ -108,7 +119,7 @@ export const clearMark = (o: MarkOwner) => {
 };
 export const toggleTloop = (d: Deck) => {
   const s = S();
-  if (s.mark[d].out == null) { flashMsg('marque OUT antes'); return; }
+  if (s.mark[d].out == null) { flashMsg('set OUT first'); return; }
   s.set('tloop', { ...s.tloop, [d]: !s.tloop[d] } as any);
 };
 
@@ -143,7 +154,7 @@ export function holdOn(n: number) {
   const s = S();
   if (!outLive() || !s.slots[n] || s.held[n]) return;
   const i = s.poolOf[n];
-  if (i == null) { poolAssign(n); flashMsg('slot ' + n + ' carregando — aperte de novo'); return; }
+  if (i == null) { poolAssign(n); flashMsg('slot ' + n + ' loading — press again'); return; }
   s.set('held', { ...s.held, [n]: true });
   out.sampOn(i);
 }
@@ -216,7 +227,7 @@ export function panic() {
   const s = S();
   s.set('fx', { A: new Set(), B: new Set(), M: new Set() });
   (['A', 'B', 'M'] as const).forEach(b => out.fxBus(b, [], s.amt[b]));
-  flashMsg('fx zerados');
+  flashMsg('effects cleared');
 }
 
 /* ── § 6 — Audio ── */

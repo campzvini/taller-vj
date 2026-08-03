@@ -46,13 +46,13 @@ export default function ModPanel() {
   return (
     <>
       <div className="row">
-        <span className="tag">som</span>
+        <span className="tag">input</span>
         <select value={s.audioFonte} onChange={e => trocarFonte(e.target.value)}
-          style={{ maxWidth: 168 }} title="de onde vem o áudio analisado">
+          style={{ maxWidth: 168 }} title="audio source">
           {fontes.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
         </select>
         <button className={'tgl' + (s.audioOn ? ' on' : '')} onClick={ligarAudio}>
-          {s.audioOn ? 'ouvindo' : 'ouvir'}</button>
+          {s.audioOn ? 'listening' : 'listen'}</button>
         <button onClick={() => { const v = tap(); s.set('bpmManual', v); }}>tap</button>
         <span className="val">{bpm ? bpm + ' bpm' : '—'}</span>
         {!!s.bpmManual && <button className="mk" onClick={() => s.set('bpmManual', 0)}>auto</button>}
@@ -68,14 +68,12 @@ export default function ModPanel() {
       )}
 
       <div className="row">
-        <span className="tag">modulação</span>
-        <button className="mk" onClick={() => { s.set('mods', [...s.mods, novoMod()]); s.save(); }}>+ rota</button>
+        <button className="mk" onClick={() => { s.set('mods', [...s.mods, novoMod()]); s.save(); }}>+ route</button>
       </div>
 
       {/* intensidade só tem efeito visível se houver algum efeito ligado naquele bus */}
       {s.mods.some(m => m.on && m.dest === 'amtM') && s.fx.M.size === 0 && (
-        <p className="nota alerta">⚠ há rota para a intensidade do master, mas nenhum
-          efeito master está ligado — nada muda até acender GLI/INV/MEL/HUE/STR.</p>
+        <p className="nota alerta">Master amount does nothing while no master effect is on.</p>
       )}
 
       {s.mods.map((m, i) => (
@@ -104,8 +102,8 @@ export default function ModPanel() {
               const mods = [...s.mods]; mods[i] = { ...m, modo: e.target.value as Modo };
               s.set('mods', mods); s.save();
             }}>
-            <option value="escalar">escala</option>
-            <option value="somar">soma</option>
+            <option value="escalar">scale</option>
+            <option value="somar">offset</option>
           </select>
           <input type="range" min={(m.modo ?? 'escalar') === 'somar' ? -100 : 0} max={100}
             value={m.amount} style={{ maxWidth: 56 }}
@@ -117,12 +115,12 @@ export default function ModPanel() {
           {['sine', 'tri', 'saw', 'rand'].includes(m.src) && (
             <>
               <input type="number" min={1} max={32} value={m.compassos} style={{ width: 38 }}
-                title="batidas por ciclo"
+                title="beats per cycle"
                 onChange={e => {
                   const mods = [...s.mods]; mods[i] = { ...m, compassos: +e.target.value || 1 };
                   s.set('mods', mods); s.save();
                 }} />
-              <span className="tag">bat</span>
+              <span className="tag">beats</span>
             </>
           )}
           <button className="mk" onClick={() => {

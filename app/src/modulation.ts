@@ -32,12 +32,12 @@ export type Mod = {
 };
 
 export const SRC_LABEL: Record<Src, string> = {
-  low: 'graves', mid: 'médios', high: 'agudos', rms: 'volume', beat: 'batida',
-  sine: 'onda senoidal', tri: 'triangular', saw: 'dente de serra', rand: 'aleatório'
+  low: 'bass', mid: 'mids', high: 'highs', rms: 'level', beat: 'beat',
+  sine: 'sine', tri: 'triangle', saw: 'saw', rand: 'random'
 };
 export const DEST_LABEL: Record<Dest, string> = {
-  opA: 'opacidade A', opB: 'opacidade B', zoomA: 'zoom A', zoomB: 'zoom B',
-  xf: 'crossfader', amtM: 'intensidade master', panxA: 'pan X A', panxB: 'pan X B'
+  opA: 'opacity A', opB: 'opacity B', zoomA: 'zoom A', zoomB: 'zoom B',
+  xf: 'crossfader', amtM: 'master amount', panxA: 'pan X A', panxB: 'pan X B'
 };
 
 export const novoMod = (): Mod => ({
@@ -46,8 +46,8 @@ export const novoMod = (): Mod => ({
 });
 
 export const MODO_LABEL: Record<Modo, string> = {
-  escalar: 'escala (pulsa entre 0 e o valor do controle)',
-  somar: 'soma (desloca a partir do valor do controle)'
+  escalar: 'scale: pulses between 0 and the control value',
+  somar: 'offset: adds to the control value'
 };
 
 let raf = 0;

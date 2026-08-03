@@ -51,7 +51,7 @@ export function snapshot(nome?: string): SessionFile {
 }
 
 export function restore(f: SessionFile) {
-  if (f?.app !== 'taller-vj') { flashMsg('não é uma sessão do Taller VJ'); return false; }
+  if (f?.app !== 'taller-vj') { flashMsg('not a Taller VJ session'); return false; }
   const s = useSession.getState();
   s.set('lib', { A: f.lib?.A ?? [], B: f.lib?.B ?? [], C: f.lib?.C ?? [] });
   s.set('slots', f.slots ?? Array(10).fill(null));
@@ -78,12 +78,12 @@ export function restore(f: SessionFile) {
 
 export async function exportSession() {
   const p = await window.vj?.saveSession?.(snapshot());
-  flashMsg(p ? 'sessão salva' : 'cancelado');
+  flashMsg(p ? 'session saved' : 'cancelled');
 }
 
 export async function importSession(after?: () => void) {
   const r = await window.vj?.openSession?.();
   if (!r) return;
-  if ((r as any).error) { flashMsg('arquivo inválido'); return; }
-  if (restore((r as any).data)) { flashMsg('sessão carregada'); after?.(); }
+  if ((r as any).error) { flashMsg('invalid file'); return; }
+  if (restore((r as any).data)) { flashMsg('session loaded'); after?.(); }
 }

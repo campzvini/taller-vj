@@ -49,11 +49,11 @@ export default function Cue() {
           <button onClick={() => sendCue('A')}>◄ A [</button>
           <button onClick={() => sendCue('B')}>B ► ]</button>
           <button className={'tgl' + (s.mirror ? ' on' : '')}
-            onClick={() => s.set('mirror', !s.mirror)}>espelhar saída</button>
+            onClick={() => s.set('mirror', !s.mirror)}>mirror output</button>
         </div>
       </div>
 
-      <Zona id="cue" titulo="trecho e destino" resumo={has ? 'trecho marcado' : ''}>
+      <Zona id="cue" titulo="trim &amp; send" resumo={has ? 'range set' : ''}>
         <div className="row">
           <button className="mk" onClick={() => setMark('P', 'in')}>IN</button>
           <button className="mk" onClick={() => setMark('P', 'out')}>OUT</button>
@@ -65,8 +65,8 @@ export default function Cue() {
               e.dataTransfer.setData('text/plain',
                 JSON.stringify({ ...s.now.P, in: mk.in ?? null, out: mk.out ?? null }));
               e.dataTransfer.effectAllowed = 'copy';
-            }}>⇢ trecho</span>
-          <span className="tag">fone</span>
+            }}>⇢ drag</span>
+          <span className="tag">phones</span>
           <input type="range" min={0} max={100} value={s.vol.P} style={{ maxWidth: 56 }}
             onChange={e => {
               const v = +e.target.value;
@@ -75,8 +75,8 @@ export default function Cue() {
             }} />
         </div>
         <div className="row">
-          <button onClick={() => addTo('A')}>+lista A</button>
-          <button onClick={() => addTo('B')}>+lista B</button>
+          <button onClick={() => addTo('A')}>+ list A</button>
+          <button onClick={() => addTo('B')}>+ list B</button>
           <button onClick={() => addTo('C')}>+ bed C</button>
         </div>
       </Zona>

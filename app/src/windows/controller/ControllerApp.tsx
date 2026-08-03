@@ -53,8 +53,8 @@ export default function ControllerApp() {
 
   const rotas = s.mods.filter(m => m.on).length;
   const resumoMod = [
-    rotas ? rotas + (rotas > 1 ? ' rotas' : ' rota') : '',
-    s.audioOn ? 'ouvindo' : ''
+    rotas ? rotas + (rotas > 1 ? ' routes' : ' route') : '',
+    s.audioOn ? 'listening' : ''
   ].filter(Boolean).join(' · ');
 
   return (
@@ -62,23 +62,23 @@ export default function ControllerApp() {
       <div id="bar">
         <span className="name">TALLER VJ</span>
         <button className={s.outLive ? 'live' : ''} onClick={() => window.vj?.openOutput()}>
-          {s.outLive ? 'SAÍDA NO AR' : 'ABRIR SAÍDA (O)'}
+          {s.outLive ? 'OUTPUT LIVE' : 'OPEN OUTPUT (O)'}
         </button>
         <div className="fsep" />
         {/* emergência: maiores que o resto, para acertar no escuro sem olhar */}
         <button className={'tgl urg' + (s.blackout ? ' on' : '')}
-          onClick={toggleBlackout} title="apaga a saída (B)">BLACKOUT</button>
-        <button className="urg" onClick={panic} title="zera todos os efeitos (P)">PANIC</button>
+          onClick={toggleBlackout} title="black out the output (B)">BLACKOUT</button>
+        <button className="urg" onClick={panic} title="clear all effects (P)">PANIC</button>
         <div className="fsep" />
         <RecPanel />
         <div className="fsep" />
-        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>busca (/)</button>
+        <button onClick={() => { s.set('searchOpen', !s.searchOpen); s.save(); }}>search (/)</button>
         <button className={'palcob tgl' + (s.palco ? ' on' : '')}
-          title="esconde tudo que é preparação e aumenta o que a mão toca (F9)"
-          onClick={() => { s.set('palco', !s.palco); s.save(); }}>palco</button>
-        <button onClick={() => setCfg(true)}>config</button>
+          title="hide preparation panels, enlarge performance controls (F9)"
+          onClick={() => { s.set('palco', !s.palco); s.save(); }}>stage</button>
+        <button onClick={() => setCfg(true)}>settings</button>
         <div style={{ flex: 1 }} />
-        {!s.outLive && <span className="tag treino">modo treino — sem saída</span>}
+        {!s.outLive && <span className="tag treino">no output</span>}
       </div>
 
       <SearchStrip />
@@ -89,11 +89,11 @@ export default function ControllerApp() {
           <Cue />
           <Slots />
           <Mixer />
-          <Zona id="cenas" titulo="cenas" some
-            resumo={s.cenas.length ? s.cenas.length + ' guardadas' : ''}>
+          <Zona id="cenas" titulo="scenes" some
+            resumo={s.cenas.length ? s.cenas.length + ' saved' : ''}>
             <Scenes />
           </Zona>
-          <Zona id="mod" titulo="tempo e modulação" resumo={resumoMod}>
+          <Zona id="mod" titulo="tempo &amp; modulation" resumo={resumoMod}>
             <ModPanel />
           </Zona>
         </div>

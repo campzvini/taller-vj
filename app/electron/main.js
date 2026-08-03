@@ -152,7 +152,7 @@ ipcMain.handle('vj:setAspect', (_e, ar) => {
 // que a reatividade ao som passa a valer para qualquer fonte, inclusive YouTube.
 ipcMain.handle('vj:sources', async () => {
   const s = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 0, height: 0 } });
-  return s.map(x => ({ id: x.id, name: x.name, tipo: x.id.startsWith('screen') ? 'tela' : 'janela' }));
+  return s.map(x => ({ id: x.id, name: x.name, tipo: x.id.startsWith('screen') ? 'screen' : 'window' }));
 });
 
 // ── § 2.0.1 — RECORDING — o renderer captura, o main só encosta no disco ──
@@ -291,7 +291,7 @@ async function selftest() {
           d.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true }));
         };
         set(document.getElementById('q'), 'aqz-KE-bpKQ');
-        [...document.querySelectorAll('#sbar button')].find(b => b.textContent === 'Buscar').click();
+        [...document.querySelectorAll('#sbar button')].find(b => b.textContent === 'Search').click();
         await new Promise(r => setTimeout(r, 2500));
         const noCue = document.querySelectorAll('.hd .now')[1]?.textContent || '';
         [...document.querySelectorAll('button')].find(b => b.textContent.startsWith('◄ A')).click();
@@ -323,7 +323,7 @@ async function selftest() {
     // 7) painel colapsável fecha ao clicar fora
     result.clickFora = await controller.webContents.executeJavaScript(`
       (async () => {
-        const btn = [...document.querySelectorAll('#foot button')].find(b => b.textContent.includes('lista'));
+        const btn = [...document.querySelectorAll('#foot button')].find(b => b.textContent.includes('list'));
         btn.click();
         await new Promise(r => setTimeout(r, 300));
         const aberto = !!document.getElementById('bedlist');
@@ -408,7 +408,7 @@ async function selftest() {
 
     result.modul = await controller.webContents.executeJavaScript(`
       (async () => {
-        const painel = [...document.querySelectorAll('button')].find(b => b.textContent === '+ rota');
+        const painel = [...document.querySelectorAll('button')].find(b => b.textContent === '+ route');
         if (!painel) return 'sem painel';
         painel.click();
         await new Promise(r => setTimeout(r, 400));
@@ -445,7 +445,7 @@ async function selftest() {
           [...linha.querySelectorAll('button')].pop().click();
           await new Promise(r => setTimeout(r, 120));
         }
-        const add = [...document.querySelectorAll('button')].find(x => x.textContent === '+ rota');
+        const add = [...document.querySelectorAll('button')].find(x => x.textContent === '+ route');
         add.click();                       // nasce low -> opB, escala 100
         await new Promise(r => setTimeout(r, 900));
         const linha = document.querySelector('.modrow');
@@ -474,7 +474,7 @@ async function selftest() {
         const xf = document.getElementById('xf');
         põe(xf, 20);
         await new Promise(r => setTimeout(r, 200));
-        const guardar = [...document.querySelectorAll('button')].find(b => b.textContent.includes('guardar mistura'));
+        const guardar = [...document.querySelectorAll('button')].find(b => b.textContent.includes('save mix'));
         if (!guardar) return 'sem painel de cenas';
         guardar.click();
         await new Promise(r => setTimeout(r, 300));
@@ -521,7 +521,7 @@ async function selftest() {
     result.gravacao = await controller.webContents.executeJavaScript(`
       (async () => {
         const botao = () => [...document.querySelectorAll('#bar button')]
-          .find(b => b.textContent.includes('gravar') || b.textContent.startsWith('●'));
+          .find(b => b.textContent.includes('REC') || b.textContent.startsWith('●'));
         const seta = [...document.querySelectorAll('#bar button')].find(b => b.textContent === '▾');
         seta.click();
         await new Promise(r => setTimeout(r, 1200));
@@ -565,7 +565,7 @@ async function selftest() {
         await new Promise(r => setTimeout(r, 400));
         // zona fechada continua anunciando o que está aceso lá dentro
         const zhd = [...document.querySelectorAll('.zona > .zhd')]
-          .find(h => h.textContent.includes('modulação'));
+          .find(h => h.textContent.includes('modulation'));
         zhd.click();
         await new Promise(r => setTimeout(r, 300));
         const fechada = { corpo: !zhd.parentElement.querySelector('.zbody'),
@@ -573,6 +573,26 @@ async function selftest() {
         zhd.click();
         return { antes, durante, depois: vis(document.getElementById('searchwrap')), fechada };
       })()`);
+
+    // 7l) Archive: a busca pública responde à nossa origem e o item vira URL tocável
+    result.archive = await controller.webContents.executeJavaScript(`
+      (async () => {
+        try {
+          const p = new URLSearchParams({ q: 'prelinger AND mediatype:(movies)',
+            rows: '5', page: '1', output: 'json' });
+          p.append('fl[]', 'identifier'); p.append('fl[]', 'title');
+          const r = await fetch('https://archive.org/advancedsearch.php?' + p);
+          const j = await r.json();
+          const docs = j?.response?.docs || [];
+          if (!docs.length) return { achou: 0 };
+          const m = await (await fetch('https://archive.org/metadata/' + docs[0].identifier)).json();
+          const v = (m.files || []).filter(f => /\\.(mp4|ogv|webm|m4v)$/i.test(f.name));
+          return { achou: docs.length, item: docs[0].identifier, arquivos: v.length,
+                   url: v.length ? 'https://' + m.server + m.dir + '/' + v[0].name : null };
+        } catch (e) { return { erro: String(e.message || e) }; }
+      })()`);
+    result.bedTimeline = await controller.webContents.executeJavaScript(
+      `!!document.getElementById('bedtime')`);
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

@@ -13,7 +13,7 @@ export default function Library({ lane, className = 'lib' }: { lane: Lane; class
   const now = useSession(s => s.now[lane]);
   const removeFrom = useSession(s => s.removeFrom);
 
-  if (!items.length) return <div className={className}><div className="empty">arraste vídeos aqui</div></div>;
+  if (!items.length) return <div className={className}><div className="empty">drop videos here</div></div>;
 
   return (
     <div className={className}>
@@ -32,7 +32,9 @@ export default function Library({ lane, className = 'lib' }: { lane: Lane; class
         >
           {it.thumb ? <img src={it.thumb} alt="" /> : <div className="noimg" />}
           <span>{it.title}</span>
-          {it.kind === 'file' && <span className="kind" title={it.src}>arq</span>}
+          {it.kind === 'file' && (
+            <span className="kind" title={it.src}>{it.src?.startsWith('archive:') ? 'IA' : 'FILE'}</span>
+          )}
           <div className="x" onClick={e => { e.stopPropagation(); removeFrom(lane, it.id); }}>×</div>
         </div>
       ))}

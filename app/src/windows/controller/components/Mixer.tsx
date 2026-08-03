@@ -36,23 +36,23 @@ export default function Mixer() {
             value={Math.round(liveXf ?? s.xf)}
             onChange={e => applyXf(+e.target.value)} /><b>B</b></div>
         <div className="row">
-          <span className="tag">suav</span>
+          <span className="tag">smooth</span>
           <input type="range" min={0} max={300} value={s.smooth} style={{ maxWidth: 60 }}
             onChange={e => { const v = +e.target.value; s.set('smooth', v); out.smooth(v); }} />
           <span className="val">{s.smooth}</span>
-          <span className="tag">auto</span>
+          <span className="tag">secs</span>
           <input ref={secs} defaultValue="4" style={{ width: 34 }} />
-          <button onClick={fade}>fade (G)</button>
+          <button onClick={fade}>auto fade (G)</button>
           <select value={s.blend} style={{ maxWidth: 90 }}
             onChange={e => { s.set('blend', e.target.value); out.blend(e.target.value); }}>
             {BLENDS.map(b => <option key={b}>{b}</option>)}
           </select>
           {/* a curva muda a sensação da mão sem mexer no traço do fader */}
-          <select value={s.curve} style={{ maxWidth: 70 }} title="curva do crossfader"
+          <select value={s.curve} style={{ maxWidth: 70 }} title="crossfader curve"
             onChange={e => { s.set('curve', e.target.value as Curve); applyXf(s.xf); }}>
             <option value="linear">linear</option>
-            <option value="log">suave</option>
-            <option value="cut">corte</option>
+            <option value="log">smooth</option>
+            <option value="cut">cut</option>
           </select>
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function Mixer() {
           <input type="range" min={100} max={220} value={s.sampZoom} style={{ maxWidth: 46 }}
             onChange={e => { const v = +e.target.value; s.set('sampZoom', v); out.sampZoom(+(v / 100).toFixed(3)); }} />
           <button className={'tgl' + (s.sampAudio ? ' on' : '')}
-            onClick={() => { const on = !s.sampAudio; s.set('sampAudio', on); out.sampVol(on ? s.sampVol : 0); }}>som</button>
+            onClick={() => { const on = !s.sampAudio; s.set('sampAudio', on); out.sampVol(on ? s.sampVol : 0); }}>sound</button>
           <input type="range" min={0} max={100} value={s.sampVol} style={{ maxWidth: 46 }}
             onChange={e => { const v = +e.target.value; s.set('sampVol', v); if (s.sampAudio) out.sampVol(v); }} />
         </div>

@@ -24,8 +24,8 @@ export default function PosPanel({ side }: { side: Deck }) {
   return (
     <span className="poswrap">
       <button ref={btn} className={'posbtn' + (mexido ? ' on' : '')}
-        onClick={() => setOpen(o => !o)} title="enquadramento: pan, giro, espelho, corte">
-        ✥ enquadrar</button>
+        onClick={() => setOpen(o => !o)} title="pan, rotate, flip, crop">
+        ✥ framing</button>
 
       {open && (
         <div className="pospanel" ref={box}>
@@ -37,23 +37,19 @@ export default function PosPanel({ side }: { side: Deck }) {
             <input type="range" min={-50} max={50} value={pos.pan[1]}
               onChange={e => applyPos(side, { pan: [pos.pan[0], +e.target.value] })} />
             <span className="val">{pos.pan[1]}</span></div>
-          <div className="row"><span className="tag w40">giro</span>
+          <div className="row"><span className="tag w40">rotate</span>
             <input type="range" min={-180} max={180} value={pos.rot}
               onChange={e => applyPos(side, { rot: +e.target.value })} />
             <span className="val">{pos.rot}°</span></div>
           <div className="row">
             <button className={'mk' + (pos.flipH ? ' on' : '')}
-              onClick={() => applyPos(side, { flipH: !pos.flipH })}>espelhar ↔</button>
+              onClick={() => applyPos(side, { flipH: !pos.flipH })}>flip ↔</button>
             <button className={'mk' + (pos.flipV ? ' on' : '')}
-              onClick={() => applyPos(side, { flipV: !pos.flipV })}>espelhar ↕</button>
-            <button className="mk" onClick={() => resetPos(side)}>zerar tudo</button>
+              onClick={() => applyPos(side, { flipV: !pos.flipV })}>flip ↕</button>
+            <button className="mk" onClick={() => resetPos(side)}>reset</button>
           </div>
-          <p className="nota">
-            Se uma rota de modulação estiver escrevendo aqui, o valor volta ao que
-            está nestes controles assim que você desligar a rota.
-          </p>
-          <div className="tag">corte das bordas</div>
-          {(['topo', 'direita', 'base', 'esquerda'] as const).map((nome, i) => (
+          <div className="tag">edge crop</div>
+          {(['top', 'right', 'bottom', 'left'] as const).map((nome, i) => (
             <div className="row" key={nome}><span className="tag w40">{nome}</span>
               <input type="range" min={0} max={45} value={pos.crop[i]}
                 onChange={e => {

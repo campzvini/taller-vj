@@ -27,6 +27,8 @@ export type Item = {
 export const kindOf = (i?: Item | null): Kind => i?.kind ?? 'yt';
 // caminho local vira URL servida pelo http interno (file:// é bloqueado numa página http)
 export const localUrl = (p: string) => `${location.origin}/local?p=${encodeURIComponent(p)}`;
+// fonte remota (Archive) já é URL; caminho de disco precisa passar pelo http interno
+export const srcUrl = (p: string) => /^https?:/i.test(p) ? p : localUrl(p);
 
 export type Mark = { in?: number | null; out?: number | null };
 

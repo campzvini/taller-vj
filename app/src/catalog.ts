@@ -28,7 +28,7 @@ async function toItem(path: string): Promise<Item> {
 
 async function importar(paths: string[], lane: 'A' | 'B' | 'C') {
   if (!paths.length) return;
-  flashMsg(`lendo ${paths.length} arquivo(s)…`);
+  flashMsg(`reading ${paths.length} file(s)…`);
   const s = useSession.getState();
   let n = 0;
   // em série: gerar miniatura dispara ffmpeg, e em paralelo isso engasga a máquina
@@ -36,7 +36,7 @@ async function importar(paths: string[], lane: 'A' | 'B' | 'C') {
     const it = await toItem(p);
     if (s.addTo(lane, it)) n++;
   }
-  flashMsg(`${n} vídeo(s) → ${lane}`);
+  flashMsg(`${n} video(s) → ${lane}`);
 }
 
 export async function importFiles(lane: 'A' | 'B' | 'C' = 'A') {
@@ -53,13 +53,13 @@ export async function importFolder(lane: 'A' | 'B' | 'C' = 'A') {
 /** IN/OUT viram arquivo novo: o garimpo de uma noite fica como acervo.
  *  Só vale para arquivo local — do YouTube não temos os bytes. */
 export async function salvarTrecho(it: Item | null, inn?: number | null, out?: number | null) {
-  if (!it || it.kind !== 'file' || !it.src) { flashMsg('só para arquivo local'); return; }
+  if (!it || it.kind !== 'file' || !it.src) { flashMsg('local files only'); return; }
   const start = inn ?? 0;
   const end = out ?? (it.dur || 0);
-  if (!(end > start)) { flashMsg('marque IN e OUT antes'); return; }
-  flashMsg('cortando…');
+  if (!(end > start)) { flashMsg('set IN and OUT first'); return; }
+  flashMsg('cutting…');
   const p = await window.vj?.clip?.({ file: it.src, start, end }).catch(() => null);
-  flashMsg(p ? 'trecho salvo: ' + p.split(/[\\/]/).pop() : 'cancelado');
+  flashMsg(p ? 'clip saved: ' + p.split(/[\\/]/).pop() : 'cancelled');
 }
 
 /** Arrastar arquivos do explorador direto para a janela. */

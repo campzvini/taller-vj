@@ -76,7 +76,7 @@ export default function Deck({ side }: { side: D }) {
         <div className="row">
           <button onClick={() => toggle(side)}>▶❚❚</button>
           <button className={'mk' + (s.armed === side ? ' on' : '')}
-            onClick={() => s.set('armed', side)}>armar</button>
+            onClick={() => s.set('armed', side)}>arm</button>
           <button className="mk" onClick={() => setMark(side, 'in')}>IN</button>
           <button className="mk" onClick={() => setMark(side, 'out')}>OUT</button>
           <button className={'mk' + (s.tloop[side] ? ' on' : '')} onClick={() => toggleTloop(side)}>⟲</button>
@@ -86,12 +86,12 @@ export default function Deck({ side }: { side: D }) {
         </div>
       </div>
 
-      <Zona id={'mix' + side} titulo="mistura e enquadramento"
-        resumo={[s.op[side] < 100 ? 'opac ' + s.op[side] : '',
+      <Zona id={'mix' + side} titulo="mix &amp; framing"
+        resumo={[s.op[side] < 100 ? 'opacity ' + s.op[side] : '',
           s.zoom[side] > 100 ? 'zoom' : '',
-          (s.pos[side].pan[0] || s.pos[side].pan[1] || s.pos[side].rot) ? 'enquadrado' : ''
+          (s.pos[side].pan[0] || s.pos[side].pan[1] || s.pos[side].rot) ? 'framed' : ''
         ].filter(Boolean).join(' · ')}>
-        <div className="row"><span className="tag w34">opac</span>
+        <div className="row"><span className="tag w34">opacity</span>
           <input type="range" min={0} max={100}
             className={liveOp != null ? 'modulado' : ''}
             value={Math.round(liveOp ?? s.op[side])}
@@ -105,7 +105,7 @@ export default function Deck({ side }: { side: D }) {
             onChange={e => applyZoom(side, +e.target.value)} />
           <span className="val">{Math.round(liveZoom ?? s.zoom[side])}</span></div>
 
-        <div className="row"><span className="tag w34">vol</span>
+        <div className="row"><span className="tag w34">volume</span>
           <input type="range" min={0} max={100} value={s.vol[side]}
             onChange={e => { s.set('vol', { ...s.vol, [side]: +e.target.value } as any); applyAudio(); }} />
           <span className="val">{s.vol[side]}</span></div>
@@ -124,13 +124,13 @@ export default function Deck({ side }: { side: D }) {
 
         {kindOf(s.now[side]) === 'file' && mk.out != null && (
           <div className="row">
-            <button className="mk" title="salvar o trecho marcado como arquivo novo"
-              onClick={() => salvarTrecho(s.now[side], mk.in, mk.out)}>✂ salvar trecho</button>
+            <button className="mk" title="save the marked range as a new file"
+              onClick={() => salvarTrecho(s.now[side], mk.in, mk.out)}>✂ export clip</button>
           </div>
         )}
       </Zona>
 
-      <Zona id={'fx' + side} titulo={'efeitos ' + side}
+      <Zona id={'fx' + side} titulo={'effects ' + side}
         resumo={s.fx[side].size ? [...s.fx[side]].map(f => SHORT[f]).join(' ') : ''}>
         <div className={'row fxrow' + (s.bus === side ? ' focus' : '')}>
           {FX_NAMES.map(f => (
@@ -143,9 +143,9 @@ export default function Deck({ side }: { side: D }) {
       </Zona>
 
       <div className="row libbar">
-        <span className="tag">acervo</span>
-        <button className="mk" onClick={() => importFiles(side)}>+ arquivos</button>
-        <button className="mk" onClick={() => importFolder(side)}>+ pasta</button>
+        <span className="tag">library</span>
+        <button className="mk" onClick={() => importFiles(side)}>add files</button>
+        <button className="mk" onClick={() => importFolder(side)}>add folder</button>
       </div>
       <Library lane={side} />
     </div>

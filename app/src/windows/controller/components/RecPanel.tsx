@@ -14,9 +14,9 @@ import {
 } from '../../../record';
 
 const MODOS: [Modo, string][] = [
-  ['out', 'só a saída'],
-  ['ctrl', 'só o controlador'],
-  ['ambos', 'os dois (dois arquivos)']
+  ['out', 'output only'],
+  ['ctrl', 'controller only'],
+  ['ambos', 'both — two files']
 ];
 
 export default function RecPanel() {
@@ -48,7 +48,7 @@ export default function RecPanel() {
     if (saida && !l.some(a => a.id === v.recAlvo)) v.set('recAlvo', saida.id);
     if (ctrl && !l.some(a => a.id === v.recAlvoCtrl)) v.set('recAlvoCtrl', ctrl.id);
     v.save();
-    if (avisar) flashMsg(`${l.length} janelas · saída ${saida ? 'ok' : 'não achada'}`);
+    if (avisar) flashMsg(`${l.length} windows · output ${saida ? 'found' : 'not found'}`);
     return l;
   }, []);
 
@@ -62,29 +62,27 @@ export default function RecPanel() {
 
   const pedidos = (): Pedido[] => {
     const p: Pedido[] = [];
-    if (s.recModo !== 'ctrl' && s.recAlvo) p.push({ id: s.recAlvo, rotulo: 'saida' });
-    if (s.recModo !== 'out' && s.recAlvoCtrl) p.push({ id: s.recAlvoCtrl, rotulo: 'controlador' });
+    if (s.recModo !== 'ctrl' && s.recAlvo) p.push({ id: s.recAlvo, rotulo: 'output' });
+    if (s.recModo !== 'out' && s.recAlvoCtrl) p.push({ id: s.recAlvoCtrl, rotulo: 'controller' });
     return p;
   };
 
   const alternar = async () => {
     if (rec.ativo) {
       const ps = await stopRec(s.recMp4, s.recDir || undefined);
-      flashMsg(ps.length
-        ? `${ps.length} arquivo(s) salvo(s)`
-        : 'falhou: ' + (rec.erro || 'sem arquivo'));
+      flashMsg(ps.length ? `${ps.length} file(s) saved` : 'failed: ' + (rec.erro || 'no data'));
       return;
     }
     let p = pedidos();
     if (!p.length) { await carregar(); p = pedidos(); }
     if (!p.length) {
-      flashMsg('não achei a janela — escolha no menu ▾');
+      flashMsg('window not found — pick one in ▾');
       setOpen(true); void carregar();
       return;
     }
     const ok = await startRec(p, s.recSom, s.recMbps);
-    flashMsg(ok ? `gravando ${p.length === 2 ? 'as duas janelas' : p[0].rotulo}`
-      : 'não deu para gravar: ' + (rec.erro || ''));
+    flashMsg(ok ? `recording ${p.length === 2 ? 'both windows' : p[0].rotulo}`
+      : 'cannot record: ' + (rec.erro || ''));
   };
 
   const r = btn.current?.getBoundingClientRect();
@@ -92,9 +90,9 @@ export default function RecPanel() {
   return (
     <>
       <button className={'tgl' + (rec.ativo ? ' rec' : '')} onClick={alternar}
-        title="grava a janela escolhida, com o som do sistema">
-        {rec.ativo ? `● ${durMMSS(rec.ms)}${rec.quantos > 1 ? ' ×2' : ''}` : '● gravar'}</button>
-      <button ref={btn} className="mk" title="opções de gravação" onClick={abrirMenu}>▾</button>
+        title="record the selected window with system audio">
+        {rec.ativo ? `● ${durMMSS(rec.ms)}${rec.quantos > 1 ? ' ×2' : ''}` : '● REC'}</button>
+      <button ref={btn} className="mk" title="recording options" onClick={abrirMenu}>▾</button>
 
       {open && (
         // fixa na tela: dentro da barra o painel seria recortado pelo overflow
@@ -102,9 +100,9 @@ export default function RecPanel() {
           left: Math.max(6, Math.min((r?.left ?? 6) - 200, innerWidth - 300)),
           top: (r?.bottom ?? 30) + 4
         }}>
-          <div className="row"><b>Gravação</b></div>
+          <div className="row"><b>Recording</b></div>
 
-          <div className="tag">o que capturar</div>
+          <div className="tag">capture</div>
           {MODOS.map(([m, t]) => (
             <label className="opt" key={m}>
               <input type="radio" name="recmodo" checked={s.recModo === m}
@@ -113,66 +111,58 @@ export default function RecPanel() {
             </label>
           ))}
 
-          <div className="tag">janela da saída</div>
+          <div className="tag">output window</div>
           <select value={s.recAlvo} onChange={e => { s.set('recAlvo', e.target.value); s.save(); }}>
-            <option value="">— não achada —</option>
+            <option value="">— not found —</option>
             {alvos.map(a => <option key={a.id} value={a.id}>{a.tipo}: {a.name}</option>)}
           </select>
 
-          <div className="tag">janela do controlador</div>
+          <div className="tag">controller window</div>
           <select value={s.recAlvoCtrl} onChange={e => { s.set('recAlvoCtrl', e.target.value); s.save(); }}>
-            <option value="">— não achada —</option>
+            <option value="">— not found —</option>
             {alvos.map(a => <option key={a.id} value={a.id}>{a.tipo}: {a.name}</option>)}
           </select>
           <div className="row">
-            <button className="mk" onClick={() => carregar(true)}>reprocurar janelas</button>
+            <button className="mk" onClick={() => carregar(true)}>rescan windows</button>
           </div>
 
-          <div className="tag">onde salvar</div>
-          <span className="nota caminho" title={pasta}>{pasta || 'lendo…'}</span>
+          <div className="tag">save to</div>
+          <span className="nota caminho" title={pasta}>{pasta || '…'}</span>
           <div className="row">
             <button className="mk" onClick={async () => {
               const d = await window.vj?.pickDir?.(s.recDir || pasta);
               if (d) { s.set('recDir', d); s.save(); }
-            }}>escolher pasta</button>
-            <button className="mk" title="abre no explorador (pode abrir atrás da projeção)"
+            }}>choose folder</button>
+            <button className="mk" title="may open behind a fullscreen output"
               onClick={() => window.vj?.reveal?.(rec.ultimos[0] || s.recDir || pasta)}>
-              abrir pasta</button>
+              open folder</button>
             {!!s.recDir && (
-              <button className="mk" title="voltar para Vídeos/taller-vj"
-                onClick={() => { s.set('recDir', ''); s.save(); }}>padrão</button>
+              <button className="mk" onClick={() => { s.set('recDir', ''); s.save(); }}>default</button>
             )}
           </div>
 
-          <div className="tag">como gravar</div>
+          <div className="tag">format</div>
           <div className="row">
             <button className={'tgl' + (s.recSom ? ' on' : '')}
-              onClick={() => { s.set('recSom', !s.recSom); s.save(); }}>som do sistema</button>
+              onClick={() => { s.set('recSom', !s.recSom); s.save(); }}>system audio</button>
             <button className={'tgl' + (s.recMp4 ? ' on' : '')}
-              onClick={() => { s.set('recMp4', !s.recMp4); s.save(); }}>converter p/ MP4</button>
+              onClick={() => { s.set('recMp4', !s.recMp4); s.save(); }}>convert to MP4</button>
           </div>
           <div className="row">
-            <span className="tag w40">taxa</span>
+            <span className="tag w40">bitrate</span>
             <input type="range" min={4} max={30} value={s.recMbps}
               onChange={e => { s.set('recMbps', +e.target.value); s.save(); }} />
             <span className="val">{s.recMbps} Mb/s</span>
           </div>
 
-          <p className="nota">
-            Grava a <b>janela</b>, não a composição — é assim que o YouTube entra no
-            arquivo, já com os efeitos. Gravar as duas gera <b>dois arquivos</b>
-            (…-saida e …-controlador), nunca um mosaico. WebM sai na hora; MP4 é
-            conversão depois de parar e demora.
-          </p>
+          <p className="nota">Captures the window, effects included. WebM now, MP4 after stopping.</p>
           {s.recModo !== 'out' && !!s.recAlvoCtrl && (
-            <p className="nota alerta">
-              Gravar o controlador dobra a carga da placa; em festa, prefira só a saída.
-            </p>
+            <p className="nota alerta">Recording both doubles GPU load.</p>
           )}
           {!!rec.ultimos.length && (
-            <p className="nota">último: {rec.ultimos.map(p => p.split(/[\\/]/).pop()).join(' · ')}</p>
+            <p className="nota">last: {rec.ultimos.map(p => p.split(/[\\/]/).pop()).join(' · ')}</p>
           )}
-          {!!nome(s.recAlvo) && <p className="nota">saída: {nome(s.recAlvo)}</p>}
+          {!!nome(s.recAlvo) && <p className="nota">output: {nome(s.recAlvo)}</p>}
         </div>
       )}
     </>

@@ -72,7 +72,7 @@ export async function search(q: string, opts: Opts = {}): Promise<SearchOut> {
   };
 
   const key = getKey();
-  if (!key) return { items: [], error: 'sem API key — cole uma key ou use URL/ID direto' };
+  if (!key) return { items: [], error: 'no API key — paste one, or use a URL / ID' };
 
   try {
     const p = new URLSearchParams({
@@ -100,6 +100,6 @@ export async function search(q: string, opts: Opts = {}): Promise<SearchOut> {
 
     return { items, nextPage: j.nextPageToken, descartados };
   } catch {
-    return { items: [], error: 'falha na busca' };
+    return { items: [], error: 'search failed' };
   }
 }
