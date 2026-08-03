@@ -15,9 +15,18 @@
   --acc:#ff3b3b; --accb:#3b8cff; --ok:#3bd17a; --warn:#e8c33b;
   --gap:6px; --pad:7px; --r:5px;
 }
+/* Ubuntu é a tipografia da marca: vem embutida para a mesa ser a mesma em qualquer
+   máquina, sem depender do que o sistema tem instalado. */
+@font-face{font-family:Ubuntu;font-weight:400;font-display:block;
+  src:url('../../assets/fonts/Ubuntu-Regular.ttf') format('truetype')}
+@font-face{font-family:Ubuntu;font-weight:500;font-display:block;
+  src:url('../../assets/fonts/Ubuntu-Medium.ttf') format('truetype')}
+@font-face{font-family:Ubuntu;font-weight:700;font-display:block;
+  src:url('../../assets/fonts/Ubuntu-Bold.ttf') format('truetype')}
+
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);
-  font:12px/1.4 "Segoe UI",system-ui,sans-serif;height:100vh;overflow:hidden;user-select:none}
+  font:12px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;height:100vh;overflow:hidden;user-select:none}
 /* Coluna flex, não grid: com faixas de grade o miolo já foi parar na faixa errada
    e sobrou meia tela preta embaixo. Aqui só o miolo cresce, e ele nunca empurra
    o rodapé para fora porque min-height:0 permite que ele encolha. */

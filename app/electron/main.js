@@ -11,6 +11,10 @@ const path = require('path');
 const os = require('os');
 
 const ROOT = path.join(__dirname, '..', 'dist');
+// ícone do app: a torre-play da marca. Fora do pacote (brand/) porque a arte é a
+// mesma que alimenta peças de divulgação; se sumir, a janela usa o ícone padrão.
+const ICONE = path.join(__dirname, '..', 'build', 'icon-256.png');
+const icone = () => (fs.existsSync(ICONE) ? { icon: ICONE } : {});
 const SELFTEST = process.argv.includes('--selftest');
 const DIAG = process.argv.includes('--diag');   // abre só o controlador e conta a tela
 const DEV = process.argv.includes('--dev');
@@ -101,7 +105,7 @@ function makeController() {
   controller = new BrowserWindow({
     x: wa.x, y: wa.y, width: wa.width, height: wa.height,
     minWidth: 1100, minHeight: 700,
-    backgroundColor: '#0a0a0c', title: 'Taller VJ',
+    backgroundColor: '#0a0a0c', title: 'Taller VJ', ...icone(),
     show: false,   // evita o piscar de janela pequena antes de assentar
     // a barra do app É a barra de título: o chrome do sistema vira parte da interface
     titleBarStyle: 'hidden',
@@ -138,7 +142,7 @@ function makeOutput() {
   const { x, y, width, height } = target.bounds;
   output = new BrowserWindow({
     x: x + 40, y: y + 40, width: Math.min(960, width - 80), height: Math.min(540, height - 80),
-    backgroundColor: '#000', title: 'Taller VJ — OUTPUT',
+    backgroundColor: '#000', title: 'Taller VJ — OUTPUT', ...icone(),
     fullscreen: displays.length > 1,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
   });
@@ -877,6 +881,12 @@ async function selftest() {
     result.error = String(e);
   }
   console.log('SELFTEST ' + JSON.stringify(result));
+  // O executável empacotado é subsistema gráfico: não tem stdout para ler. Sem este
+  // arquivo, não há como conferir o autoteste no que de fato vai para a máquina.
+  try {
+    fs.writeFileSync(path.join(os.tmpdir(), 'taller-vj-selftest.json'),
+      JSON.stringify(result, null, 1));
+  } catch { /* disco cheio ou pasta protegida: o console já reportou */ }
   app.exit(result.error ? 1 : 0);
 }
 

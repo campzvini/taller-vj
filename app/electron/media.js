@@ -11,8 +11,13 @@ const path = require('path');
 const os = require('os');
 const https = require('https');
 
-const ffmpeg = require('ffmpeg-static');
-const ffprobe = require('ffprobe-static').path;
+// Empacotado, os módulos vivem dentro de app.asar — e um .exe não roda de dentro de
+// um arquivo. O electron-builder desempacota os dois (asarUnpack); aqui o caminho
+// é corrigido para apontar para a pasta desempacotada.
+const foraDoAsar = p => (p ? p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep)
+  .replace('app.asar/', 'app.asar.unpacked/') : p);
+const ffmpeg = foraDoAsar(require('ffmpeg-static'));
+const ffprobe = foraDoAsar(require('ffprobe-static').path);
 
 const VIDEO_EXT = ['.mp4', '.webm', '.mkv', '.mov', '.avi', '.m4v', '.ogv'];
 const cacheDir = path.join(app.getPath('userData'), 'thumbs');

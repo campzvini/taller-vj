@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BABEL VJ — jogo de símbolos da interface.
+     Grade de 96, traço 8, ponta redonda: o mesmo peso do desenho da marca.
+     Cada símbolo cabe num quadrado de 64 dentro da célula de 96. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 480" width="576" height="480">
+  <defs>
+    <style>
+      .s { fill: none; stroke: #F7F2EA; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+      .f { fill: #F7F2EA; }
+      .a { fill: none; stroke: #B66A2C; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+      .af { fill: #B66A2C; }
+    </style>
+  </defs>
+  <rect width="576" height="480" fill="#24211E"/>
+
+  <!-- linha 1 — transporte -->
+  <g id="play"    transform="translate(16,16)"><path class="f" d="M20 12 L52 32 L20 52 Z"/></g>
+  <g id="pause"   transform="translate(112,16)"><path class="s" d="M24 12 V52 M40 12 V52"/></g>
+  <g id="stop"    transform="translate(208,16)"><rect class="f" x="16" y="16" width="32" height="32" rx="4"/></g>
+  <g id="record"  transform="translate(304,16)"><circle cx="32" cy="32" r="16" fill="#B66A2C"/></g>
+  <g id="cue"     transform="translate(400,16)"><path class="s" d="M16 12 V52"/><path class="f" d="M24 14 L52 32 L24 50 Z"/></g>
+  <g id="loop"    transform="translate(496,16)">
+    <path class="s" d="M12 32 a20 20 0 0 1 20-20 h6 M52 32 a20 20 0 0 1-20 20 h-6"/>
+    <path class="f" d="M38 6 L50 12 L38 18 Z"/><path class="f" d="M26 46 L14 52 L26 58 Z"/>
+  </g>
+
+  <!-- linha 2 — direção -->
+  <g id="right"   transform="translate(16,112)"><path class="s" d="M12 32 H48"/><path class="f" d="M44 22 L58 32 L44 42 Z"/></g>
+  <g id="left"    transform="translate(112,112)"><path class="s" d="M52 32 H16"/><path class="f" d="M20 22 L6 32 L20 42 Z"/></g>
+  <g id="up"      transform="translate(208,112)"><path class="s" d="M32 52 V16"/><path class="f" d="M22 20 L32 6 L42 20 Z"/></g>
+  <g id="down"    transform="translate(304,112)"><path class="s" d="M32 12 V48"/><path class="f" d="M22 44 L32 58 L42 44 Z"/></g>
+  <g id="swap"    transform="translate(400,112)">
+    <path class="s" d="M12 22 H46 M52 42 H18"/>
+    <path class="f" d="M42 14 L56 22 L42 30 Z"/><path class="f" d="M22 34 L8 42 L22 50 Z"/>
+  </g>
+  <g id="download" transform="translate(496,112)">
+    <path class="a" d="M32 8 V38 M12 50 H52"/><path class="af" d="M20 32 L32 46 L44 32 Z"/>
+  </g>
+
+  <!-- linha 3 — mesa -->
+  <g id="fader"   transform="translate(16,208)">
+    <path class="s" d="M8 32 H56"/><rect class="af" x="26" y="16" width="12" height="32" rx="4"/>
+  </g>
+  <g id="volume"  transform="translate(112,208)">
+    <path class="f" d="M14 26 H24 L36 14 V50 L24 38 H14 Z"/>
+    <path class="a" d="M44 22 a14 14 0 0 1 0 20"/>
+  </g>
+  <g id="mute"    transform="translate(208,208)">
+    <path class="f" d="M14 26 H24 L36 14 V50 L24 38 H14 Z"/>
+    <path class="a" d="M44 22 L58 42 M58 22 L44 42"/>
+  </g>
+  <g id="zoom"    transform="translate(304,208)">
+    <circle class="s" cx="28" cy="28" r="16"/><path class="s" d="M40 40 L56 56 M20 28 H36 M28 20 V36"/>
+  </g>
+  <g id="fx"      transform="translate(400,208)">
+    <path class="s" d="M8 44 L20 20 L32 44 L44 12 L56 36"/>
+  </g>
+  <g id="beat"    transform="translate(496,208)">
+    <path class="s" d="M8 32 H18 L24 14 L34 50 L42 32 H56"/>
+  </g>
+
+  <!-- linha 4 — acervo -->
+  <g id="search"  transform="translate(16,304)">
+    <circle class="s" cx="28" cy="28" r="16"/><path class="s" d="M40 40 L56 56"/>
+  </g>
+  <g id="folder"  transform="translate(112,304)">
+    <path class="s" d="M8 50 V16 H26 L32 24 H56 V50 Z"/>
+  </g>
+  <g id="file"    transform="translate(208,304)">
+    <path class="s" d="M14 8 H40 L52 20 V56 H14 Z M40 8 V20 H52"/>
+  </g>
+  <!-- cena = a mistura guardada: dois quadros empilhados, o de trás em âmbar -->
+  <g id="scene"   transform="translate(304,304)">
+    <rect class="a" x="18" y="10" width="38" height="28" rx="5"/>
+    <rect x="8" y="26" width="38" height="28" rx="5" fill="#24211E"/>
+    <rect class="s" x="8" y="26" width="38" height="28" rx="5"/>
+  </g>
+  <g id="text"    transform="translate(400,304)">
+    <path class="s" d="M12 16 H52 M32 16 V52 M22 52 H42"/>
+  </g>
+  <g id="blackout" transform="translate(496,304)">
+    <circle class="a" cx="32" cy="32" r="18"/><path class="a" d="M32 6 V18"/>
+  </g>
+
+  <!-- linha 5 — marca: o traço do taller como cursor -->
+  <g transform="translate(16,400)">
+    <path class="af" d="M12 56 L26 12 L34 12 L22 56 Z"/>
+    <path class="af" d="M36 56 L50 12 L58 12 L46 56 Z"/>
+  </g>
+</svg>

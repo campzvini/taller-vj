@@ -1,7 +1,7 @@
 {
   "name": "taller-vj-app",
-  "version": "0.2.0",
-  "description": "Taller VJ — standalone desktop shell",
+  "version": "1.0.0",
+  "description": "Babel VJ — mesa de vídeo ao vivo, um software Taller",
   "author": "Vinicius Campos",
   "license": "MIT",
   "private": true,
@@ -11,7 +11,25 @@
     "typecheck": "tsc --noEmit",
     "start": "npm run build && electron .",
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5273 && electron . --dev\"",
-    "selftest": "npm run build && electron . --selftest"
+    "selftest": "npm run build && electron . --selftest",
+    "dist": "npm run build && electron-builder --win",
+    "dist:dir": "npm run build && electron-builder --win --dir"
+  },
+  "build": {
+    "appId": "art.taller.babelvj",
+    "productName": "Babel VJ",
+    "copyright": "Taller Laboratório Fotoquímico 2026",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": ["electron/**/*", "dist/**/*", "build/icon-256.png", "package.json"],
+    "asarUnpack": ["**/node_modules/ffmpeg-static/**", "**/node_modules/ffprobe-static/**"],
+    "win": { "target": ["nsis", "portable"], "icon": "build/icon.ico" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Babel VJ",
+      "artifactName": "BabelVJ-${version}-setup.${ext}"
+    },
+    "portable": { "artifactName": "BabelVJ-${version}-portable.${ext}" }
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
@@ -20,6 +38,7 @@
     "@vitejs/plugin-react": "^6.0.5",
     "concurrently": "^10.0.4",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.0",
     "wait-on": "^9.1.0"

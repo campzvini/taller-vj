@@ -4,6 +4,12 @@
    Taller Dev 2026
    VAI CORINTHIANS!
    ──────────────────────────────────────────── */
+/* mesma tipografia da mesa: o texto que vai à projeção é peça de marca */
+@font-face{font-family:Ubuntu;font-weight:400;font-display:block;
+  src:url('../../assets/fonts/Ubuntu-Regular.ttf') format('truetype')}
+@font-face{font-family:Ubuntu;font-weight:700;font-display:block;
+  src:url('../../assets/fonts/Ubuntu-Bold.ttf') format('truetype')}
+
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;background:#000;overflow:hidden;cursor:none}
 
@@ -40,7 +46,7 @@ html,body,#root{height:100%;background:#000;overflow:hidden;cursor:none}
 #texto.off{display:none}
 #texto span{position:absolute;left:var(--tx,50%);top:var(--ty,86%);
   transform:translate(-50%,-50%);white-space:nowrap;
-  font:700 var(--ts,8vh)/1.1 "Segoe UI",system-ui,sans-serif;
+  font:700 var(--ts,8vh)/1.1 Ubuntu,"Segoe UI",system-ui,sans-serif;
   color:var(--tc,#fff);letter-spacing:.02em}
 #texto.marquee span{left:0;transform:translate(0,-50%);animation:corre 14s linear infinite}
 @keyframes corre{from{left:100%}to{left:-140%}}
