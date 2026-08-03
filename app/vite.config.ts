@@ -12,8 +12,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         controller: resolve(__dirname, 'controller.html'),
-        output: resolve(__dirname, 'output.html'),
-        slots: resolve(__dirname, 'slots.html')
+        output: resolve(__dirname, 'output.html')
       }
     }
   },

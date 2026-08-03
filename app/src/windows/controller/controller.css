@@ -11,7 +11,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font:11px/1.35 "Segoe UI",system-ui,sans-serif;
   height:100vh;overflow:hidden;user-select:none}
-#root{height:100vh;display:grid;grid-template-rows:auto auto 1fr auto}
+/* minmax(0,…): sem isto o conteúdo alto empurra o rodapé para fora da janela */
+#root{height:100vh;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto}
 button,select,input{background:#1c1c23;color:var(--txt);border:1px solid var(--line);
   font:inherit;border-radius:3px;padding:4px 6px}
 button{cursor:pointer}
@@ -245,9 +246,6 @@ input[type=range].modulado::-webkit-slider-thumb{background:var(--accb)}
 .acoes{padding:0 4px 4px;gap:3px}
 .acoes .mk{padding:2px 5px;font-size:9px}
 .maisbtn{margin:4px auto 10px;padding:4px 12px}
-.dockrow{padding:2px 0;flex:0 0 auto}
-.dockrow .mk{padding:2px 6px;font-size:9px}
-.dockrow .mk.on{background:var(--accb);border-color:var(--accb);color:#fff}
 
 /* ── § 10 — Emergência e modo palco ── */
 /* blackout e panic se acertam no escuro, sem olhar: são maiores que o resto */

@@ -18,7 +18,7 @@ const DEV_URL = 'http://localhost:5273';
 // partição sem 'persist:' vive em memória: o autoteste começa sempre do zero,
 // senão o localStorage de execuções passadas contamina o resultado
 const PART = SELFTEST ? { partition: 'selftest' } : {};
-let server, origin, controller, output, slots;
+let server, origin, controller, output;
 
 // ── § 1 — LOCAL SERVER — YouTube embeds refuse file://, so we serve over http ──
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
@@ -108,7 +108,6 @@ function makeController() {
   // o controlador é a janela mestra: fechar ele encerra tudo que estiver aberto
   controller.on('closed', () => {
     if (output && !output.isDestroyed()) output.close();
-    if (slots && !slots.isDestroyed()) slots.close();
     if (!SELFTEST) app.quit();
   });
   return controller;
@@ -135,26 +134,6 @@ ipcMain.handle('vj:displays', () => screen.getAllDisplays().map(d => ({
   id: d.id, bounds: d.bounds, primary: d.id === screen.getPrimaryDisplay().id
 })));
 ipcMain.handle('vj:openOutput', () => { if (!output || output.isDestroyed()) makeOutput(); else output.focus(); return true; });
-
-// janela dos slots: pequena, sempre por cima, para ficar ao lado do controlador
-function makeSlots() {
-  slots = new BrowserWindow({
-    width: 720, height: 260, backgroundColor: '#0a0a0c', title: 'Taller VJ — SLOTS',
-    frame: false, alwaysOnTop: true, minWidth: 420, minHeight: 180,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
-  });
-  slots.loadURL(`${origin}/slots.html`);
-  slots.on('closed', () => { slots = null; });
-  return slots;
-}
-ipcMain.handle('vj:openSlots', () => {
-  if (!slots || slots.isDestroyed()) makeSlots(); else slots.focus();
-  return true;
-});
-ipcMain.handle('vj:closeSlots', () => {
-  if (slots && !slots.isDestroyed()) slots.close();
-  return true;
-});
 
 // a JANELA assume a proporção escolhida; o vídeo preenche por cover no renderer
 ipcMain.handle('vj:setAspect', (_e, ar) => {
@@ -290,6 +269,27 @@ async function diagnostico() {
     await wait(11000);
     r.aos15s = await controller.webContents.executeJavaScript(censo);
     r.png15s = await tira('15s');
+    r.ux = await controller.webContents.executeJavaScript(`
+      (async () => {
+        const rect = s => { const e = document.querySelector(s); if (!e) return 'ausente';
+          const r = e.getBoundingClientRect();
+          return { y: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) }; };
+        const wrap = document.getElementById('searchwrap');
+        const comBusca = { foot: rect('#foot'), main: rect('#main'), janela: innerHeight,
+                           busca: rect('#searchwrap') };
+        [...document.querySelectorAll('#bar button')].find(b => b.textContent.startsWith('search')).click();
+        await new Promise(r => setTimeout(r, 700));
+        const semBusca = { foot: rect('#foot'), main: rect('#main'), janela: innerHeight };
+        // lista do bed
+        [...document.querySelectorAll('#foot button')].find(b => b.textContent.includes('list')).click();
+        await new Promise(r => setTimeout(r, 600));
+        const bl = document.getElementById('bedlist');
+        const lista = bl ? { ...rect('#bedlist'), itens: bl.querySelectorAll('.item').length,
+                             vazio: !!bl.querySelector('.empty') } : 'ausente';
+        return { comBusca, semBusca, lista, fechada: wrap.classList.contains('closed') };
+      })()`);
+    r.pngLista = await tira('lista');
+
     // a coluna de garimpo aberta, para conferir a olho o que o censo não vê
     await controller.webContents.executeJavaScript(
       `[...document.querySelectorAll('#bar button')].find(b => b.textContent === 'browse')?.click()`);
@@ -741,51 +741,6 @@ async function selftest() {
         return { abriu: !!c, colunas: getComputedStyle(document.getElementById('main')).gridTemplateColumns,
                  filtros: c ? c.querySelectorAll('select').length : 0 };
       })()`);
-
-    result.slotsJanela = await (async () => {
-      // a gravação recarregou a página: o cue está vazio, então carregamos de novo
-      await controller.webContents.executeJavaScript(`
-        (async () => {
-          const set = (el, v) => {
-            const d = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            d.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true }));
-          };
-          set(document.getElementById('q'), 'aqz-KE-bpKQ');
-          [...document.querySelectorAll('#sbar button')].find(b => b.textContent === 'Search').click();
-          await new Promise(r => setTimeout(r, 2500));
-          const s = [...document.querySelectorAll('.slot')].find(e => e.textContent.trim().startsWith('1'));
-          s.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
-          await new Promise(r => setTimeout(r, 2500));
-          // limpa o sample que o teste de arquivo deixou aceso
-          new BroadcastChannel('vj').postMessage({ c: 'sampOff', i: 0, tin: 0 });
-          await new Promise(r => setTimeout(r, 400));
-        })()`);
-      await controller.webContents.executeJavaScript(`window.vj.openSlots()`);
-      await wait(3500);
-      const janela = BrowserWindow.getAllWindows().find(w => w.getTitle().includes('SLOTS'));
-      if (!janela) return { erro: 'janela não abriu' };
-      const estado = await janela.webContents.executeJavaScript(`
-        (async () => {
-          await new Promise(r => setTimeout(r, 900));
-          const s = [...document.querySelectorAll('.sslot')];
-          return { slots: s.length, comTitulo: s.filter(e => e.querySelector('.tit')).length,
-                   armados: s.filter(e => e.classList.contains('armed')).length,
-                   live: !!document.querySelector('.lampada.on'),
-                   primeiro: s[0]?.querySelector('.tit')?.textContent?.slice(0, 20) || '' };
-        })()`);
-      const antes = await output.webContents.executeJavaScript(`document.getElementById('s0').style.opacity`);
-      // apertar NA JANELA precisa acender o sample na SAÍDA
-      await janela.webContents.executeJavaScript(
-        `document.querySelectorAll('.sslot')[0].dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))`);
-      await wait(900);
-      const aceso = await output.webContents.executeJavaScript(`document.getElementById('s0').style.opacity`);
-      await janela.webContents.executeJavaScript(
-        `document.querySelectorAll('.sslot')[0].dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))`);
-      await wait(700);
-      const apagou = await output.webContents.executeJavaScript(`document.getElementById('s0').style.opacity`);
-      janela.close();
-      return { ...estado, antes, aceso, apagou };
-    })();
 
     // 8) a janela de saída está mesmo em tela cheia / na tela certa?
     result.outputBounds = output.getBounds();

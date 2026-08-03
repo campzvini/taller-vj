@@ -58,7 +58,7 @@ export type Session = {
 
   // ui
   searchOpen: boolean; mirror: boolean; outLive: boolean; palco: boolean;
-  browserOpen: boolean; slotsDock: 'mid' | 'A' | 'B' | 'window';
+  browserOpen: boolean;
 
   set: <K extends keyof Session>(k: K, v: Session[K]) => void;
   addTo: (lane: Lane, it: Item) => boolean;
@@ -104,10 +104,10 @@ export const useSession = create<Session>((set, get) => ({
   monQuality: localStorage.getItem('vj.monq') || 'small',
   poolSize: LS('vj.poolSize', 4),
 
-  searchOpen: LS('vj.search', true), mirror: false, outLive: false,
+  searchOpen: false, mirror: false, outLive: false,
   palco: LS('vj.palco', false),
-  browserOpen: LS('vj.browser', false),
-  slotsDock: (localStorage.getItem('vj.slotsDock') as 'mid' | 'A' | 'B' | 'window') || 'mid',
+  // busca e garimpo começam fechados: a tela nasce mostrando a mesa, não a pesquisa
+  browserOpen: false,
 
   set: (k, v) => set({ [k]: v } as any),
 
@@ -131,7 +131,6 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.ar', s.ar);
     localStorage.setItem('vj.loop', JSON.stringify(s.loop));
     localStorage.setItem('vj.cc', JSON.stringify(s.cc));
-    localStorage.setItem('vj.search', JSON.stringify(s.searchOpen));
     localStorage.setItem('vj.mods', JSON.stringify(s.mods));
     localStorage.setItem('vj.audioFonte', s.audioFonte);
     localStorage.setItem('vj.engine', JSON.stringify(s.engine));
@@ -148,7 +147,6 @@ export const useSession = create<Session>((set, get) => ({
     localStorage.setItem('vj.recAlvoCtrl', s.recAlvoCtrl);
     localStorage.setItem('vj.recModo', s.recModo);
     localStorage.setItem('vj.palco', JSON.stringify(s.palco));
-    localStorage.setItem('vj.browser', JSON.stringify(s.browserOpen));
-    localStorage.setItem('vj.slotsDock', s.slotsDock);
+
   }
 }));

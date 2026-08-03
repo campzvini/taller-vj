@@ -23,7 +23,7 @@ import { importFiles, importFolder, salvarTrecho } from '../../../catalog';
 
 const SHORT: Record<FxName, string> = { glitch: 'GLI', invert: 'INV', melt: 'MEL', hue: 'HUE', strobe: 'STR' };
 
-export default function Deck({ side, doca }: { side: D; doca?: React.ReactNode }) {
+export default function Deck({ side }: { side: D }) {
   const s = useSession();
   const liveOp = useLive(l => l.val[('op' + side) as Dest]);
   const liveZoom = useLive(l => l.val[('zoom' + side) as Dest]);
@@ -158,9 +158,6 @@ export default function Deck({ side, doca }: { side: D; doca?: React.ReactNode }
             onChange={e => setAmt(side, +e.target.value / 100)} />
         </div>
       </Zona>
-
-      {/* os slots podem morar aqui, se o operador docar nesta coluna */}
-      {doca}
 
       <div className="row libbar">
         <span className="tag">library</span>

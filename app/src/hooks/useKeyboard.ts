@@ -57,7 +57,11 @@ export function useKeyboard() {
         } else if (!chamar(i)) flashMsg('cena ' + (i + 1) + ' vazia');
         return;
       }
-      if (k === '/') { e.preventDefault(); s.set('searchOpen', true); s.save(); return; }
+      if (k === '/') { e.preventDefault(); s.set('searchOpen', !s.searchOpen); return; }
+      // Ctrl+F: garimpo. '/' continua sendo a busca rápida da faixa de cima
+      if (kl === 'f' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); s.set('browserOpen', !s.browserOpen); return;
+      }
       if (k === '[') { sendCue('A'); return; }
       if (k === ']') { sendCue('B'); return; }
       if (k === 'Tab') { e.preventDefault(); s.set('armed', s.armed === 'A' ? 'B' : 'A'); return; }
