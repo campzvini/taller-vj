@@ -133,27 +133,81 @@ function makeController() {
   return controller;
 }
 
-// a saída nasce na segunda tela, em tela cheia — sem arrastar janela nem apertar F11
-function makeOutput() {
-  const displays = screen.getAllDisplays();
-  const target = displays.length > 1
-    ? displays.find(d => d.id !== screen.getPrimaryDisplay().id)
-    : screen.getPrimaryDisplay();
-  const { x, y, width, height } = target.bounds;
+// A saída nasce JANELA, nunca em tela cheia por conta própria. Quem tem um monitor
+// só precisa continuar enxergando a mesa; tela cheia é decisão do operador, não do app.
+const telaPorId = id => screen.getAllDisplays().find(d => String(d.id) === String(id));
+
+function telaAlvo(escolha) {
+  if (escolha && escolha !== 'auto') return telaPorId(escolha) || screen.getPrimaryDisplay();
+  // 'auto' = a segunda tela quando ela existe; com uma só, a principal mesmo
+  const p = screen.getPrimaryDisplay();
+  return screen.getAllDisplays().find(d => d.id !== p.id) || p;
+}
+
+function makeOutput(cfg = {}) {
+  const { x, y, width, height } = telaAlvo(cfg.display).workArea;
+  const w = Math.max(320, Math.min(960, width - 80));
+  const h = Math.round(w * 9 / 16);
   output = new BrowserWindow({
-    x: x + 40, y: y + 40, width: Math.min(960, width - 80), height: Math.min(540, height - 80),
+    x: x + Math.round((width - w) / 2), y: y + Math.round((height - h) / 2),
+    width: w, height: h, minWidth: 320, minHeight: 180, resizable: true,
     backgroundColor: '#000', title: 'Taller VJ — OUTPUT', ...icone(),
-    fullscreen: displays.length > 1,
+    fullscreen: !!cfg.fullscreen,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, ...PART }
+  });
+  // Em tela cheia não há barra de título para clicar: o teclado é a única saída.
+  output.webContents.on('before-input-event', (e, input) => {
+    if (input.type !== 'keyDown' || output.isDestroyed()) return;
+    if (input.key === 'F11') { e.preventDefault(); output.setFullScreen(!output.isFullScreen()); }
+    else if (input.key === 'Escape' && output.isFullScreen()) { e.preventDefault(); output.setFullScreen(false); }
   });
   output.loadURL(`${origin}/output.html`);
   return output;
 }
 
-ipcMain.handle('vj:displays', () => screen.getAllDisplays().map(d => ({
-  id: d.id, bounds: d.bounds, primary: d.id === screen.getPrimaryDisplay().id
-})));
-ipcMain.handle('vj:openOutput', () => { if (!output || output.isDestroyed()) makeOutput(); else output.focus(); return true; });
+ipcMain.handle('vj:displays', () => {
+  const p = screen.getPrimaryDisplay();
+  return screen.getAllDisplays().map((d, i) => ({
+    id: d.id, bounds: d.bounds, primary: d.id === p.id,
+    rotulo: `${i + 1} · ${d.bounds.width}×${d.bounds.height}${d.id === p.id ? ' (principal)' : ''}`
+  }));
+});
+
+ipcMain.handle('vj:openOutput', (_e, cfg) => {
+  if (!output || output.isDestroyed()) makeOutput(cfg || {});
+  else output.focus();
+  return true;
+});
+
+// fechar a saída não encerra nada: a mesa continua de pé e os monitores voltam a ter som
+ipcMain.handle('vj:closeOutput', () => {
+  if (output && !output.isDestroyed()) output.close();
+  return true;
+});
+
+ipcMain.handle('vj:outFullscreen', (_e, on) => {
+  if (!output || output.isDestroyed()) return false;
+  output.setFullScreen(on === undefined ? !output.isFullScreen() : !!on);
+  return output.isFullScreen();
+});
+
+// leva a saída para outra tela sem fechar: enquadramento e conteúdo seguem intactos
+ipcMain.handle('vj:outDisplay', (_e, escolha) => {
+  if (!output || output.isDestroyed()) return false;
+  const cheia = output.isFullScreen();
+  if (cheia) output.setFullScreen(false);
+  const { x, y, width, height } = telaAlvo(escolha).workArea;
+  const b = output.getBounds();
+  const w = Math.min(b.width, width), h = Math.min(b.height, height);
+  output.setBounds({ x: x + Math.round((width - w) / 2), y: y + Math.round((height - h) / 2), width: w, height: h });
+  if (cheia) output.setFullScreen(true);
+  return true;
+});
+
+ipcMain.handle('vj:outState', () => {
+  const vivo = !!output && !output.isDestroyed();
+  return { aberta: vivo, cheia: vivo ? output.isFullScreen() : false };
+});
 
 // a JANELA assume a proporção escolhida; o vídeo preenche por cover no renderer
 ipcMain.handle('vj:setAspect', (_e, ar) => {
@@ -868,9 +922,15 @@ async function selftest() {
       (achou || []).forEach(f => { try { fs.unlinkSync(path.join(alvo, f)); } catch { /* ignore */ } });
     }
 
-    // 8) a janela de saída está mesmo em tela cheia / na tela certa?
+    // 8) a saída nasce JANELA e a tela cheia é comandada, não automática
+    result.saidaJanela = { cheiaAoAbrir: output.isFullScreen(), bounds: output.getBounds() };
+    output.setFullScreen(true);
+    await wait(400);
+    result.saidaJanela.cheiaDepoisDoComando = output.isFullScreen();
+    output.setFullScreen(false);
+    await wait(400);
+    result.saidaJanela.voltouParaJanela = !output.isFullScreen();
     result.outputBounds = output.getBounds();
-    result.fullscreen = output.isFullScreen();
     result.iframes = await output.webContents.executeJavaScript(`document.querySelectorAll('iframe').length`);
 
     // 9) fechar o controlador (master) leva a saída junto

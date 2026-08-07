@@ -8,7 +8,8 @@ import { useEffect } from 'react';
 import { useSession } from '../store';
 import { out } from '../out';
 import {
-  applyXf, assignSlot, autofade, flashMsg, holdOff, holdOn, panic, sendCue, toggle, toggleBlackout, toggleFx
+  abrirSaida, applyXf, assignSlot, autofade, fecharSaida, flashMsg, holdOff, holdOn, panic,
+  sendCue, telaCheiaSaida, toggle, toggleBlackout, toggleFx
 } from '../actions';
 import { capturar, chamar } from '../scenes';
 import type { Deck, FxBus, FxName } from '../types';
@@ -76,7 +77,8 @@ export function useKeyboard() {
       if (k === 'End') { e.preventDefault(); applyXf(100); return; }
       if (BUSKEY[kl]) { s.set('bus', BUSKEY[kl]); return; }
       if (FXKEY[kl]) { toggleFx(s.bus, FXKEY[kl]); return; }
-      if (kl === 'o') { window.vj?.openOutput(); return; }
+      if (kl === 'o') { e.shiftKey ? fecharSaida() : abrirSaida(); return; }
+      if (k === 'F11') { e.preventDefault(); telaCheiaSaida(); return; }
       if (kl === 'v') { toggle('C'); return; }
       if (kl === 'g') { autofade(); return; }
       if (kl === 'b') { toggleBlackout(); return; }

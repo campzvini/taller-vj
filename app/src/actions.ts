@@ -206,6 +206,23 @@ export function applyPos(d: Deck, patch: Partial<Pos>) {
   out.pos(d, next);
 }
 export function resetPos(d: Deck) { applyPos(d, { ...POS0 }); }
+
+// ── saída: janela comum, tela e modo escolhidos na configuração ──
+// Abrir em tela cheia por conta própria cega quem tem um monitor só: a mesa
+// some atrás da projeção e não há como voltar sem adivinhar um atalho.
+export function abrirSaida() {
+  const s = S();
+  window.vj?.openOutput({ display: s.outDisplay, fullscreen: s.outFull });
+}
+export async function fecharSaida() {
+  await window.vj?.closeOutput?.();
+  flashMsg('output closed');
+}
+export async function telaCheiaSaida(on?: boolean) {
+  const cheia = await window.vj?.outFullscreen?.(on);
+  flashMsg(cheia ? 'output fullscreen — F11 or Esc to leave' : 'output windowed');
+  return cheia;
+}
 export function toggleBlackout() {
   const s = S(); const on = !s.blackout;
   s.set('blackout', on); out.blackout(on);

@@ -23,8 +23,12 @@ declare global {
   interface Window {
     onYouTubeIframeAPIReady?: () => void;
     vj?: {
-      displays(): Promise<unknown>;
-      openOutput(): Promise<boolean>;
+      displays(): Promise<{ id: number; primary: boolean; rotulo: string }[]>;
+      openOutput(cfg?: { display?: string; fullscreen?: boolean }): Promise<boolean>;
+      closeOutput?(): Promise<boolean>;
+      outFullscreen?(on?: boolean): Promise<boolean>;
+      outDisplay?(escolha: string): Promise<boolean>;
+      outState?(): Promise<{ aberta: boolean; cheia: boolean }>;
       setAspect?(ar: string): Promise<boolean>;
       checklist?(): Promise<Record<string, unknown>>;
       saveSession?(data: unknown): Promise<string | null>;

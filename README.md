@@ -33,8 +33,10 @@ system-audio capture, so a build there is plausible — it has simply never been
 ## First five minutes
 
 1. Open the app. **The screen stays black until you ask for it** — press `O` or click
-   **OPEN OUTPUT**. A second window appears; on a two-screen setup it goes fullscreen on
-   the projector by itself.
+   **OPEN OUTPUT**. A second window appears — a normal, resizable window, on the second
+   screen when there is one. `F11` makes it fullscreen when you are ready, `Esc` leaves.
+   Which screen it uses, and whether it opens already fullscreen, is in
+   **settings → output window**.
 2. Press `/` and paste a YouTube URL, or an 11-character video ID, into the search box.
    Pasting costs nothing and needs no key.
 3. Click the result. It lands in the **cue** — the middle player, which never reaches the
@@ -108,7 +110,8 @@ units and a search costs 100 — about a hundred searches a day.
 
 | Key | Action |
 | --- | --- |
-| `O` | open the output window |
+| `O` | open the output window · `Shift+O` closes it |
+| `F11` | output fullscreen on/off · `Esc` leaves fullscreen |
 | `/` | search strip · `Ctrl+F` browse column |
 | click | send a result to the cue (never on air) |
 | `[` `]` | cue → deck A / deck B, from the point you were watching |

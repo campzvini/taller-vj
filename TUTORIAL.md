@@ -13,13 +13,22 @@ Babel VJ is a **controller** and an **output**. The controller is where you work
 library, three players, mixer, samples, footer. The output is the picture — the only thing
 the room sees.
 
-The output does not open by itself. Press `O` or click **OPEN OUTPUT**. With two screens
-it goes fullscreen on the second one immediately; with one screen it opens as a window you
-can drag and resize. The top-right corner says `NO OUTPUT` until it exists, so you always
-know whether anything is live.
+The output does not open by itself. Press `O` or click **OPEN OUTPUT**. It arrives as a
+**normal window** — resizable, movable, with its own close button — on the second screen
+when there is one. It never takes over a screen on its own: with a single monitor that
+would bury the desk behind the projection with no obvious way back.
 
-Closing the controller closes everything. Closing the output leaves the desk running —
-useful when you want to rehearse without projecting.
+When you are ready to project, `F11` makes it fullscreen and `Esc` or `F11` brings it back.
+The keys work from either window, and the top bar grows a **⛶** and a **✕** while the
+output is live. In **settings → output window** you choose which screen it opens on and
+whether it should open already fullscreen — set that once and the choice sticks.
+
+The top-right corner says `NO OUTPUT` until the window exists, so you always know whether
+anything is live.
+
+Closing the controller closes everything. Closing the output (`Shift+O`, the **✕**, or the
+window's own button) leaves the desk running — useful when you want to rehearse without
+projecting.
 
 > **Rehearsing without an output:** with no output window, the deck monitors become the
 > source *with sound*, so you can prepare a whole set on one screen.

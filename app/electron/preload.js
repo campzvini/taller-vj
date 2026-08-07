@@ -8,7 +8,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('vj', {
   displays: () => ipcRenderer.invoke('vj:displays'),
-  openOutput: () => ipcRenderer.invoke('vj:openOutput'),
+  openOutput: cfg => ipcRenderer.invoke('vj:openOutput', cfg),
+  closeOutput: () => ipcRenderer.invoke('vj:closeOutput'),
+  outFullscreen: on => ipcRenderer.invoke('vj:outFullscreen', on),
+  outDisplay: escolha => ipcRenderer.invoke('vj:outDisplay', escolha),
+  outState: () => ipcRenderer.invoke('vj:outState'),
   setAspect: ar => ipcRenderer.invoke('vj:setAspect', ar),
   checklist: () => ipcRenderer.invoke('vj:checklist'),
   saveSession: data => ipcRenderer.invoke('vj:saveSession', data),

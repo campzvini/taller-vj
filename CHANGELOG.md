@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 — 2026-08-04
+
+**The output window stopped deciding for you.** It opens as an ordinary window —
+resizable, movable, with its own close button — and never goes fullscreen on its own.
+Fullscreen became a command: `F11` toggles it and `Esc` leaves, from either window.
+**settings → output window** chooses which screen it opens on and whether it should open
+already fullscreen, and remembers it. `Shift+O` closes the output without closing the desk;
+a **⛶** and a **✕** appear in the top bar while it is live.
+
+Before, two screens meant it seized the second one by itself, and a single-screen setup
+would end up with the projection covering the desk and no obvious way back.
+
 ## 1.0.0 — 2026-08-03
 
 First packaged release. The browser page became a desktop instrument.

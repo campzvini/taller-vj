@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../store';
 import { out } from '../../../out';
-import { checklist, pushAll, setPattern } from '../../../actions';
+import { abrirSaida, checklist, fecharSaida, pushAll, setPattern, telaCheiaSaida } from '../../../actions';
 import { exportSession, importSession } from '../../../session';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { GLFX0 } from '../../../gl/renderer';
@@ -21,7 +21,9 @@ const GLFX_LABEL: Record<keyof typeof GLFX0, string> = {
 export default function Settings({ onClose }: { onClose: () => void }) {
   const s = useSession();
   const [padrao, setPadrao] = useState('');
+  const [telas, setTelas] = useState<{ id: number; rotulo: string }[]>([]);
   useEffect(() => { window.vj?.libDir?.().then(setPadrao).catch(() => { }); }, []);
+  useEffect(() => { window.vj?.displays?.().then(setTelas).catch(() => { }); }, []);
   const box = useRef<HTMLDivElement>(null);
   const fechar = useCallback(() => onClose(), [onClose]);
   useClickOutside(true, fechar, [box]);
@@ -73,6 +75,36 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         ))}
+
+        {/* A saída é uma janela como outra qualquer: quem decide onde ela mora é o
+            operador. Com um monitor só, tela cheia automática esconderia a mesa. */}
+        <div className="secao">
+          <div className="tag">output window</div>
+          <div className="row">
+            <span className="tag w80">screen</span>
+            <select value={s.outDisplay}
+              onChange={e => { s.set('outDisplay', e.target.value); s.save(); window.vj?.outDisplay?.(e.target.value); }}>
+              <option value="auto">auto — second screen if there is one</option>
+              {telas.map(t => <option key={t.id} value={String(t.id)}>{t.rotulo}</option>)}
+            </select>
+          </div>
+          <div className="row">
+            <span className="tag w80">on open</span>
+            <button className={'tgl' + (!s.outFull ? ' on' : '')}
+              onClick={() => { s.set('outFull', false); s.save(); }}>window</button>
+            <button className={'tgl' + (s.outFull ? ' on' : '')}
+              onClick={() => { s.set('outFull', true); s.save(); }}>fullscreen</button>
+          </div>
+          <div className="row">
+            <button onClick={abrirSaida}>open output</button>
+            <button onClick={() => telaCheiaSaida()}>toggle fullscreen</button>
+            <button className="mk" onClick={fecharSaida}>close output</button>
+          </div>
+          <p className="nota">
+            F11 switches fullscreen on and off, Esc leaves it — from either window.
+            Closing the output does not close the desk; the deck monitors get their sound back.
+          </p>
+        </div>
 
         {/* saiu da barra superior: se muda uma vez antes de começar, mora aqui */}
         <div className="secao">

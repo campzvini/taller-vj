@@ -7,7 +7,9 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '../../store';
 import { onBus } from '../../out';
-import { panic, pushAll, setFlash, setNextBed, toggleBlackout } from '../../actions';
+import {
+  abrirSaida, fecharSaida, panic, pushAll, setFlash, setNextBed, telaCheiaSaida, toggleBlackout
+} from '../../actions';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useSync } from '../../hooks/useSync';
 import Deck from './components/Deck';
@@ -66,9 +68,16 @@ export default function ControllerApp() {
     <>
       <div id="bar">
         <span className="name">TALLER VJ</span>
-        <button className={s.outLive ? 'live' : ''} onClick={() => window.vj?.openOutput()}>
+        <button className={s.outLive ? 'live' : ''} onClick={abrirSaida}
+          title="open the output window (O)">
           {s.outLive ? 'OUTPUT LIVE' : 'OPEN OUTPUT (O)'}
         </button>
+        {s.outLive && <>
+          <button className="mk" title="fullscreen on/off (F11, or Esc inside it)"
+            onClick={() => telaCheiaSaida()}>⛶</button>
+          <button className="mk" title="close the output — the desk keeps running (Shift+O)"
+            onClick={fecharSaida}>✕</button>
+        </>}
         <div className="fsep" />
         {/* emergência: maiores que o resto, para acertar no escuro sem olhar */}
         <button className={'tgl urg' + (s.blackout ? ' on' : '')}
